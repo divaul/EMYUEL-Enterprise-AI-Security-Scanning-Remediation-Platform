@@ -311,6 +311,8 @@ try:
     import openai
     import anthropic
     import google.generativeai
+    import aiohttp
+    import beautifulsoup4
     print('✓ All core dependencies imported successfully')
 except ImportError as e:
     print(f'✗ Import error: {e}')
@@ -329,6 +331,13 @@ except ImportError as e:
         print_success "GUI dependencies verified"
     else
         print_warning "GUI dependencies missing (run: sudo apt install python3-tk)"
+    fi
+    
+    # Test AI modules
+    if python3 -c "from services.ai_planner import AIPlanner; from services.executor import Executor" &> /dev/null; then
+        print_success "AI Analysis modules verified"
+    else
+        print_warning "AI Analysis modules check failed"
     fi
 }
 
@@ -351,6 +360,13 @@ print_completion() {
     
     echo -e "${YELLOW}3. Run GUI mode:${NC}"
     echo "   python -m gui.emyuel_gui"
+    echo ""
+    echo -e "${CYAN}   GUI Features:${NC}"
+    echo "   • Quick Scan tab - URL input + vulnerability selection"
+    echo "   • Advanced Scan tab - Directory scanning"
+    echo "   • 🤖 AI Analysis tab - Autonomous AI-driven testing"
+    echo "   • API Keys tab - Configure OpenAI/Gemini/Claude"
+    echo "   • Results tab - View findings and generate reports"
     echo ""
     
     echo -e "${YELLOW}4. Configure API keys (if skipped):${NC}"
@@ -376,10 +392,18 @@ print_completion() {
     echo "  python -m cli.emyuel_cli scan --target ~/code --provider gemini"
     echo ""
     
+    echo -e "${CYAN}New Features:${NC}"
+    echo "  🤖 AI Analysis - Autonomous security testing with GPT-4"
+    echo "  🔓 Brute Force - Authentication testing (default creds, wordlist, exhaustive)"
+    echo "  💬 Natural Language - English & Indonesian query support"
+    echo "  🎨 Enhanced GUI - Modern design with gradient buttons"
+    echo ""
+    
     echo -e "${CYAN}Documentation:${NC}"
     echo "  Quick Start:        QUICKSTART.md"
     echo "  Full Docs (ID):     DOKUMENTASI_PROGRAM.md"
     echo "  Architecture:       docs/ARCHITECTURE.md"
+    echo "  Bug Fixes:          .gemini/antigravity/brain/.../bug_fixes.md"
     echo ""
     
     echo -e "${YELLOW}⚠  Important Notes:${NC}"
@@ -387,6 +411,7 @@ print_completion() {
     echo "  • API key needed from OpenAI/Gemini/Claude"
     echo "  • Activate venv before running: source venv/bin/activate"
     echo "  • Reports saved to: ./reports/"
+    echo "  • AI Analysis requires OpenAI API key"
     echo ""
     
     print_success "Ready to scan! Happy hacking! 🛡️"

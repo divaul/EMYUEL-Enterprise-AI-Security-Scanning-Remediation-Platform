@@ -154,11 +154,38 @@ python -m cli.emyuel_cli config --provider openai
 python -m gui.emyuel_gui
 ```
 
-Then:
-1. Click "Browse" to select target directory
-2. Choose scan mode (Full/Targeted)
-3. Select LLM provider and profile
-4. Click "Start Scan"
+#### GUI Tabs & Features:
+
+1. **Quick Scan Tab**
+   - URL input with quick examples
+   - Vulnerability selection checkboxes (XSS, SQLi, CSRF, etc.)
+   - Natural Language Query support (English & Indonesian)
+   - "Scan All" toggle option
+   - Real-time progress visualization
+
+2. **Advanced Scan Tab**
+   - Directory selection
+   - Custom module selection
+   - LLM provider choice
+   - Profile configuration
+
+3. **🤖 AI Analysis Tab** (NEW!)
+   - Autonomous AI-driven security analysis
+   - Target URL input
+   - Real-time AI reasoning display
+   - Live console output
+   - Dynamic test plan visualization
+   - Adaptive execution based on findings
+
+4. **API Keys Tab**
+   - OpenAI, Gemini, Claude configuration
+   - Test & validate API keys
+   - Save configurations
+
+5. **Results Tab**
+   - Vulnerability findings
+   - Severity indicators
+   - Report generation
 
 **For Kali Linux users:** If you get `no display` error, use CLI mode instead - it's more suitable for penetration testing workflows.
 

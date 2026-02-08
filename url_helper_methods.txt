@@ -1,0 +1,52 @@
+"""
+Helper methods for URL input and Quick Scan functionality
+Add these methods to EMYUELGUI class
+"""
+
+# Add after line ~1050 in the GUI class
+
+def on_url_focus_in(self, event):
+    """Handle URL entry focus in"""
+    if self.url_entry.get() == 'https://example.com':
+        self.url_entry.delete(0, tk.END)
+        self.url_entry.config(fg=self.colors['text_primary'])
+
+def on_url_focus_out(self, event):
+    """Handle URL entry focus out"""
+    if not self.url_entry.get():
+        self.url_entry.insert(0, 'https://example.com')
+        self.url_entry.config(fg=self.colors['text_secondary'])
+
+def set_url_example(self, url):
+    """Set URL from example"""
+    self.url_entry.delete(0, tk.END)
+    self.url_entry.insert(0, url)
+    self.url_entry.config(fg=self.colors['text_primary'])
+    self.target_var.set(url)
+
+def quick_scan_url(self):
+    """Quick scan a website URL"""
+    url = self.target_var.get().strip()
+    
+    # Clear plaiceholder
+    if url == 'https://example.com' or not url:
+        self.log_console("[ERROR] Please enter a valid website URL")
+        return
+    
+    # Validate URL
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        self.target_var.set(url)
+    
+    self.log_console(f"[INFO] Starting quick scan for: {url}")
+    self.log_console(f"[INFO] Target: {url}")
+    self.log_console(f"[INFO] Profile: standard")
+    self.log_console(f"[INFO] Modules: all")
+    
+    # Update status
+    if hasattr(self, 'header_status_label'):
+        self.header_status_label.config(text="Scanning...")
+        self.header_status_dot.config(fg=self.colors['warning'])
+    
+    # Execute scan
+    self._execute_real_scan(url, modules=['all'])

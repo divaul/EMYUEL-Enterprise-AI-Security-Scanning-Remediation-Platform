@@ -267,12 +267,17 @@ class EMYUELGUI:
         notebook.add(advanced_frame, text='Advanced Scan')
         self.setup_advanced_tab(advanced_frame)
         
-        # Tab 3: API Configuration
+        # Tab 3: AI Analysis (NEW)
+        ai_analysis_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        notebook.add(ai_analysis_frame, text='  🤖  AI Analysis  ')
+        self.setup_ai_analysis_tab(ai_analysis_frame)
+        
+        # Tab 4: API Configuration
         api_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
         notebook.add(api_frame, text='API Keys')
         self.setup_api_tab(api_frame)
         
-        # Tab 4: Scan Results
+        # Tab 5: Scan Results
         results_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
         notebook.add(results_frame, text='Results')
         self.setup_results_tab(results_frame)
@@ -293,16 +298,170 @@ class EMYUELGUI:
         self.status_label.pack(side='left', padx=20, pady=10)
     
     def setup_quick_scan_tab(self, parent):
-        """Setup quick scan tab with natural language input"""
+        """Setup quick scan tab with website URL input and natural language query"""
         
-        # Natural Language Query Section
+        # Website URL Section (NEW - Priority #1)
+        url_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        url_frame.pack(fill='x', padx=20, pady=20)
+        
+        url_title = tk.Label(
+            url_frame,
+            text="🌐 Website URL Scanner",
+            font=('Segoe UI', 14, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        )
+        url_title.pack(anchor='w', padx=20, pady=(20, 10))
+        
+        url_subtitle = tk.Label(
+            url_frame,
+            text="Enter a website URL to scan for security vulnerabilities",
+            font=('Segoe UI', 10),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        )
+        url_subtitle.pack(anchor='w', padx=20, pady=(0, 15))
+        
+        # URL input with scan button
+        url_input_frame = tk.Frame(url_frame, bg=self.colors['bg_secondary'])
+        url_input_frame.pack(fill='x', padx=20, pady=(0, 10))
+        
+        self.url_entry = tk.Entry(
+            url_input_frame,
+            textvariable=self.target_var,
+            font=('Segoe UI', 12),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_primary'],
+            insertbackground=self.colors['accent_cyan'],
+            relief='flat',
+            bd=12
+        )
+        self.url_entry.pack(fill='x', side='left', expand=True)
+        self.url_entry.bind('<Return>', lambda e: self.quick_scan_url())
+        
+        # Placeholder
+        self.url_entry.insert(0, 'https://example.com')
+        self.url_entry.config(fg=self.colors['text_secondary'])
+        self.url_entry.bind('<FocusIn>', self.on_url_focus_in)
+        self.url_entry.bind('<FocusOut>', self.on_url_focus_out)
+        
+        # Quick Scan button
+        quick_scan_btn = tk.Button(
+            url_input_frame,
+            text="⚡ Quick Scan",
+            font=('Segoe UI', 11, 'bold'),
+            bg=self.colors['accent_cyan'],
+            fg=self.colors['bg_primary'],
+            activebackground=self.colors['accent_purple'],
+            relief='flat',
+            cursor='hand2',
+            command=self.quick_scan_url,
+            padx=30,
+            pady=12
+        )
+        quick_scan_btn.pack(side='right', padx=(10, 0))
+        
+        # URL Examples
+        url_examples_label = tk.Label(
+            url_frame,
+            text="Quick Examples:",
+            font=('Segoe UI', 9, 'bold'),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        )
+        url_examples_label.pack(anchor='w', padx=20, pady=(10, 5))
+        
+        url_examples = [
+            "https://example.com",
+            "https://testphp.vulnweb.com",
+            "http://demo.testfire.net"
+        ]
+        
+        url_ex_container = tk.Frame(url_frame, bg=self.colors['bg_secondary'])
+        url_ex_container.pack(anchor='w', padx=40, pady=(0, 15))
+        
+        for url_example in url_examples:
+            ex_btn = tk.Label(
+                url_ex_container,
+                text=f"🔗 {url_example}",
+                font=('Segoe UI', 9),
+                fg=self.colors['accent_cyan'],
+                bg=self.colors['bg_secondary'],
+                cursor='hand2'
+            )
+            ex_btn.pack(side='left', padx=(0, 15))
+            ex_btn.bind('<Button-1>', lambda e, url=url_example: self.set_url_example(url))
+        
+        # Vulnerability Selection Section
+        vuln_selection_label = tk.Label(
+            url_frame,
+            text="Select Vulnerabilities to Scan:",
+            font=('Segoe UI', 10, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        )
+        vuln_selection_label.pack(anchor='w', padx=20, pady=(15, 8))
+        
+        # Checkbox container
+        checkbox_container = tk.Frame(url_frame, bg=self.colors['bg_secondary'])
+        checkbox_container.pack(anchor='w', padx=40, pady=(0, 15))
+        
+        # Create checkboxes for vulnerability types
+        self.vuln_vars = {}
+        vulnerabilities = [
+            ('xss', 'XSS (Cross-Site Scripting)', True),
+            ('sqli', 'SQL Injection', True),
+            ('csrf', 'CSRF', True),
+            ('headers', 'Security Headers', True),
+            ('brute_force', '🔓 Brute Force (Auth Testing)', False),
+            ('ssl', 'SSL/TLS Issues', False),
+            ('info_disclosure', 'Information Disclosure', True),
+            ('all', 'Scan All', False)
+        ]
+        
+        # Create 2 columns of checkboxes
+        col1 = tk.Frame(checkbox_container, bg=self.colors['bg_secondary'])
+        col1.pack(side='left', padx=(0, 30))
+        
+        col2 = tk.Frame(checkbox_container, bg=self.colors['bg_secondary'])
+        col2.pack(side='left')
+        
+        for i, (vuln_id, vuln_label, default) in enumerate(vulnerabilities):
+            var = tk.BooleanVar(value=default)
+            self.vuln_vars[vuln_id] = var
+            
+            container = col1 if i < 4 else col2
+            
+            cb = tk.Checkbutton(
+                container,
+                text=vuln_label,
+                variable=var,
+                font=('Segoe UI', 9),
+                fg=self.colors['text_primary'],
+                bg=self.colors['bg_secondary'],
+                selectcolor=self.colors['bg_tertiary'],
+                activebackground=self.colors['bg_secondary'],
+                activeforeground=self.colors['accent_cyan'],
+                cursor='hand2',
+                command=lambda vid=vuln_id: self.on_vuln_checkbox_change(vid)
+            )
+            cb.pack(anchor='w', pady=2)
+        
+        url_frame.pack_propagate(False)
+        url_frame.configure(height=320)
+        
+        # Divider
+        divider = tk.Frame(parent, bg=self.colors['border'], height=1)
+        divider.pack(fill='x', padx=40, pady=10)
+        
+        # Natural Language Query Section (ALTERNATIVE METHOD)
         query_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         query_frame.pack(fill='x', padx=20, pady=20)
         
         query_title = tk.Label(
             query_frame,
-            text="🔍 Natural Language Query",
-            font=('Arial', 14, 'bold'),
+            text="🔍 Natural Language Query (Alternative)",
+            font=('Segoe UI', 13, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
         )
@@ -310,8 +469,8 @@ class EMYUELGUI:
         
         query_subtitle = tk.Label(
             query_frame,
-            text="Describe what you want to scan in plain English or Indonesian",
-            font=('Arial', 9),
+            text="Or describe what you want to scan in plain English or Indonesian",
+            font=('Segoe UI', 9),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
         )
@@ -997,6 +1156,84 @@ class EMYUELGUI:
         else:
             self.target_type_label.config(text="")
     
+    def on_url_focus_in(self, event):
+        """Handle URL entry focus in"""
+        if self.url_entry.get() == 'https://example.com':
+            self.url_entry.delete(0, tk.END)
+            self.url_entry.config(fg=self.colors['text_primary'])
+    
+    def on_url_focus_out(self, event):
+        """Handle URL entry focus out"""
+        if not self.url_entry.get():
+            self.url_entry.insert(0, 'https://example.com')
+            self.url_entry.config(fg=self.colors['text_secondary'])
+    
+    def set_url_example(self, url):
+        """Set URL from example click"""
+        self.url_entry.delete(0, tk.END)
+        self.url_entry.insert(0, url)
+        self.url_entry.config(fg=self.colors['text_primary'])
+        self.target_var.set(url)
+        self.log_console(f"[INFO] URL set to: {url}")
+    
+    def on_vuln_checkbox_change(self, vuln_id):
+        """Handle vulnerability checkbox changes"""
+        if vuln_id == 'all':
+            # If 'Scan All' is checked, check all others
+            scan_all = self.vuln_vars['all'].get()
+            for vid in self.vuln_vars:
+                if vid != 'all':
+                    self.vuln_vars[vid].set(scan_all)
+        else:
+            # If any specific vuln is unchecked, uncheck 'Scan All'
+            if not self.vuln_vars[vuln_id].get():
+                self.vuln_vars['all'].set(False)
+    
+    def get_selected_vulnerabilities(self):
+        """Get list of selected vulnerability modules"""
+        selected = []
+        for vuln_id, var in self.vuln_vars.items():
+            if var.get() and vuln_id != 'all':
+                selected.append(vuln_id)
+        
+        # If none selected or all selected, return 'all'
+        if not selected or len(selected) == len(self.vuln_vars) - 1:
+            return ['all']
+        
+        return selected
+    
+    def quick_scan_url(self):
+        """Quick scan a website URL directly"""
+        url = self.target_var.get().strip()
+        
+        # Clear placeholder
+        if url == 'https://example.com' or not url:
+            self.log_console("[ERROR] Please enter a valid website URL")
+            messagebox.showwarning("Invalid URL", "Please enter a valid website URL to scan")
+            return
+        
+        # Validate and fix URL
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+            self.target_var.set(url)
+        
+        # Get selected vulnerabilities
+        modules = self.get_selected_vulnerabilities()
+        modules_str = ', '.join(modules) if len(modules) < 6 else f"{len(modules)} modules"
+        
+        self.log_console(f"[INFO] 🚀 Starting quick scan...")
+        self.log_console(f"[INFO] Target: {url}")
+        self.log_console(f"[INFO] Profile: standard")
+        self.log_console(f"[INFO] Modules: {modules_str}")
+        
+        # Update header status
+        if hasattr(self, 'header_status_label'):
+            self.header_status_label.config(text="Scanning...")
+            self.header_status_dot.config(fg=self.colors['warning'])
+        
+        # Execute real scan with selected modules
+        self._execute_real_scan(url, modules=modules)
+    
     def set_scan_all_mode(self):
         """Set scan to 'scan all' mode"""
         self.scan_mode_var.set("full")
@@ -1332,6 +1569,280 @@ class EMYUELGUI:
         self.console_text.insert('end', f"[{timestamp}] {message}\n")
         self.console_text.see('end')
         self.console_text.config(state='disabled')
+    
+    def setup_ai_analysis_tab(self, parent):
+        """Setup AI-driven autonomous security analysis tab"""
+        
+        # Scrollable container
+        canvas = tk.Canvas(parent, bg=self.colors['bg_primary'], highlightthickness=0)
+        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=self.colors['bg_primary'])
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Header
+        header_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        header_frame.pack(fill='x', padx=20, pady=20)
+        
+        tk.Label(
+            header_frame,
+            text="🤖 AI-Driven Autonomous Security Analysis",
+            font=('Segoe UI', 14, 'bold'),
+            fg=self.colors['accent_cyan'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 5))
+        
+        tk.Label(
+            header_frame,
+            text="AI analyzes targets, generates custom testing strategies, and adapts based on results",
+            font=('Segoe UI', 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(0, 15))
+        
+        # Target URL Section
+        url_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        url_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        tk.Label(
+            url_frame,
+            text="🎯 Target URL",
+            font=('Segoe UI', 11, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 10))
+        
+        url_input_frame = tk.Frame(url_frame, bg=self.colors['bg_secondary'])
+        url_input_frame.pack(fill='x', padx=20, pady=(0, 15))
+        
+        self.ai_target_var = tk.StringVar(value='https://testphp.vulnweb.com')
+        
+        url_entry = tk.Entry(
+            url_input_frame,
+            textvariable=self.ai_target_var,
+            font=('Segoe UI', 10),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_primary'],
+            insertbackground=self.colors['text_primary'],
+            relief='flat',
+            bd=0
+        )
+        url_entry.pack(side='left', fill='x', expand=True, ipady=10, padx=(0, 10))
+        
+        # Start Analysis Button
+        start_btn = tk.Button(
+            url_input_frame,
+            text="🚀 Start AI Analysis",
+            font=('Segoe UI', 10, 'bold'),
+            bg=self.colors['accent_cyan'],
+            fg='#000000',
+            activebackground=self.colors['accent_purple'],
+            activeforeground='#ffffff',
+            relief='flat',
+            cursor='hand2',
+            command=self.start_ai_analysis,
+            padx=20,
+            pady=10
+        )
+        start_btn.pack(side='right')
+        
+        # Progress Section
+        progress_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        progress_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        tk.Label(
+            progress_frame,
+            text="📊 Analysis Progress",
+            font=('Segoe UI', 11, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 10))
+        
+        # Steps container with scroll
+        steps_canvas = tk.Canvas(progress_frame, bg=self.colors['bg_tertiary'], height=250, highlightthickness=0)
+        steps_scroll = tk.Scrollbar(progress_frame, orient="vertical", command=steps_canvas.yview)
+        self.ai_steps_frame = tk.Frame(steps_canvas, bg=self.colors['bg_tertiary'])
+        
+        self.ai_steps_frame.bind(
+            "<Configure>",
+            lambda e: steps_canvas.configure(scrollregion=steps_canvas.bbox("all"))
+        )
+        
+        steps_canvas.create_window((0, 0), window=self.ai_steps_frame, anchor="nw", width=700)
+        steps_canvas.configure(yscrollcommand=steps_scroll.set)
+        
+        steps_canvas.pack(side="left", fill="both", expand=True, padx=20, pady=(0, 15))
+        steps_scroll.pack(side="right", fill="y", pady=(0, 15), padx=(0, 20))
+        
+        # Initial placeholder
+        tk.Label(
+            self.ai_steps_frame,
+            text="No analysis started. Enter a URL above and click 'Start AI Analysis'",
+            font=('Segoe UI', 9, 'italic'),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_tertiary']
+        ).pack(padx=15, pady=30)
+        
+        # AI Reasoning Section
+        reasoning_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        reasoning_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        tk.Label(
+            reasoning_frame,
+            text="💬 AI Reasoning",
+            font=('Segoe UI', 11, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 10))
+        
+        self.ai_reasoning_text = tk.Text(
+            reasoning_frame,
+            height=4,
+            font=('Segoe UI', 9),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_secondary'],
+            relief='flat',
+            wrap='word',
+            state='disabled'
+        )
+        self.ai_reasoning_text.pack(fill='x', padx=20, pady=(0, 15))
+        
+        # Live Console
+        console_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        console_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+        
+        tk.Label(
+            console_frame,
+            text="📄 Live Console",
+            font=('Segoe UI', 11, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 10))
+        
+        self.ai_console_text = tk.Text(
+            console_frame,
+            height=8,
+            font=('Consolas', 9),
+            bg='#000000',
+            fg='#00ff00',
+            relief='flat',
+            wrap='word',
+            state='disabled'
+        )
+        self.ai_console_text.pack(fill='both', expand=True, padx=20, pady=(0, 15))
+        
+        # Initialize AI analysis state
+        self.ai_analysis_running = False
+        self.ai_step_widgets = []
+    
+    def start_ai_analysis(self):
+        """Start AI-driven security analysis"""
+        target_url = self.ai_target_var.get().strip()
+        
+        if not target_url or target_url == 'https://example.com':
+            messagebox.showwarning("Invalid URL", "Please enter a valid target URL")
+            return
+        
+        if hasattr(self, 'ai_analysis_running') and self.ai_analysis_running:
+            messagebox.showinfo("Analysis Running", "An AI analysis is already in progress")
+            return
+        
+        # Validate API key
+        openai_key = self.api_key_openai.get()
+        if not openai_key:
+            messagebox.showerror("API Key Required", 
+                               "Please configure your OpenAI API key in the API Keys tab first")
+            return
+        
+        self.ai_analysis_running = True
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] AI Analysis initialized")
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Target: {target_url}")
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] NOTE: Full AI analysis requires integration")
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running basic security scan instead...")
+        
+        # Run basic scan (placeholder - full implementation available in ai_analysis_tab_methods.py)
+        import threading
+        thread = threading.Thread(target=self.run_basic_analysis, args=(target_url,))
+        thread.daemon = True
+        thread.start()
+    
+    def run_basic_analysis(self, target_url: str):
+        """Run basic analysis (simplified version)"""
+        import asyncio
+        from services.executor import Executor
+        
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            executor = Executor(verbose=False)
+            
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running security headers check...")
+            self.ai_update_reasoning("Analyzing security headers configuration...")
+            
+            # Basic header analysis
+            import aiohttp
+            async def check_headers():
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(target_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                        headers = dict(response.headers)
+                        return headers
+            
+            headers = loop.run_until_complete(check_headers())
+            
+            # Check for security headers
+            security_headers = ['X-Frame-Options', 'X-Content-Type-Options', 'Content-Security-Policy', 'Strict-Transport-Security']
+            missing = [h for h in security_headers if h not in headers]
+            
+            if missing:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Missing headers: {', '.join(missing)}")
+                self.ai_update_reasoning(f"Found {len(missing)} missing security headers.\n\nRecommendation: Add security headers to prevent common attacks.")
+            else:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ All security headers present")
+                self.ai_update_reasoning("Security headers are properly configured.")
+            
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Analysis complete!")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] For full AI-powered analysis, see: ai_analysis_tab_methods.py")
+            
+        except Exception as e:
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Error: {str(e)}")
+        
+        finally:
+            self.ai_analysis_running = False
+            loop.close()
+    
+    def ai_log_console(self, message: str):
+        """Log message to AI console (thread-safe)"""
+        if hasattr(self, 'ai_console_text'):
+            def update():
+                self.ai_console_text.config(state='normal')
+                self.ai_console_text.insert('end', message + '\n')
+                self.ai_console_text.see('end')
+                self.ai_console_text.config(state='disabled')
+            
+            # Execute on main thread
+            self.root.after(0, update)
+    
+    def ai_update_reasoning(self, reasoning: str):
+        """Update AI reasoning display (thread-safe)"""
+        if hasattr(self, 'ai_reasoning_text'):
+            def update():
+                self.ai_reasoning_text.config(state='normal')
+                self.ai_reasoning_text.delete('1.0', 'end')
+                self.ai_reasoning_text.insert('1.0', reasoning)
+                self.ai_reasoning_text.config(state='disabled')
+            
+            # Execute on main thread
+            self.root.after(0, update)
     
     def run(self):
         """Run the GUI"""

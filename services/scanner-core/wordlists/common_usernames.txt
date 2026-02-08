@@ -1,0 +1,21 @@
+# Common Usernames
+admin
+administrator
+root
+user
+test
+guest
+demo
+support
+manager
+webmaster
+postmaster
+info
+sales
+backup
+operator
+moderator
+developer
+sysadmin
+superuser
+mysql
