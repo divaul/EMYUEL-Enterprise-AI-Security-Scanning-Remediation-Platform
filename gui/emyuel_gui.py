@@ -975,11 +975,12 @@ class EMYUELGUI:
                 try:
                     from services.scanner_core import ScannerCore
                 except ImportError as e:
-                    self.root.after(0, lambda: self.log_console(f"[ERROR] Failed to import ScannerCore: {e}"))
+                    err_msg = str(e)  # Capture value immediately
+                    self.root.after(0, lambda msg=err_msg: self.log_console(f"[ERROR] Failed to import ScannerCore: {msg}"))
                     self.root.after(0, lambda: self.log_console("[ERROR] Make sure scanner-core directory exists in services/"))
-                    self.root.after(0, lambda: messagebox.showerror(
+                    self.root.after(0, lambda msg=err_msg: messagebox.showerror(
                         "Import Error", 
-                        f"Failed to import scanner:\n{e}\n\nMake sure services/scanner-core/ directory exists."
+                        f"Failed to import scanner:\n{msg}\n\nMake sure services/scanner-core/ directory exists."
                     ))
                     return
                 
@@ -1030,9 +1031,9 @@ class EMYUELGUI:
                 import traceback
                 error_msg = str(e)
                 error_trace = traceback.format_exc()
-                self.root.after(0, lambda: self.log_console(f"[ERROR] Scan failed: {error_msg}"))
-                self.root.after(0, lambda: self.log_console(f"[ERROR] Traceback:\n{error_trace}"))
-                self.root.after(0, lambda: messagebox.showerror("Scan Error", f"Scan failed:\n\n{error_msg}"))
+                self.root.after(0, lambda msg=error_msg: self.log_console(f"[ERROR] Scan failed: {msg}"))
+                self.root.after(0, lambda trace=error_trace: self.log_console(f"[ERROR] Traceback:\n{trace}"))
+                self.root.after(0, lambda msg=error_msg: messagebox.showerror("Scan Error", f"Scan failed:\n\n{msg}"))
                 self.root.after(0, lambda: self.status_label.config(text="Scan failed", fg=self.colors['error']))
         
         # Start scan thread
