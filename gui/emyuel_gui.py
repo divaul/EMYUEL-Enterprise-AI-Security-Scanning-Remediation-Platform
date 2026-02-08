@@ -959,19 +959,35 @@ class EMYUELGUI:
     def _execute_real_scan(self, target: str, modules: Optional[List[str]] = None):
         """Execute real scan in background thread"""
         import threading
-        import sys
-        from pathlib import Path
         
         def run_scan():
             try:
                 import asyncio
+                import sys
+                from pathlib import Path
                 
-                # Add scanner-core to path
-                scanner_core_dir = Path(__file__).parent.parent / "services" / "scanner-core"
+                # Ensure parent directory is in path
+                parent_dir = Path(__file__).parent.parent
+                if str(parent_dir) not in sys.path:
+                    sys.path.insert(0, str(parent_dir))
+                
+                # Import scanner
+                try:
+                    from services.scanner_core import ScannerCore
+                except ImportError as e:
+                    self.root.after(0, lambda: self.log_console(f"[ERROR] Failed to import ScannerCore: {e}"))
+                    self.root.after(0, lambda: self.log_console("[ERROR] Make sure scanner-core directory exists in services/"))
+                    self.root.after(0, lambda: messagebox.showerror(
+                        "Import Error", 
+                        f"Failed to import scanner:\n{e}\n\nMake sure services/scanner-core/ directory exists."
+                    ))
+                    return
+                
+                # Import API key manager
+                scanner_core_dir = parent_dir / "services" / "scanner-core"
                 if str(scanner_core_dir) not in sys.path:
                     sys.path.insert(0, str(scanner_core_dir))
                 
-                from scanner_core import ScannerCore
                 from api_key_manager import APIKeyManager
                 
                 # Get API keys
@@ -1011,62 +1027,11 @@ class EMYUELGUI:
                 self.root.after(0, lambda: self._display_scan_results(results))
                 
             except Exception as e:
+                import traceback
                 error_msg = str(e)
+                error_trace = traceback.format_exc()
                 self.root.after(0, lambda: self.log_console(f"[ERROR] Scan failed: {error_msg}"))
-                self.root.after(0, lambda: messagebox.showerror("Scan Error", f"Scan failed:\n\n{error_msg}"))
-                self.root.after(0, lambda: self.status_label.config(text="Scan failed", fg=self.colors['error']))
-        
-        # Start scan thread
-        scan_thread = threading.Thread(target=run_scan, daemon=True)
-        scan_thread.start()
-        
-        # Show progress
-        self.progress_var.set(10)
-        self.progress_label.config(text="Scan in progress...")
-        
-        def run_scan():
-            try:
-                import asyncio
-                
-                # Get API keys
-                api_key_manager = APIKeyManager()
-                
-                # Configure scanner
-                config = {
-                    'api_key_manager': api_key_manager,
-                    'provider': self.provider_var.get(),
-                    'profile': self.profile_var.get()
-                }
-                
-                # Create scanner
-                scanner = ScannerCore(config)
-                
-                # Run scan
-                scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                
-                # Run async scan
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                self.root.after(0, lambda: self.log_console("[SCAN] Initializing scanner..."))
-                self.root.after(0, lambda: self.progress_var.set(5))
-                
-                results = loop.run_until_complete(
-                    scanner.scan(
-                        target=target,
-                        modules=modules,
-                        scan_id=scan_id
-                    )
-                )
-                
-                loop.close()
-                
-                # Update UI with results
-                self.root.after(0, lambda: self._display_scan_results(results))
-                
-            except Exception as e:
-                error_msg = str(e)
-                self.root.after(0, lambda: self.log_console(f"[ERROR] Scan failed: {error_msg}"))
+                self.root.after(0, lambda: self.log_console(f"[ERROR] Traceback:\n{error_trace}"))
                 self.root.after(0, lambda: messagebox.showerror("Scan Error", f"Scan failed:\n\n{error_msg}"))
                 self.root.after(0, lambda: self.status_label.config(text="Scan failed", fg=self.colors['error']))
         
