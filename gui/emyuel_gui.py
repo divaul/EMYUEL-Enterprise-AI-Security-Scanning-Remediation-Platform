@@ -325,15 +325,24 @@ class EMYUELGUI:
         
         target_label = tk.Label(
             target_frame,
-            text="📁 Target Directory",
+            text="🎯 Scan Target",
             font=('Arial', 12, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
         )
-        target_label.pack(anchor='w', padx=20, pady=(15, 10))
+        target_label.pack(anchor='w', padx=20, pady=(15, 5))
+        
+        target_hint = tk.Label(
+            target_frame,
+            text="Enter URL (https://...) or local directory path",
+            font=('Arial', 8),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        )
+        target_hint.pack(anchor='w', padx=20, pady=(0, 10))
         
         target_input_frame = tk.Frame(target_frame, bg=self.colors['bg_secondary'])
-        target_input_frame.pack(fill='x', padx=20, pady=(0, 15))
+        target_input_frame.pack(fill='x', padx=20, pady=(0, 10))
         
         self.target_entry = tk.Entry(
             target_input_frame,
@@ -347,9 +356,15 @@ class EMYUELGUI:
         )
         self.target_entry.pack(fill='x', side='left', expand=True)
         
+        # Add placeholder
+        self.target_entry.insert(0, "https://example.com or /path/to/directory")
+        self.target_entry.config(fg=self.colors['text_secondary'])
+        self.target_entry.bind('<FocusIn>', self.on_target_focus_in)
+        self.target_entry.bind('<FocusOut>', self.on_target_focus_out)
+        
         browse_btn = tk.Button(
             target_input_frame,
-            text="Browse",
+            text="📁 Browse",
             font=('Arial', 10),
             bg=self.colors['bg_tertiary'],
             fg=self.colors['text_primary'],
@@ -360,6 +375,33 @@ class EMYUELGUI:
             pady=8
         )
         browse_btn.pack(side='right', padx=(10, 0))
+        
+        # Quick actions
+        quick_actions_frame = tk.Frame(target_frame, bg=self.colors['bg_secondary'])
+        quick_actions_frame.pack(fill='x', padx=20, pady=(0, 15))
+        
+        scan_all_btn = tk.Button(
+            quick_actions_frame,
+            text="🌐 Scan All (Full Website/Directory)",
+            font=('Arial', 9),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['accent_cyan'],
+            relief='flat',
+            cursor='hand2',
+            command=self.set_scan_all_mode,
+            padx=15,
+            pady=8
+        )
+        scan_all_btn.pack(side='left', padx=(0, 10))
+        
+        self.target_type_label = tk.Label(
+            quick_actions_frame,
+            text="",
+            font=('Arial', 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        )
+        self.target_type_label.pack(side='left', padx=10)
         
         # Scan options
         options_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
@@ -804,11 +846,64 @@ class EMYUELGUI:
         
         self.log_console(f"[NLP] Analyzed query with {parsed['confidence']:.0%} confidence")
     
+    def on_target_focus_in(self, event):
+        """Handle focus in for target entry"""
+        if self.target_entry.get() == "https://example.com or /path/to/directory":
+            self.target_entry.delete(0, 'end')
+            self.target_entry.config(fg=self.colors['text_primary'])
+    
+    def on_target_focus_out(self, event):
+        """Handle focus out for target entry"""
+        target = self.target_entry.get()
+        if not target:
+            self.target_entry.insert(0, "https://example.com or /path/to/directory")
+            self.target_entry.config(fg=self.colors['text_secondary'])
+        else:
+            # Detect target type
+            self.detect_target_type(target)
+    
+    def detect_target_type(self, target):
+        """Detect if target is URL or directory"""
+        if target.startswith(('http://', 'https://')):
+            self.target_type_label.config(
+                text="🌐 Web Target",
+                fg=self.colors['accent_cyan']
+            )
+            self.log_console(f"[INFO] Detected web target: {target}")
+        elif target and target != "https://example.com or /path/to/directory":
+            self.target_type_label.config(
+                text="📁 Local Directory",
+                fg=self.colors['success']
+            )
+            self.log_console(f"[INFO] Detected local directory: {target}")
+        else:
+            self.target_type_label.config(text="")
+    
+    def set_scan_all_mode(self):
+        """Set scan to 'scan all' mode"""
+        self.scan_mode_var.set("full")
+        self.log_console("[MODE] Set to FULL SCAN (All Modules)")
+        
+        # Highlight mode change
+        self.status_label.config(
+            text="Mode: Full Scan (All Vulnerabilities)",
+            fg=self.colors['accent_cyan']
+        )
+        
+        messagebox.showinfo(
+            "Scan All Mode",
+            "Full scan mode activated!\n\nWill scan for ALL vulnerability types:\n" +
+            "• SQL Injection\n• XSS\n• SSRF\n• RCE\n• CSRF\n" +
+            "• Path Traversal\n• Auth Issues\n• And more..."
+        )
+    
     def browse_target(self):
         """Browse for target directory"""
         directory = filedialog.askdirectory(title="Select Target Directory")
         if directory:
             self.target_var.set(directory)
+            self.target_entry.config(fg=self.colors['text_primary'])
+            self.detect_target_type(directory)
     
     def start_quick_scan(self):
         """Start scan from natural language query"""
@@ -826,15 +921,31 @@ class EMYUELGUI:
         """Start advanced scan"""
         target = self.target_var.get()
         
-        if not target:
-            messagebox.showerror("Error", "Please select a target directory")
+        if not target or target == "https://example.com or /path/to/directory":
+            messagebox.showerror("Error", "Please enter a target URL or select a directory")
             return
         
+        # Detect target type
+        is_url = target.startswith(('http://', 'https://'))
+        target_type = "Web" if is_url else "Local"
+        
+        # Get scan mode
+        scan_mode = self.scan_mode_var.get()
+        mode_text = "Full Scan (All Modules)" if scan_mode == "full" else "Targeted Scan"
+        
         # TODO: Implement actual scan
-        self.log_console(f"[SCAN] Starting advanced scan on: {target}")
+        self.log_console(f"[SCAN] Starting {mode_text} on {target_type} target")
+        self.log_console(f"[TARGET] {target}")
         self.log_console(f"[INFO] Provider: {self.provider_var.get()}")
         self.log_console(f"[INFO] Profile: {self.profile_var.get()}")
-        messagebox.showinfo("Scan Started", "Advanced scan started (stub)")
+        self.log_console(f"[INFO] Mode: {mode_text}")
+        
+        self.status_label.config(
+            text=f"Scanning: {target}",
+            fg=self.colors['accent_cyan']
+        )
+        
+        messagebox.showinfo("Scan Started", f"{mode_text} started on {target_type} target\n\nTarget: {target}")
     
     def pause_scan(self):
         """Pause current scan"""

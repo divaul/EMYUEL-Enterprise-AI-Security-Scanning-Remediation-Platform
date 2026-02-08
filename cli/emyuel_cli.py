@@ -74,10 +74,15 @@ Examples:
         
         # Scan command
         scan_parser = subparsers.add_parser('scan', help='Start new security scan')
-        scan_parser.add_argument('--target', required=True, help='Target URL or directory path')
+        scan_parser.add_argument('--target', required=True, help='Target URL (https://...) or directory path')
         scan_parser.add_argument(
             '--modules',
             help='Comma-separated list of modules (sqli,xss,ssrf,rce,auth). Leave empty for full scan.'
+        )
+        scan_parser.add_argument(
+           '--all',
+            action='store_true',
+            help='Scan ALL modules (explicit full scan)'
         )
         scan_parser.add_argument(
             '--profile',
@@ -146,13 +151,24 @@ Examples:
         """Execute scan command"""
         console.print(Panel.fit("[bold cyan]EMYUEL Security Scanner[/bold cyan]", border_style="cyan"))
         
+        # Detect target type
+        is_url = args.target.startswith(('http://', 'https://'))
+        target_type = "Web" if is_url else "Local"
+        
         # Parse modules
-        if args.modules:
+        if hasattr(args, 'all') and args.all:
+            modules = None  # Full scan
+            console.print(f"[yellow]Scan Mode:[/yellow] [bold green]FULL SCAN (ALL MODULES)[/bold green]")
+            console.print("[dim]Will scan for: SQL Injection, XSS, SSRF, RCE, CSRF, Path Traversal, Auth Issues, and more[/dim]")
+        elif args.modules:
             modules = [m.strip() for m in args.modules.split(',')]
             console.print(f"[yellow]Scan Mode:[/yellow] Targeted ({', '.join(modules)})")
         else:
             modules = None
             console.print("[yellow]Scan Mode:[/yellow] Full Scan (all modules)")
+        
+        # Display target info
+        console.print(f"[yellow]Target Type:[/yellow] {target_type}")
         
         # Generate scan ID
         scan_id = args.scan_id or f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
