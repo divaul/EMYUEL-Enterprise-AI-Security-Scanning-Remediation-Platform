@@ -911,11 +911,19 @@ class EMYUELGUI:
             messagebox.showerror("Error", "Please analyze a query first")
             return
         
-        # TODO: Implement actual scan
+        # Get target from parsed query or use default
+        target = self.last_parsed.get('target') or self.target_var.get()
+        
+        if not target or target == "https://example.com or /path/to/directory":
+            messagebox.showerror("Error", "Please specify a target to scan")
+            return
+        
         self.log_console("[SCAN] Starting scan from natural language query...")
-        self.log_console(f"[INFO] Target: {self.last_parsed['target'] or 'all'}")
+        self.log_console(f"[INFO] Target: {target}")
         self.log_console(f"[INFO] Modules: {', '.join(self.last_parsed['modules'])}")
-        messagebox.showinfo("Scan Started", "Natural language scan started (stub)")
+        
+        # Start real scan
+        self._execute_real_scan(target, self.last_parsed.get('modules'))
     
     def start_advanced_scan(self):
         """Start advanced scan"""
@@ -931,21 +939,186 @@ class EMYUELGUI:
         
         # Get scan mode
         scan_mode = self.scan_mode_var.get()
-        mode_text = "Full Scan (All Modules)" if scan_mode == "full" else "Targeted Scan"
+        modules = None if scan_mode == "full" else []  # None = all modules
         
-        # TODO: Implement actual scan
+        # Log scan details
+        mode_text = "Full Scan (All Modules)" if scan_mode == "full" else "Targeted Scan"
         self.log_console(f"[SCAN] Starting {mode_text} on {target_type} target")
         self.log_console(f"[TARGET] {target}")
         self.log_console(f"[INFO] Provider: {self.provider_var.get()}")
         self.log_console(f"[INFO] Profile: {self.profile_var.get()}")
-        self.log_console(f"[INFO] Mode: {mode_text}")
         
         self.status_label.config(
             text=f"Scanning: {target}",
             fg=self.colors['accent_cyan']
         )
         
-        messagebox.showinfo("Scan Started", f"{mode_text} started on {target_type} target\n\nTarget: {target}")
+        # Start real scan
+        self._execute_real_scan(target, modules)
+    
+    def _execute_real_scan(self, target: str, modules: Optional[List[str]] = None):
+        """Execute real scan in background thread"""
+        import threading
+        import sys
+        from pathlib import Path
+        
+        def run_scan():
+            try:
+                import asyncio
+                
+                # Add scanner-core to path
+                scanner_core_dir = Path(__file__).parent.parent / "services" / "scanner-core"
+                if str(scanner_core_dir) not in sys.path:
+                    sys.path.insert(0, str(scanner_core_dir))
+                
+                from scanner_core import ScannerCore
+                from api_key_manager import APIKeyManager
+                
+                # Get API keys
+                api_key_manager = APIKeyManager()
+                
+                # Configure scanner
+                config = {
+                    'api_key_manager': api_key_manager,
+                    'provider': self.provider_var.get(),
+                    'profile': self.profile_var.get()
+                }
+                
+                # Create scanner
+                scanner = ScannerCore(config)
+                
+                # Run scan
+                scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                
+                # Run async scan
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                self.root.after(0, lambda: self.log_console("[SCAN] Initializing scanner..."))
+                self.root.after(0, lambda: self.progress_var.set(5))
+                
+                results = loop.run_until_complete(
+                    scanner.scan(
+                        target=target,
+                        modules=modules,
+                        scan_id=scan_id
+                    )
+                )
+                
+                loop.close()
+                
+                # Update UI with results
+                self.root.after(0, lambda: self._display_scan_results(results))
+                
+            except Exception as e:
+                error_msg = str(e)
+                self.root.after(0, lambda: self.log_console(f"[ERROR] Scan failed: {error_msg}"))
+                self.root.after(0, lambda: messagebox.showerror("Scan Error", f"Scan failed:\n\n{error_msg}"))
+                self.root.after(0, lambda: self.status_label.config(text="Scan failed", fg=self.colors['error']))
+        
+        # Start scan thread
+        scan_thread = threading.Thread(target=run_scan, daemon=True)
+        scan_thread.start()
+        
+        # Show progress
+        self.progress_var.set(10)
+        self.progress_label.config(text="Scan in progress...")
+        
+        def run_scan():
+            try:
+                import asyncio
+                
+                # Get API keys
+                api_key_manager = APIKeyManager()
+                
+                # Configure scanner
+                config = {
+                    'api_key_manager': api_key_manager,
+                    'provider': self.provider_var.get(),
+                    'profile': self.profile_var.get()
+                }
+                
+                # Create scanner
+                scanner = ScannerCore(config)
+                
+                # Run scan
+                scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                
+                # Run async scan
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                self.root.after(0, lambda: self.log_console("[SCAN] Initializing scanner..."))
+                self.root.after(0, lambda: self.progress_var.set(5))
+                
+                results = loop.run_until_complete(
+                    scanner.scan(
+                        target=target,
+                        modules=modules,
+                        scan_id=scan_id
+                    )
+                )
+                
+                loop.close()
+                
+                # Update UI with results
+                self.root.after(0, lambda: self._display_scan_results(results))
+                
+            except Exception as e:
+                error_msg = str(e)
+                self.root.after(0, lambda: self.log_console(f"[ERROR] Scan failed: {error_msg}"))
+                self.root.after(0, lambda: messagebox.showerror("Scan Error", f"Scan failed:\n\n{error_msg}"))
+                self.root.after(0, lambda: self.status_label.config(text="Scan failed", fg=self.colors['error']))
+        
+        # Start scan thread
+        scan_thread = threading.Thread(target=run_scan, daemon=True)
+        scan_thread.start()
+        
+        # Show progress
+        self.progress_var.set(10)
+        self.progress_label.config(text="Scan in progress...")
+    
+    def _display_scan_results(self, results: Dict[str, Any]):
+        """Display scan results in UI"""
+        # Update progress
+        self.progress_var.set(100)
+        self.progress_label.config(text="Scan completed")
+        
+        # Update status
+        total_findings = results.get('total_findings', 0)
+        self.status_label.config(
+            text=f"Scan complete: {total_findings} vulnerabilities found",
+            fg=self.colors['success'] if total_findings == 0 else self.colors['warning']
+        )
+        
+        # Update severity stats
+        by_severity = results.get('findings_by_severity', {})
+        if hasattr(self, 'stat_critical_label'):
+            self.stat_critical_label.config(text=str(by_severity.get('critical', 0)))
+        if hasattr(self, 'stat_high_label'):
+            self.stat_high_label.config(text=str(by_severity.get('high', 0)))
+        if hasattr(self, 'stat_medium_label'):
+            self.stat_medium_label.config(text=str(by_severity.get('medium', 0)))
+        if hasattr(self, 'stat_low_label'):
+            self.stat_low_label.config(text=str(by_severity.get('low', 0)))
+        
+        # Log findings
+        self.log_console(f"[RESULT] Total findings: {total_findings}")
+        self.log_console(f"[RESULT] Critical: {by_severity.get('critical', 0)}")
+        self.log_console(f"[RESULT] High: {by_severity.get('high', 0)}")
+        self.log_console(f"[RESULT] Medium: {by_severity.get('medium', 0)}")
+        self.log_console(f"[RESULT] Low: {by_severity.get('low', 0)}")
+        
+        # Show summary dialog
+        messagebox.showinfo(
+            "Scan Complete",
+            f"Scan finished successfully!\n\n" +
+            f"Total vulnerabilities: {total_findings}\n" +
+            f"Critical: {by_severity.get('critical', 0)}\n" +
+            f"High: {by_severity.get('high', 0)}\n" +
+            f"Medium: {by_severity.get('medium', 0)}\n" +
+            f"Low: {by_severity.get('low', 0)}"
+        )
     
     def pause_scan(self):
         """Pause current scan"""
@@ -967,12 +1140,46 @@ class EMYUELGUI:
             return
         
         self.log_console(f"[API] Testing {provider} key...")
-        # TODO: Implement actual key validation
         
         status_label = getattr(self, f"{provider}_status_label")
-        status_label.config(text="✓ Valid", fg=self.colors['success'])
         
-        messagebox.showinfo("Success", f"{provider.capitalize()} API key is valid")
+        # Basic validation
+        try:
+            # Check key format
+            if provider == 'openai':
+                if not key.startswith('sk-'):
+                    raise ValueError("OpenAI key must start with 'sk-'")
+                if len(key) < 20:
+                    raise ValueError("OpenAI key too short")
+            elif provider == 'gemini':
+                if not key.startswith('AI'):
+                    raise ValueError("Gemini key must start with 'AI'")
+                if len(key) < 20:
+                    raise ValueError("Gemini key too short")
+            elif provider == 'claude':
+                if not key.startswith('sk-ant-'):
+                    raise ValueError("Claude key must start with 'sk-ant-'")
+                if len(key) < 20:
+                    raise ValueError("Claude key too short")
+            
+            # TODO: Add actual API call validation
+            # For now, just format validation
+            status_label.config(text="⚠ Format OK (Not tested live)", fg=self.colors['warning'])
+            
+            self.log_console(f"[API] {provider.capitalize()} key format is valid")
+            self.log_console(f"[WARN] Live API validation not implemented yet")
+            
+            messagebox.showinfo(
+                "Key Validation",
+                f"{provider.capitalize()} key format is valid!\n\n" +
+                "⚠ Note: Live API validation not implemented yet.\n" +
+                "The key will be tested when you run a scan."
+            )
+            
+        except ValueError as e:
+            status_label.config(text="✗ Invalid", fg=self.colors['error'])
+            self.log_console(f"[ERROR] {provider.capitalize()} key validation failed: {e}")
+            messagebox.showerror("Invalid Key", f"{provider.capitalize()} API key is invalid:\n\n{str(e)}")
     
     def save_api_keys(self):
         """Save API keys"""
