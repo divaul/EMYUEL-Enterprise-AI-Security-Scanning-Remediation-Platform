@@ -34,18 +34,21 @@ class NLPParser:
         self.vulnerability_keywords = {
             # English
             'xss': ['xss', 'cross-site scripting', 'cross site scripting'],
-            'sqli': ['sql injection', 'sqli', 'sql', 'database injection'],
+            'sqli': ['sql injection', 'sqli', 'sql', 'database injection', 'database attack', 'database security', 'database vulnerability'],
             'ssrf': ['ssrf', 'server-side request forgery', 'server side request'],
             'rce': ['rce', 'remote code execution', 'command injection'],
             'csrf': ['csrf', 'cross-site request forgery', 'cross site request'],
             'path_traversal': ['path traversal', 'directory traversal', 'lfi', 'local file inclusion'],
-            'auth': ['authentication', 'auth bypass', 'authorization', 'access control'],
+            'auth': ['authentication', 'auth bypass', 'authorization', 'access control', 'brute force', 'login'],
             'deserialization': ['deserialization', 'unsafe deserialization'],
+            'headers': ['security headers', 'header security', 'http headers'],
             
             # Indonesian
-            'xss_id': ['skrip lintas situs', 'injeksi skrip'],
-            'sqli_id': ['injeksi sql', 'serangan database'],
-            'all_id': ['semua', 'seluruh', 'keseluruhan'],
+            'xss_id': ['skrip lintas situs', 'injeksi skrip', 'celah xss'],
+            'sqli_id': ['injeksi sql', 'serangan database', 'keamanan database', 'celah database', 'database', 'databasenya'],
+            'all_id': ['semua', 'seluruh', 'keseluruhan', 'semua kerentanan', 'semua celah'],
+            'auth_id': ['autentikasi', 'login', 'akses', 'brute force'],
+            'headers_id': ['header keamanan', 'header http', 'header'],
         }
         
         # Action keywords

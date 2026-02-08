@@ -145,7 +145,7 @@ class EMYUELGUI:
         # Initialize components
         self.key_manager = APIKeyManager(recovery_mode=RecoveryMode.GUI)
         self.state_manager = StateManager()
-        self.nlp_parser = NLPParser()
+        self.nlp_parser = NLPParser()  # For natural language query parsing
         
         # Variables
         self.target_var = tk.StringVar()
@@ -1655,6 +1655,78 @@ class EMYUELGUI:
         )
         start_btn.pack(side='right')
         
+        # Natural Language Query Section (NEW!)
+        nlp_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        nlp_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        tk.Label(
+            nlp_frame,
+            text="💬 Natural Language Query (Optional)",
+            font=('Segoe UI', 11, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 5))
+        
+        tk.Label(
+            nlp_frame,
+            text="Contoh: 'test keamanan databasenya' atau 'find SQL injection vulnerabilities'",
+            font=('Segoe UI', 9, 'italic'),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(0, 10))
+        
+        nlp_input_frame = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
+        nlp_input_frame.pack(fill='x', padx=20, pady=(0, 15))
+        
+        self.ai_nlp_query_var = tk.StringVar()
+        
+        nlp_entry = tk.Entry(
+            nlp_input_frame,
+            textvariable=self.ai_nlp_query_var,
+            font=('Segoe UI', 10),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_primary'],
+            insertbackground=self.colors['text_primary'],
+            relief='flat',
+            bd=0
+        )
+        nlp_entry.pack(fill='x', ipady=10)
+        
+        # Quick example buttons
+        examples_frame = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
+        examples_frame.pack(fill='x', padx=20, pady=(0, 15))
+        
+        tk.Label(
+            examples_frame,
+            text="Quick examples:",
+            font=('Segoe UI', 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(side='left', padx=(0, 10))
+        
+        example_queries = [
+            ("Database", "test keamanan databasenya"),
+            ("XSS", "cari celah XSS"),
+            ("Full Scan", "scan semua kerentanan")
+        ]
+        
+        for label, query in example_queries:
+            btn = tk.Button(
+                examples_frame,
+                text=label,
+                font=('Segoe UI', 8),
+                bg=self.colors['bg_tertiary'],
+                fg=self.colors['text_secondary'],
+                activebackground=self.colors['accent_cyan'],
+                activeforeground='#000000',
+                relief='flat',
+                cursor='hand2',
+                command=lambda q=query: self.ai_nlp_query_var.set(q),
+                padx=8,
+                pady=4
+            )
+            btn.pack(side='left', padx=2)
+        
         # Progress Section
         progress_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         progress_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
@@ -1763,19 +1835,40 @@ class EMYUELGUI:
                                "Please configure your OpenAI API key in the API Keys tab first")
             return
         
+        # Parse natural language query if provided
+        nlp_query = self.ai_nlp_query_var.get().strip()
+        focus_modules = []
+        query_context = ""
+        
+        if nlp_query:
+            parsed = self.nlp_parser.parse(nlp_query)
+            focus_modules = parsed.get('modules', [])
+            query_context = f"User Request: {nlp_query}\n"
+            
+            if parsed.get('confidence', 0) > 0.5:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 💬 Understood: {nlp_query}")
+                if focus_modules and 'all' not in focus_modules:
+                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎯 Focus: {', '.join(focus_modules).upper()}")
+            else:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Query unclear, running full scan")
+        
         self.ai_analysis_running = True
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] AI Analysis initialized")
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Target: {target_url}")
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] NOTE: Full AI analysis requires integration")
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running basic security scan instead...")
+        
+        if query_context:
+            self.ai_update_reasoning(f"{query_context}\nAnalyzing request and preparing scan strategy...")
+        else:
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] NOTE: Full AI analysis requires integration")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running basic security scan instead...")
         
         # Run basic scan (placeholder - full implementation available in ai_analysis_tab_methods.py)
         import threading
-        thread = threading.Thread(target=self.run_basic_analysis, args=(target_url,))
+        thread = threading.Thread(target=self.run_basic_analysis, args=(target_url, focus_modules, query_context))
         thread.daemon = True
         thread.start()
     
-    def run_basic_analysis(self, target_url: str):
+    def run_basic_analysis(self, target_url: str, focus_modules: list = None, query_context: str = ""):
         """Run basic analysis (simplified version)"""
         import asyncio
         from services.executor import Executor
@@ -1786,8 +1879,17 @@ class EMYUELGUI:
             
             executor = Executor(verbose=False)
             
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running security headers check...")
-            self.ai_update_reasoning("Analyzing security headers configuration...")
+            # Determine what to scan based on NLP query
+            if focus_modules and 'all' not in focus_modules:
+                scan_description = f"Focusing on: {', '.join([m.upper() for m in focus_modules])}"
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] {scan_description}")
+                if query_context:
+                    self.ai_update_reasoning(f"{query_context}\nStrategy: Targeted scan on {', '.join(focus_modules)}")
+            else:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running comprehensive security check...")
+                self.ai_update_reasoning("Analyzing all security aspects...")
+            
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Checking security headers...")
             
             # Basic header analysis
             import aiohttp
@@ -1805,10 +1907,22 @@ class EMYUELGUI:
             
             if missing:
                 self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Missing headers: {', '.join(missing)}")
-                self.ai_update_reasoning(f"Found {len(missing)} missing security headers.\n\nRecommendation: Add security headers to prevent common attacks.")
+                reasoning = f"Found {len(missing)} missing security headers.\n\n"
+                reasoning += f"Missing: {', '.join(missing)}\n\n"
+                reasoning += "Recommendation: Add security headers to prevent common attacks."
+                if query_context:
+                    reasoning = f"{query_context}\n\n{reasoning}"
+                self.ai_update_reasoning(reasoning)
             else:
                 self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ All security headers present")
                 self.ai_update_reasoning("Security headers are properly configured.")
+            
+            # If focusing on specific modules, mention them
+            if focus_modules and 'all' not in focus_modules:
+                if 'sqli' in focus_modules or 'sql' in focus_modules:
+                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 SQL Injection testing would run here (full AI mode)")
+                if 'xss' in focus_modules:
+                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 XSS testing would run here (full AI mode)")
             
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Analysis complete!")
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] For full AI-powered analysis, see: ai_analysis_tab_methods.py")
