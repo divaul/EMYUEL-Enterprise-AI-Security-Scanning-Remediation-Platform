@@ -201,7 +201,7 @@ class CodeScanner:
                             'severity': 'high',
                             'file': file_path,
                             'line': line_num,
-                            'description': 'Potential SQLinjection via string formatting',
+                            'description': 'Potential SQL injection via string formatting',
                             'evidence': line.strip(),
                             'remediation': 'Use parameterized queries or ORMs',
                             'source': 'static',

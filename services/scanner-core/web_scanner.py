@@ -215,15 +215,17 @@ class WebScanner:
         
         # Check for version disclosure in headers
         disclosure_headers = ['server', 'x-powered-by', 'x-aspnet-version']
+        headers_lower = {k.lower(): (k, v) for k, v in headers.items()}
         
         for header in disclosure_headers:
-            if header in {k.lower(): v for k, v in headers.items()}:
+            if header in headers_lower:
+                original_key, value = headers_lower[header]
                 findings.append({
                     'type': 'info_disclosure',
                     'severity': 'low',
                     'url': url,
                     'description': f'Server version disclosed in {header} header',
-                    'evidence': f"{header}: {headers.get(header, '')}",
+                    'evidence': f"{original_key}: {value}",
                     'remediation': f'Remove or obfuscate {header} header',
                     'source': 'static',
                     'confidence': 1.0

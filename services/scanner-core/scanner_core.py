@@ -9,11 +9,19 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 from datetime import datetime
 
-# Import scanner components
-from .llm_analyzer import LLMAnalyzer
-from .web_scanner import WebScanner
-from .code_scanner import CodeScanner
-from .api_key_manager import APIKeyManager
+# Import scanner components - use try/except for flexibility
+try:
+    # Try relative import first (when imported as package)
+    from .llm_analyzer import LLMAnalyzer
+    from .web_scanner import WebScanner
+    from .code_scanner import CodeScanner
+    from .api_key_manager import APIKeyManager
+except ImportError:
+    # Fall back to direct import (when run directly)
+    from llm_analyzer import LLMAnalyzer
+    from web_scanner import WebScanner
+    from code_scanner import CodeScanner
+    from api_key_manager import APIKeyManager
 
 
 class ScannerCore:

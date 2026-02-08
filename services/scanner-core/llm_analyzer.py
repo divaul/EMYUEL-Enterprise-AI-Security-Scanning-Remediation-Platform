@@ -185,10 +185,10 @@ If no vulnerabilities: {{"vulnerabilities": []}}
         else:
             raise ValueError(f"Unknown provider: {self.provider}")
     
-    async def _call_openai(self, prompt: str) -> str:
+    async def _call_openai(self, prompt: str) ->str:
         """Call OpenAI API"""
         try:
-            import openai
+            from openai import OpenAI
         except ImportError:
             raise ImportError("openai package not installed. Run: pip install openai")
         
@@ -196,11 +196,11 @@ If no vulnerabilities: {{"vulnerabilities": []}}
         if not api_key:
             raise ValueError("OpenAI API key not configured")
         
-        openai.api_key = api_key
+        client = OpenAI(api_key=api_key)
         
         try:
             response = await asyncio.to_thread(
-                openai.ChatCompletion.create,
+                client.chat.completions.create,
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a security expert. Respond only with valid JSON."},
@@ -219,7 +219,7 @@ If no vulnerabilities: {{"vulnerabilities": []}}
             # Fallback to gpt-3.5-turbo if gpt-4 fails
             try:
                 response = await asyncio.to_thread(
-                    openai.ChatCompletion.create,
+                    client.chat.completions.create,
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "system", "content": "You are a security expert. Respond only with valid JSON."},

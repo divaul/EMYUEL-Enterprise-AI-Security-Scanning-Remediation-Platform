@@ -2,6 +2,6 @@
 Scanner Core Package
 """
 
-from .scanner import ScannerCore
+from .scanner_core import ScannerCore
 
 __all__ = ['ScannerCore']
