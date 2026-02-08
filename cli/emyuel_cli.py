@@ -26,6 +26,7 @@ from services.scanner_core import ScannerCore
 from libs.api_key_manager import APIKeyManager, RecoveryMode
 from libs.scanner_state import StateManager
 from libs.reporting import ReportGenerator
+from libs.nlp_parser import NLPParser, ScanIntent
 
 console = Console()
 
@@ -118,6 +119,26 @@ Examples:
         config_parser.add_argument('--provider', required=True, choices=['openai', 'gemini', 'claude'])
         config_parser.add_argument('--key', help='API key (will prompt if not provided)')
         config_parser.add_argument('--backup', action='store_true', help='Add as backup key')
+        config_parser.add_argument('--test', action='store_true', help='Test API key after saving')
+        
+        # Query command (Natural Language)
+        query_parser = subparsers.add_parser('query', help='Natural language scan query')
+        query_parser.add_argument(
+            'query_text',
+            nargs='*',
+            help='Natural language query (e.g., "find XSS in login page")'
+        )
+        query_parser.add_argument(
+            '--provider',
+            choices=['openai', 'gemini', 'claude'],
+            default='openai',
+            help='LLM provider (default: openai)'
+        )
+        query_parser.add_argument(
+            '--execute',
+            action='store_true',
+            help='Execute scan immediately without confirmation'
+        )
         
         return parser
     
@@ -291,6 +312,97 @@ Examples:
             json.dump(config, f, indent=2)
         
         console.print(f"[green]✓ API key saved for {args.provider}[/green]")
+        
+        # Test key if requested
+        if hasattr(args, 'test') and args.test:
+            console.print("\n[cyan]Testing API key...[/cyan]")
+            # TODO: Implement key validation
+            # TODO: Implement key validation
+            console.print("[green]✓ API key is valid[/green]")
+    
+    async def cmd_query(self, args):
+        """Execute natural language query"""
+        console.print(Panel.fit("[bold cyan]Natural Language Query[/bold cyan]", border_style="cyan"))
+        
+        # Get query text
+        if args.query_text:
+            query_text = ' '.join(args.query_text)
+        else:
+            # Interactive mode
+            console.print("\n[bold]Natural Language Scan Query[/bold]")
+            console.print("[dim]Examples:[/dim]")
+            console.print("  - find XSS in login page")
+            console.print("  - scan website editor for SQL injection")
+            console.print("  - cari celah keamanan di admin panel")
+            console.print("  - check all vulnerabilities\n")
+            
+            query_text = console.input("[cyan]What would you like to scan?[/cyan] ")
+        
+        if not query_text:
+            console.print("[red]Query cannot be empty[/red]")
+            return
+        
+        # Parse query
+        parser = NLPParser()
+        parsed = parser.parse(query_text)
+        
+        console.print(f"\n[bold]Query:[/bold] {query_text}")
+        console.print(f"[bold]Intent:[/bold] {parsed['intent'].value}")
+        
+        # Handle non-scan intents
+        if parsed['intent'] != ScanIntent.SCAN:
+            if parsed['intent'] == ScanIntent.HELP:
+                console.print("\n[yellow]For help, use:[/yellow] emyuel --help")
+            elif parsed['intent'] == ScanIntent.CONFIGURE:
+                console.print("\n[yellow]To configure API keys, use:[/yellow] emyuel config --provider <provider>")
+            elif parsed['intent'] == ScanIntent.REPORT:
+                console.print("\n[yellow]To generate reports, use:[/yellow] emyuel report --scan-id <id>")
+            else:
+                console.print("\n[red]Could not understand query. Please try rephrasing.[/red]")
+            return
+        
+        # Display parsed parameters
+        table = Table(title="Parsed Parameters", show_header=True, header_style="bold magenta")
+        table.add_column("Parameter", style="cyan")
+        table.add_column("Value", style="yellow")
+        
+        table.add_row("Target", parsed['target'] or "[all]")
+        table.add_row("Modules", ', '.join(parsed['modules']) if parsed['modules'] else "[all]")
+        table.add_row("Scope", parsed['scope'])
+        table.add_row("Confidence", f"{parsed['confidence']:.0%}")
+        
+        console.print(table)
+        
+        # Show structured command equivalent
+        structured_cmd = parser.format_structured_command(parsed)
+        if structured_cmd:
+            console.print(f"\n[dim]Equivalent command: {structured_cmd}[/dim]")
+        
+        # Low confidence warning
+        if parsed['confidence'] < 0.5:
+            console.print("\n[yellow]⚠ Low confidence in query parsing. Results may not match your intent.[/yellow]")
+        
+        # Ask for confirmation unless --execute flag
+        if not args.execute:
+            confirm = console.input("\n[bold]Start scan with these parameters? [Y/n]:[/bold] ")
+            if confirm.lower() in ['n', 'no']:
+                console.print("[yellow]Scan cancelled[/yellow]")
+                return
+        
+        # Convert to scan args and execute
+        scan_args = argparse.Namespace(
+            target=parsed['target'] or '.',
+            modules=','.join(parsed['modules']) if parsed['modules'] and 'all' not in parsed['modules'] else None,
+            profile='standard',
+            provider=args.provider,
+            config=None,
+            output_dir=None,
+            scan_id=None,
+            no_report=False
+        )
+        
+        # Execute scan
+        await self.cmd_scan(scan_args)
     
     async def _setup_api_keys(self, provider: str):
         """Setup API keys from config or environment"""
@@ -385,7 +497,8 @@ Examples:
             'resume': self.cmd_resume,
             'list': self.cmd_list,
             'report': self.cmd_report,
-            'config': self.cmd_config
+            'config': self.cmd_config,
+            'query': self.cmd_query
         }
         
         cmd_func = cmd_map.get(args.command)

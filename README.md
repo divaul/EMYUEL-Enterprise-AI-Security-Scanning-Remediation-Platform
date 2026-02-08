@@ -144,8 +144,13 @@ python -m cli.emyuel_cli config --provider openai
 
 #### GUI Mode
 
+> **⚠️ GUI Requirements:**
+> - **Linux/Kali:** Requires X display server (not available in SSH without X11 forwarding)
+> - **Recommendation for Kali:** Use CLI mode instead (better for security workflows)
+> - **If you get display errors:** See [GUI_ERROR_FIX.md](GUI_ERROR_FIX.md) or [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+
 ```bash
-# Launch graphical interface
+# Launch graphical interface (requires X display)
 python -m gui.emyuel_gui
 ```
 
@@ -154,6 +159,8 @@ Then:
 2. Choose scan mode (Full/Targeted)
 3. Select LLM provider and profile
 4. Click "Start Scan"
+
+**For Kali Linux users:** If you get `no display` error, use CLI mode instead - it's more suitable for penetration testing workflows.
 
 See [QUICKSTART.md](QUICKSTART.md) for detailed examples and [DOKUMENTASI_PROGRAM.md](DOKUMENTASI_PROGRAM.md) for comprehensive documentation in Bahasa Indonesia.
 
