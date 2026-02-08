@@ -23,10 +23,81 @@ from libs.scanner_state import StateManager
 from libs.nlp_parser import NLPParser
 
 
+class GradientButton(tk.Canvas):
+    """Premium gradient button with hover effects"""
+    def __init__(self, parent, text="", command=None, width=120, height=40, **kwargs):
+        super().__init__(parent, width=width, height=height, 
+                        highlightthickness=0, bd=0, **kwargs)
+        self.text = text
+        self.command = command
+        self.width = width
+        self.height = height
+        self.is_hovered = False
+        
+        # Colors
+        self.gradient_start = kwargs.get('gradient_start', '#00d9ff')
+        self.gradient_end = kwargs.get('gradient_end', '#a855f7')
+        self.text_color = kwargs.get('fg', '#ffffff')
+        self.bg_color = kwargs.get('bg', '#1a1d2e')
+        
+        self.draw()
+        
+        # Bind events
+        self.bind("<Button-1>", self.on_click)
+        self.bind("<Enter>", self.on_enter)
+        self.bind("<Leave>", self.on_leave)
+    
+    def draw(self, hover=False):
+        self.delete("all")
+        self.configure(bg=self.bg_color)
+        
+        # Draw rounded rectangle with gradient effect
+        radius = 8
+        x1, y1 = 2, 2
+        x2, y2 = self.width - 2, self.height - 2
+        
+        if hover:
+            # Glow effect on hover
+            self.create_oval(0, 0, self.width, self.height,
+                           fill='', outline=self.gradient_start, width=2)
+        
+        # Gradient background (simulated with overlapping rectangles)
+        self.create_rectangle(x1, y1, x2, y2, fill=self.gradient_start, 
+                            outline='', tags='bg')
+        
+        # Text
+        self.create_text(self.width/2, self.height/2, text=self.text,
+                        fill=self.text_color, font=('Segoe UI', 10, 'bold'),
+                        tags='text')
+    
+    def on_enter(self, e):
+        self.is_hovered = True
+        self.draw(hover=True)
+    
+    def on_leave(self, e):
+        self.is_hovered = False
+        self.draw(hover=False)
+    
+    def on_click(self, e):
+        if self.command:
+            self.command()
+
+
 class ModernButton(tk.Button):
-    """Custom styled button with hover effect"""
+    """Enhanced button with modern styling"""
     def __init__(self, parent, **kwargs):
-        super().__init__(parent, **kwargs)
+        # Set default modern styling
+        defaults = {
+            'font': ('Segoe UI', 10, 'bold'),
+            'bd': 0,
+            'relief': 'flat',
+            'cursor': 'hand2',
+            'padx': 20,
+            'pady': 12
+        }
+        defaults.update(kwargs)
+        super().__init__(parent, **defaults)
+        
         self.defaultBackground = self["background"]
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
@@ -47,19 +118,25 @@ class EMYUELGUI:
         self.root.geometry("1000x750")
         self.root.minsize(900, 650)
         
-        # Color scheme - Modern cyber security theme
+        # Enhanced color scheme - Premium cyber security theme
         self.colors = {
-            'bg_primary': '#1a1d29',
-            'bg_secondary': '#252836',
-            'bg_tertiary': '#2d3142',
-            'accent_cyan': '#00d9ff',
-            'accent_purple': '#a855f7',
-            'text_primary': '#ffffff',
-            'text_secondary': '#9ca3af',
-            'success': '#10b981',
-            'warning': '#f59e0b',
-            'error': '#ef4444',
-            'critical': '#dc2626'
+            'bg_primary': '#0f1117',      # Darker main background
+            'bg_secondary': '#1a1d2e',    # Card backgrounds
+            'bg_tertiary': '#252837',     # Elevated elements
+            'bg_hover': '#2d3142',        # Hover states
+            'accent_cyan': '#00d9ff',     # Primary accent
+            'accent_purple': '#a855f7',   # Secondary accent
+            'accent_pink': '#ec4899',     # Tertiary accent
+            'accent_gold': '#fbbf24',     # Premium/warning
+            'text_primary': '#f9fafb',    # Bright white
+            'text_secondary': '#9ca3af',  # Muted gray
+            'text_tertiary': '#6b7280',   # Very muted
+            'success': '#10b981',         # Green
+            'warning': '#f59e0b',         # Orange
+            'error': '#ef4444',           # Red
+            'critical': '#dc2626',        # Dark red
+            'border': '#374151',          # Subtle borders
+            'shadow': '#000000'           # Shadows
         }
         
         # Configure root window
@@ -96,42 +173,83 @@ class EMYUELGUI:
     def setup_ui(self):
         """Setup the user interface"""
         
-        # Header
-        header_frame = tk.Frame(self.root, bg=self.colors['bg_secondary'], height=80)
+        # Enhanced header with premium design
+        header_frame = tk.Frame(self.root, bg=self.colors['bg_secondary'], height=90)
         header_frame.pack(fill='x', padx=0, pady=0)
         header_frame.pack_propagate(False)
         
+        # Icon + Title container
+        title_container = tk.Frame(header_frame, bg=self.colors['bg_secondary'])
+        title_container.pack(side='left', padx=32, pady=24)
+        
+        # Security shield icon
+        icon_label = tk.Label(
+            title_container,
+            text="🛡️",
+            font=('Segoe UI Emoji', 32),
+            bg=self.colors['bg_secondary']
+        )
+        icon_label.pack(side='left', padx=(0, 12))
+        
+        # Title section
+        title_section = tk.Frame(title_container, bg=self.colors['bg_secondary'])
+        title_section.pack(side='left')
+        
         title_label = tk.Label(
-            header_frame,
+            title_section,
             text="EMYUEL",
-            font=('Arial', 28, 'bold'),
+            font=('Segoe UI', 32, 'bold'),
             fg=self.colors['accent_cyan'],
             bg=self.colors['bg_secondary']
         )
-        title_label.pack(side='left', padx=30, pady=20)
+        title_label.pack(anchor='w')
         
         subtitle_label = tk.Label(
-            header_frame,
-            text="AI-Powered Security Scanner",
-            font=('Arial', 12),
+            title_section,
+            text="Enterprise AI Security Scanner",
+            font=('Segoe UI', 11),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
         )
-        subtitle_label.pack(side='left', padx=0, pady=20)
+        subtitle_label.pack(anchor='w')
         
-        # Main container with scroll
+        # Status indicator (top right)
+        status_frame = tk.Frame(header_frame, bg=self.colors['bg_secondary'])
+        status_frame.pack(side='right', padx=32, pady=24)
+        
+        status_dot = tk.Label(
+            status_frame,
+            text="●",
+            font=('Segoe UI', 16),
+            fg=self.colors['success'],
+            bg=self.colors['bg_secondary']
+        )
+        status_dot.pack(side='left', padx=(0, 8))
+        
+        status_text = tk.Label(
+            status_frame,
+            text="Ready",
+            font=('Segoe UI', 10),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        )
+        status_text.pack(side='left')
+        self.header_status_label = status_text
+        self.header_status_dot = status_dot
+        
+        # Main container with improved spacing
         main_container = tk.Frame(self.root, bg=self.colors['bg_primary'])
-        main_container.pack(fill='both', expand=True, padx=20, pady=10)
+        main_container.pack(fill='both', expand=True, padx=24, pady=16)
         
-        # Create notebook for tabs
+        # Create notebook for tabs with modern styling
         style = ttk.Style()
         style.theme_use('clam')
         style.configure('TNotebook', background=self.colors['bg_primary'], borderwidth=0)
         style.configure('TNotebook.Tab', 
                        background=self.colors['bg_secondary'],
                        foreground=self.colors['text_primary'],
-                       padding=[20, 10],
-                       font=('Arial', 10, 'bold'))
+                       padding=[24, 12],
+                       font=('Segoe UI', 10, 'bold'))
         style.map('TNotebook.Tab',
                  background=[('selected', self.colors['bg_tertiary'])],
                  foreground=[('selected', self.colors['accent_cyan'])])
