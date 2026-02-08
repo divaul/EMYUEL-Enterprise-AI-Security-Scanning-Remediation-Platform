@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""
+EMYUEL CLI launcher script
+"""
+
+from cli.emyuel_cli import main
+
+if __name__ == '__main__':
+    main()

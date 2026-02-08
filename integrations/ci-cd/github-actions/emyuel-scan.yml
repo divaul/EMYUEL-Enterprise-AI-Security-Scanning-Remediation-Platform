@@ -1,0 +1,115 @@
+# EMYUEL GitHub Actions Workflow
+# Automated security scanning on every push and pull request
+
+name: EMYUEL Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  EMYUEL_API_URL: ${{ secrets.EMYUEL_API_URL || 'https://api.emyuel.io' }}
+  EMYUEL_API_KEY: ${{ secrets.EMYUEL_API_KEY }}
+
+jobs:
+  security-scan:
+    name: Run EMYUEL Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install EMYUEL CLI
+        run: |
+          pip install emyuel-cli
+      
+      - name: Run Security Scan
+        id: scan
+        run: |
+          emyuel scan \
+            --repo . \
+            --profile standard \
+            --api-url ${{ env.EMYUEL_API_URL }} \
+            --api-key ${{ env.EMYUEL_API_KEY }} \
+            --output scan-results.json \
+            --fail-on high
+        continue-on-error: true
+      
+      - name: Upload Scan Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: emyuel-scan-results
+          path: scan-results.json
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('scan-results.json', 'utf8'));
+            
+            const comment = `## 🔍 EMYUEL Security Scan Results
+            
+            **Scan Status**: ${results.status}
+            **Vulnerabilities Found**: ${results.total_vulnerabilities}
+            
+            | Severity | Count |
+            |----------|-------|
+            | Critical | ${results.critical_count} |
+            | High     | ${results.high_count} |
+            | Medium   | ${results.medium_count} |
+            | Low      | ${results.low_count} |
+            
+            ${results.critical_count > 0 ? '⚠️ **Critical vulnerabilities found!** Please review before merging.' : '✅ No critical vulnerabilities found.'}
+            
+            [View Full Report](${results.report_url})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      - name: Fail on High Severity
+        if: steps.scan.outcome == 'failure'
+        run: |
+          echo "Security scan failed due to high severity vulnerabilities"
+          exit 1
+
+  compliance-check:
+    name: Compliance Report
+    runs-on: ubuntu-latest
+    needs: security-scan
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Generate Compliance Report
+        run: |
+          curl -X POST "${{ env.EMYUEL_API_URL }}/api/v1/reports/compliance" \
+            -H "Authorization: Bearer ${{ env.EMYUEL_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"report_type": "owasp_top10", "format": "pdf"}' \
+            -o compliance-report.pdf
+      
+      - name: Upload Compliance Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-report
+          path: compliance-report.pdf

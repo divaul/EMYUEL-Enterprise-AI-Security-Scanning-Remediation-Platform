@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMYUEL Security Scan Report - {{ scan_id }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 300;
+        }
+        
+        .header .scan-id {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            background: #f8f9fa;
+        }
+        
+        .summary-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+        
+        .summary-card h3 {
+            font-size: 0.875rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .summary-card .value {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+        
+        .severity-overview {
+            padding: 2rem;
+        }
+        
+        .severity-bars {
+            margin-top: 1.5rem;
+        }
+        
+        .severity-bar {
+            margin-bottom: 1.5rem;
+        }
+        
+        .severity-bar-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .severity-bar-track {
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .severity-bar-fill {
+            height: 100%;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.3s ease;
+        }
+        
+        .severity-critical { background: #dc3545; }
+        .severity-high { background: #fd7e14; }
+        .severity-medium { background: #ffc107; color: #333; }
+        .severity-low { background: #28a745; }
+        
+        .findings-section {
+            padding: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            color: #1e3c72;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        
+        .finding-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .finding-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .finding-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .finding-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #333;
+            flex: 1;
+        }
+        
+        .severity-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-critical {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .badge-high {
+            background: #fd7e14;
+            color: white;
+        }
+        
+        .badge-medium {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .badge-low {
+            background: #28a745;
+            color: white;
+        }
+        
+        .finding-meta {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .finding-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .finding-meta-label {
+            font-weight: 600;
+        }
+        
+        .finding-description {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            color: #555;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .remediation {
+            background: #e7f5ff;
+            border-left: 4px solid #0c8599;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        
+        .remediation-title {
+            font-weight: bold;
+            color: #0c8599;
+            margin-bottom: 0.5rem;
+        }
+        
+        .cvss-score {
+            display: inline-block;
+            background: #333;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 2rem;
+            text-align: center;
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+            
+            .finding-card {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🛡️ EMYUEL Security Scan Report</h1>
+            <div class="scan-id">Scan ID: {{ scan_id }}</div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="summary">
+            <div class="summary-card">
+                <h3>Target</h3>
+                <div class="value" style="font-size: 1rem;">{{ target }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Scan Date</h3>
+                <div class="value" style="font-size: 1rem;">{{ start_time }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Duration</h3>
+                <div class="value">{{ "%.2f"|format(duration) }}s</div>
+            </div>
+            <div class="summary-card">
+                <h3>Files Scanned</h3>
+                <div class="value">{{ files_scanned }}</div>
+            </div>
+            <div class="summary-card">
+                <h3>Total Findings</h3>
+                <div class="value">{{ total_findings }}</div>
+            </div>
+        </div>
+        
+        <!-- Severity Overview -->
+        <div class="severity-overview">
+            <h2 class="section-title">Vulnerability Distribution</h2>
+            <div class="severity-bars">
+                <div class="severity-bar">
+                    <div class="severity-bar-header">
+                        <span>Critical</span>
+                        <span>{{ critical_count }}</span>
+                    </div>
+                    <div class="severity-bar-track">
+                        <div class="severity-bar-fill severity-critical" 
+                             style="width: {{ (critical_count / (total_findings if total_findings > 0 else 1) * 100)|int }}%">
+                            {{ critical_count }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="severity-bar">
+                    <div class="severity-bar-header">
+                        <span>High</span>
+                        <span>{{ high_count }}</span>
+                    </div>
+                    <div class="severity-bar-track">
+                        <div class="severity-bar-fill severity-high" 
+                             style="width: {{ (high_count / (total_findings if total_findings > 0 else 1) * 100)|int }}%">
+                            {{ high_count }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="severity-bar">
+                    <div class="severity-bar-header">
+                        <span>Medium</span>
+                        <span>{{ medium_count }}</span>
+                    </div>
+                    <div class="severity-bar-track">
+                        <div class="severity-bar-fill severity-medium" 
+                             style="width: {{ (medium_count / (total_findings if total_findings > 0 else 1) * 100)|int }}%">
+                            {{ medium_count }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="severity-bar">
+                    <div class="severity-bar-header">
+                        <span>Low</span>
+                        <span>{{ low_count }}</span>
+                    </div>
+                    <div class="severity-bar-track">
+                        <div class="severity-bar-fill severity-low" 
+                             style="width: {{ (low_count / (total_findings if total_findings > 0 else 1) * 100)|int }}%">
+                            {{ low_count }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Findings -->
+        <div class="findings-section">
+            <h2 class="section-title">Detailed Findings</h2>
+            
+            {% for finding in findings %}
+            <div class="finding-card">
+                <div class="finding-header">
+                    <div class="finding-title">{{ loop.index }}. {{ finding.title }}</div>
+                    <span class="severity-badge badge-{{ finding.severity|lower }}">{{ finding.severity }}</span>
+                </div>
+                
+                <div class="finding-meta">
+                    <div class="finding-meta-item">
+                        <span class="finding-meta-label">File:</span>
+                        <code>{{ finding.file_path }}</code>
+                    </div>
+                    <div class="finding-meta-item">
+                        <span class="finding-meta-label">Type:</span>
+                        <span>{{ finding.type }}</span>
+                    </div>
+                    {% if finding.cvss_score %}
+                    <div class="finding-meta-item">
+                        <span class="finding-meta-label">CVSS:</span>
+                        <span class="cvss-score">{{ "%.1f"|format(finding.cvss_score) }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="finding-description">
+                    {{ finding.description }}
+                </div>
+                
+                {% if finding.code_snippet %}
+                <div class="code-block">{{ finding.code_snippet }}</div>
+                {% endif %}
+                
+                {% if finding.remediation %}
+                <div class="remediation">
+                    <div class="remediation-title">🔧 Recommended Remediation</div>
+                    <div>{{ finding.remediation }}</div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            {% if not findings %}
+            <div style="text-align: center; padding: 3rem; color: #28a745;">
+                <h3>✅ No vulnerabilities found!</h3>
+                <p style="margin-top: 1rem; color: #666;">Your application appears to be secure based on the scan performed.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>Generated by <strong>EMYUEL Security Scanner</strong> on {{ generated_at }}</p>
+            <p style="margin-top: 0.5rem;">
+                <a href="https://github.com/emyuel/emyuel">Documentation</a> | 
+                <a href="https://emyuel.io/support">Support</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

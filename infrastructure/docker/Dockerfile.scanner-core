@@ -1,0 +1,40 @@
+# Dockerfile for Scanner Core Service
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies and security tools
+RUN apt-get update && apt-get install -y \
+    gcc \
+    git \
+    curl \
+    wget \
+    nmap \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install additional security tools
+RUN pip install --no-cache-dir \
+    bandit \
+    semgrep \
+    safety
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /var/lib/emyuel/scans /var/lib/emyuel/logs
+
+# Expose port if needed
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD python -c "import sys; sys.exit(0)"
+
+# Default command (can be overridden)
+CMD ["python", "-m", "services.scanner-core.main"]

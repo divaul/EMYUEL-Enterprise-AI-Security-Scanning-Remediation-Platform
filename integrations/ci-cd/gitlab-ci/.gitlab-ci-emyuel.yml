@@ -1,0 +1,57 @@
+# EMYUEL GitLab CI/CD Template
+# Add this to your .gitlab-ci.yml
+
+stages:
+  - security-scan
+  - report
+
+variables:
+  EMYUEL_API_URL: https://api.emyuel.io
+  EMYUEL_SCAN_PROFILE: standard
+
+emyuel_security_scan:
+  stage: security-scan
+  image: python:3.11-slim
+  before_script:
+    - pip install emyuel-cli
+  script:
+    - |
+      emyuel scan \
+        --repo . \
+        --profile $EMYUEL_SCAN_PROFILE \
+        --api-url $EMYUEL_API_URL \
+        --api-key $EMYUEL_API_KEY \
+        --output scan-results.json \
+        --fail-on high
+  artifacts:
+    when: always
+    paths:
+      - scan-results.json
+    reports:
+      security: scan-results.json
+  allow_failure: false
+  only:
+    - merge_requests
+    - main
+    - develop
+
+emyuel_compliance_report:
+  stage: report
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - |
+      curl -X POST "$EMYUEL_API_URL/api/v1/reports/compliance" \
+        -H "Authorization: Bearer $EMYUEL_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{"report_type": "owasp_top10", "format": "pdf"}' \
+        -o compliance-report.pdf
+  artifacts:
+    paths:
+      - compliance-report.pdf
+    expire_in: 30 days
+  dependencies:
+    - emyuel_security_scan
+  only:
+    - main

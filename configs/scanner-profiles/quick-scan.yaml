@@ -1,0 +1,51 @@
+# Quick Scan Profile
+# Fast scan for CI/CD pipelines (5-10 minutes)
+
+scan:
+  profile: quick
+  description: "Fast scan focusing on critical vulnerabilities"
+  
+  timeout: 600  # 10 minutes
+  
+  # Only critical detectors
+  detectors:
+    - sqli
+    - xss
+  
+  depth: shallow
+  
+  # Faster settings
+  parallel_files: 10
+  max_files: 100
+  max_file_size_mb: 5
+  
+  extensions:
+    - .py
+    - .js
+    - .ts
+    - .php
+  
+  exclude_dirs:
+    - node_modules
+    - .git
+    - __pycache__
+    - venv
+    - dist
+    - build
+    - test
+    - tests
+  
+  exclude_files:
+    - "*.min.js"
+    - "*.test.*"
+    - "*.spec.*"
+  
+  llm:
+    max_tokens: 2048
+    temperature: 0.0
+  
+  report:
+    formats:
+      - json
+    include_remediation: false
+    include_cvss: true

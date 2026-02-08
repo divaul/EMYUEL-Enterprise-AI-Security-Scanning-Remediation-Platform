@@ -1,0 +1,53 @@
+# Prometheus Configuration for EMYUEL
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'emyuel'
+    environment: 'production'
+
+# Alert manager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # API Gateway metrics
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:8000']
+    metrics_path: '/metrics'
+    
+  # Scanner Core metrics  
+  - job_name: 'scanner-core'
+    static_configs:
+      - targets: ['scanner-core:8001']
+    metrics_path: '/metrics'
+    
+  # LLM Orchestrator metrics
+  - job_name: 'llm-orchestrator'
+    static_configs:
+      - targets: ['llm-orchestrator:8002']
+    metrics_path: '/metrics'
+    
+  # PostgreSQL metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    
+  # Redis metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    
+  # Node exporter for system metrics
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']

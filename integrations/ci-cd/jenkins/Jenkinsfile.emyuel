@@ -1,0 +1,86 @@
+// EMYUEL Jenkins Declarative Pipeline
+// Add this to your Jenkinsfile
+
+pipeline {
+    agent any
+    
+    environment {
+        EMYUEL_API_URL = credentials('emyuel-api-url')
+        EMYUEL_API_KEY = credentials('emyuel-api-key')
+        SCAN_PROFILE = 'standard'
+    }
+    
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    sh 'pip3 install emyuel-cli'
+                }
+            }
+        }
+        
+        stage('Security Scan') {
+            steps {
+                script {
+                    def scanStatus = sh(
+                        script: """
+                            emyuel scan \
+                                --repo . \
+                                --profile \${SCAN_PROFILE} \
+                                --api-url \${EMYUEL_API_URL} \
+                                --api-key \${EMYUEL_API_KEY} \
+                                --output scan-results.json \
+                                --fail-on high
+                        """,
+                        returnStatus: true
+                    )
+                    
+                    if (scanStatus != 0) {
+                        currentBuild.result = 'UNSTABLE'
+                        error('Security vulnerabilities found')
+                    }
+                }
+            }
+        }
+        
+        stage('Generate Report') {
+            steps {
+                script {
+                    sh """
+                        curl -X POST "\${EMYUEL_API_URL}/api/v1/reports/compliance" \
+                            -H "Authorization: Bearer \${EMYUEL_API_KEY}" \
+                            -H "Content-Type: application/json" \
+                            -d '{"report_type": "owasp_top10", "format": "pdf"}' \
+                            -o compliance-report.pdf
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            archiveArtifacts artifacts: 'scan-results.json,compliance-report.pdf', allowEmptyArchive: true
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: '.',
+                reportFiles: 'scan-results.json',
+                reportName: 'EMYUEL Scan Results'
+            ])
+        }
+        
+        failure {
+            emailext(
+                subject: "EMYUEL Security Scan Failed: ${env.JOB_NAME}",
+                body: """
+                    Security vulnerabilities detected in build ${env.BUILD_NUMBER}.
+                    
+                    Check the scan results at: ${env.BUILD_URL}
+                """,
+                to: "${env.SECURITY_TEAM_EMAIL}"
+            )
+        }
+    }
+}

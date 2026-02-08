@@ -1,0 +1,95 @@
+# Prometheus Alert Rules for EMYUEL
+
+groups:
+  - name: emyuel_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} requests/second for {{ $labels.instance }}"
+      
+      # API Gateway down
+      - alert: APIGatewayDown
+        expr: up{job="api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API Gateway is down"
+          description: "API Gateway instance {{ $labels.instance }} is down"
+      
+      # Scanner service down
+      - alert: ScannerServiceDown
+        expr: up{job="scanner-core"} == 0
+        for: 2m
+        labels:
+          severity: high
+        annotations:
+          summary: "Scanner service is down"
+          description: "Scanner instance {{ $labels.instance }} is down"
+      
+      # High LLM API latency
+      - alert: HighLLMLatency  
+        expr: histogram_quantile(0.95, rate(llm_request_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LLM API latency"
+          description: "95th percentile latency is {{ $value }}s for {{ $labels.provider }}"
+      
+      # LLM provider quota exceeded
+      - alert: LLMQuotaExceeded
+        expr: increase(llm_quota_exceeded_total[1h]) > 10
+        for: 1m
+        labels:
+          severity: high
+        annotations:
+          summary: "LLM provider quota exceeded"
+          description: "Provider {{ $labels.provider }} quota exceeded {{ $value }} times in the last hour"
+      
+      # Database connection pool exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: db_connection_pool_available == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool exhausted"
+          description: "No available database connections"
+      
+      # High scan queue size
+      - alert: HighScanQueueSize
+        expr: scan_queue_size > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of queued scans"
+          description: "{{ $value }} scans are queued for processing"
+      
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disk space running low"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining on {{ $labels.instance }}"
+      
+      # Memory usage high
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Only {{ $value | humanizePercentage }} memory available on {{ $labels.instance }}"

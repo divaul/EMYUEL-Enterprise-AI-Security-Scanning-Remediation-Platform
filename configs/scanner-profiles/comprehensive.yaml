@@ -1,0 +1,65 @@
+# Comprehensive Scan Profile
+# Deep scan with all detectors (30-60 minutes)
+
+scan:
+  profile: comprehensive
+  description: "Comprehensive scan with all vulnerability detectors and deep analysis"
+  
+  timeout: 3600  # 60 minutes
+  
+  # All detectors
+  detectors:
+    - sqli           # SQL Injection
+    - xss            # Cross-Site Scripting
+    - ssrf           # Server-Side Request Forgery
+    - rce            # Remote Code Execution
+    - auth           # Authentication issues
+    - authz          # Authorization issues
+    - deserialization  # Unsafe deserialization
+    - path_traversal   # Path traversal
+    - csrf           # Cross-Site Request Forgery
+  
+  depth: deep
+  
+  # Thorough settings
+  parallel_files: 3
+  max_files: 10000
+  max_file_size_mb: 50
+  
+  # Dynamic analysis (optional)
+  dynamic_analysis: true
+  
+  extensions:
+    - .py
+    - .js
+    - .ts
+    - .jsx
+    - .tsx
+    - .java
+    - .php
+    - .rb
+    - .go
+    - .cs
+    - .cpp
+    - .c
+    - .h
+  
+  exclude_dirs:
+    - node_modules
+    - .git
+    - __pycache__
+    - venv
+  
+  llm:
+    max_tokens: 8192
+    temperature: 0.05
+  
+  report:
+    formats:
+      - json
+      - markdown
+      - pdf
+      - html
+    include_remediation: true
+    include_cvss: true
+    include_compliance: true

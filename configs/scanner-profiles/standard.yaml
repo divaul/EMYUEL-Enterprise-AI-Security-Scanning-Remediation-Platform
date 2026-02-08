@@ -1,0 +1,63 @@
+# Standard Scan Profile
+# Balanced scan for regular security checks (15-30 minutes)
+
+scan:
+  profile: standard
+  description: "Balanced scan with most common vulnerability detectors"
+  
+  # Timeout in seconds
+  timeout: 1800  # 30 minutes
+  
+  # Enabled detectors
+  detectors:
+    - sqli           # SQL Injection
+    - xss            # Cross-Site Scripting
+    - ssrf           # Server-Side Request Forgery
+    - auth           # Authentication issues
+    - authz          # Authorization issues
+  
+  # Analysis depth
+  depth: medium  # shallow, medium, deep
+  
+  # Performance settings
+  parallel_files: 5
+  max_files: 1000
+  max_file_size_mb: 10
+  
+  # File filtering
+  extensions:
+    - .py
+    - .js
+    - .ts
+    - .java
+    - .php
+    - .rb
+    - .go
+  
+  exclude_dirs:
+    - node_modules
+    - .git
+    - __pycache__
+    - venv
+    - env
+    - dist
+    - build
+    - vendor
+  
+  exclude_files:
+    - "*.min.js"
+    - "*.test.js"
+    - "*.spec.js"
+  
+  # LLM settings
+  llm:
+    max_tokens: 4096
+    temperature: 0.1
+  
+  # Reporting
+  report:
+    formats:
+      - json
+      - markdown
+    include_remediation: true
+    include_cvss: true
