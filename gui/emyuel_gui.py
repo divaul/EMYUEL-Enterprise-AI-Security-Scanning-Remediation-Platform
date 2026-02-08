@@ -10,10 +10,10 @@ import os
 import tkinter as tk
 from tkinter import ttk, filedialog, scrolledtext, messagebox
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any, List
+from datetime import datetime
 import asyncio
 import threading
-from datetime import datetime
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
