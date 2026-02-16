@@ -275,13 +275,24 @@ install_python_deps() {
     print_header "Checking and Managing Python Dependencies"
     echo ""
     
-    if python3 check_dependencies.py; then
+    python3 check_dependencies.py
+    DEPS_EXIT_CODE=$?
+    
+    if [ $DEPS_EXIT_CODE -eq 0 ]; then
         print_success "Dependencies managed successfully"
     else
-        print_warning "Dependency checker had issues, attempting full install..."
-        pip install -r requirements.txt
+        print_warning "Some dependencies failed to install"
+        echo ""
+        echo -e "${YELLOW}⚠️  Common causes:${NC}"
+        echo -e "   ${GRAY}• Network connectivity issues${NC}"
+        echo -e "   ${GRAY}• Package version conflicts${NC}"
+        echo -e "   ${GRAY}• Missing system libraries${NC}"
+        echo ""
+        echo -e "${BYELLOW}These packages are optional - setup will continue${NC}"
+        echo -e "${GRAY}Install missing packages later: pip install <package-name>${NC}"
     fi
     
+    echo ""
     # Check cybersecurity tools
     echo ""
     print_header "Checking Cybersecurity Tools"
