@@ -92,7 +92,8 @@ class WebScanner:
                         
                     except APIError as api_err:
                         # API error occurred - save state and pause scan
-                        print(f"[Web] ⚠️ API Error: {api_err.message}")
+                        print(f"[Web] ⚠️ API Error: {api_err.code}")
+                        print(f"[Web] Error Message: {api_err.message}")
                         print(f"[Web] Pausing scan at page {i+1}/{len(pages)}")
                         
                         # Save current state for resume

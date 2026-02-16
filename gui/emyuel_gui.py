@@ -955,6 +955,10 @@ class EMYUELGUI:
             except ScanPausedException as e:
                 # Scan paused - save state and trigger pause UI
                 self.scan_state = e.state
+                # Log to GUI console
+                self.root.after(0, lambda reason=e.reason: self.log_console(f"[ERROR] API Error - Scan paused: {reason}"))
+                self.root.after(0, lambda: self.log_console(f"[INFO] Progress saved: {e.state.get('pages_scanned', 0)}/{e.state.get('total_pages', 0)} pages"))
+                # Show pause UI
                 self.root.after(0, lambda reason=e.reason: self.pause_scan(reason))
                 
             except Exception as e:
