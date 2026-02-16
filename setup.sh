@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
 # EMYUEL - Enterprise AI-Powered Security Scanner
-# Automated Setup Script for Kali Linux
+# Automated Setup Script for Linux (Kali, Ubuntu, Debian, etc.)
 # ═══════════════════════════════════════════════════════════════════════════
 
 set -e  # Exit on error
@@ -51,7 +51,7 @@ cat << "EOF"
     ╚═══════════════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
-echo -e "${GRAY}    Version: 2.0.0 | Platform: Kali Linux | Runtime: Python 3.10+${NC}"
+echo -e "${GRAY}    Version: 2.0.0 | Platform: Linux | Runtime: Python 3.10+${NC}"
 echo -e "${GRAY}    ─────────────────────────────────────────────────────────────────${NC}"
 echo ""
 
@@ -556,6 +556,71 @@ print_completion() {
     echo ""
 }
 
+# Interactive launcher
+launch_app() {
+    print_header "🚀 LAUNCH APPLICATION"
+    
+    echo -e "${BCYAN}[1]${NC} ${WHITE}Launch GUI Mode${NC} ${BGREEN}⭐ Recommended${NC}"
+    echo -e "    ${GRAY}Full-featured graphical interface${NC}"
+    echo ""
+    
+    echo -e "${BCYAN}[2]${NC} ${WHITE}Stay in Terminal${NC}"
+    echo -e "    ${GRAY}Run CLI commands manually${NC}"
+    echo ""
+    
+    echo -e "${BCYAN}[3]${NC} ${WHITE}Exit${NC}"
+    echo ""
+    
+    read -p "$(echo -e ${BYELLOW}Select option [1-3]:${NC} )" choice
+    
+    case $choice in
+        1)
+            print_separator
+            echo ""
+            print_info "Launching GUI mode..."
+            echo ""
+            
+            # Activate venv and launch GUI
+            source venv/bin/activate
+            
+            echo -e "${BCYAN}[→]${NC} Starting EMYUEL GUI..."
+            echo -e "${GRAY}    Press Ctrl+C to stop${NC}"
+            echo ""
+            print_separator
+            echo ""
+            
+            # Launch GUI in foreground
+            python -m gui.emyuel_gui
+            
+            echo ""
+            print_success "GUI closed. Thank you for using EMYUEL!"
+            ;;
+        2)
+            print_separator
+            echo ""
+            print_success "Setup complete! You can now:"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Activate virtual environment:${NC}"
+            echo -e "    ${GRAY}source venv/bin/activate${NC}"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Run CLI scan:${NC}"
+            echo -e "    ${GRAY}python -m cli.emyuel_cli scan --target /path/to/code${NC}"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Launch GUI:${NC}"
+            echo -e "    ${GRAY}python -m gui.emyuel_gui${NC}"
+            echo ""
+            ;;
+        3)
+            echo ""
+            print_success "Setup complete! Run ./setup.sh again anytime."
+            ;;
+        *)
+            echo ""
+            print_warning "Invalid option. Exiting."
+            ;;
+    esac
+}
+
 # Main installation flow
 main() {
     check_kali
@@ -567,6 +632,9 @@ main() {
     create_directories
     verify_installation
     print_completion
+    
+    # Launch interactive menu
+    launch_app
 }
 
 # Run main installation
