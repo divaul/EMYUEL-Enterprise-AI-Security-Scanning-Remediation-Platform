@@ -241,7 +241,7 @@ class DatabaseManager:
                 if scan.get('modules_used'):
                     try:
                         scan['modules'] = json.loads(scan['modules_used'])
-                    except:
+                    except (json.JSONDecodeError, ValueError, TypeError):
                         scan['modules'] = []
                 scans.append(scan)
             
@@ -273,7 +273,7 @@ class DatabaseManager:
             if scan.get('modules_used'):
                 try:
                     scan['modules'] = json.loads(scan['modules_used'])
-                except:
+                except (json.JSONDecodeError, ValueError, TypeError):
                     scan['modules'] = []
             
             # Get findings
@@ -298,7 +298,7 @@ class DatabaseManager:
                 if finding.get('references'):
                     try:
                         finding['references'] = json.loads(finding['references'])
-                    except:
+                    except (json.JSONDecodeError, ValueError, TypeError):
                         finding['references'] = []
                 findings.append(finding)
             
@@ -345,7 +345,7 @@ class DatabaseManager:
                 if scan.get('modules_used'):
                     try:
                         scan['modules'] = json.loads(scan['modules_used'])
-                    except:
+                    except (json.JSONDecodeError, ValueError, TypeError):
                         scan['modules'] = []
                 scans.append(scan)
             
