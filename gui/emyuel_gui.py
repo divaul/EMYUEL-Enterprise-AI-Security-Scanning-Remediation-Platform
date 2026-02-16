@@ -1203,58 +1203,59 @@ class EMYUELGUI:
     
     def start_ai_analysis(self):
         """Start AI-driven autonomous security analysis with real LLM"""
-        target_url = self.ai_target_var.get().strip()
-        
-        if not target_url or target_url == 'https://example.com':
-            messagebox.showwarning("Invalid URL", "Please enter a valid target URL")
-            return
-        
-        if hasattr(self, 'ai_analysis_running') and self.ai_analysis_running:
-            messagebox.showinfo("Analysis Running", "An AI analysis is already in progress")
-            return
-        
-        # Get AI provider from UI (map to scanner providers)
-        provider_ui = self.ai_provider_var.get() if hasattr(self, 'ai_provider_var') else 'OpenAI GPT-4'
-        provider_map = {
-            'OpenAI GPT-4': 'openai',
-            'OpenAI GPT-3.5': 'openai',
-            'Google Gemini': 'gemini',
-            'Anthropic Claude': 'claude'
-        }
-        provider = provider_map.get(provider_ui, 'gemini')
-        
-        # Validate API key for selected provider
-        from api_key_manager import APIKeyManager
-        api_mgr = APIKeyManager()
-        
         try:
-            api_key = api_mgr.get_key(provider)
+            target_url = self.ai_target_var.get().strip()
+            
+            if not target_url or target_url == 'https://example.com':
+                messagebox.showwarning("Invalid URL", "Please enter a valid target URL")
+                return
+            
+            if hasattr(self, 'ai_analysis_running') and self.ai_analysis_running:
+                messagebox.showinfo("Analysis Running", "An AI analysis is already in progress")
+                return
+            
+            # Get AI provider from UI (map to scanner providers)
+            provider_ui = self.ai_provider_var.get() if hasattr(self, 'ai_provider_var') else 'OpenAI GPT-4'
+            provider_map = {
+                'OpenAI GPT-4': 'openai',
+                'OpenAI GPT-3.5': 'openai',
+                'Google Gemini': 'gemini',
+                'Anthropic Claude': 'claude'
+            }
+            provider = provider_map.get(provider_ui, 'gemini')
+            
+            # Validate API key for selected provider
+            api_key = self.key_manager.get_key(provider)
             if not api_key:
                 messagebox.showerror("API Key Required", 
                                    f"Please configure your {provider.upper()} API key in the API Keys tab first")
                 return
-        except:
-            messagebox.showerror("API Key Required", 
-                               f"Please configure your {provider.upper()} API key in the API Keys tab")
-            return
-        
-        # Parse natural language query if provided
-        nlp_query = self.ai_nlp_query_var.get().strip()
-        
-        if nlp_query:
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 💬 Natural Language Query: {nlp_query}")
-        
-        self.ai_analysis_running = True
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🤖 AI Analysis initialized")
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎯 Target: {target_url}")
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🧠 AI Provider: {provider.upper()}")
-        
-        # Run real AI analysis in thread
-        import threading
-        thread = threading.Thread(target=self._run_real_ai_analysis_thread, 
-                                 args=(target_url, nlp_query, provider))
-        thread.daemon = True
-        thread.start()
+            
+            # Parse natural language query if provided
+            nlp_query = self.ai_nlp_query_var.get().strip() if hasattr(self, 'ai_nlp_query_var') else ""
+            
+            from datetime import datetime
+            
+            if nlp_query:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 💬 Natural Language Query: {nlp_query}")
+            
+            self.ai_analysis_running = True
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🤖 AI Analysis initialized")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎯 Target: {target_url}")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🧠 AI Provider: {provider.upper()}")
+            
+            # Run real AI analysis in thread
+            import threading
+            thread = threading.Thread(target=self._run_real_ai_analysis_thread, 
+                                     args=(target_url, nlp_query, provider))
+            thread.daemon = True
+            thread.start()
+            
+        except Exception as e:
+            self.log_console(f"[ERROR] Failed to start AI analysis: {e}")
+            messagebox.showerror("Error", f"Failed to start AI analysis:\n\n{str(e)}")
+            if hasattr(self, 'ai_analysis_running'):
+                self.ai_analysis_running = False
     
     def _run_real_ai_analysis_thread(self, target_url: str, nlp_query: str = "", provider: str = "gemini"):
         """Thread wrapper for async AI analysis"""
