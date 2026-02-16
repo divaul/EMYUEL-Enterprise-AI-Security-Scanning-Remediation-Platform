@@ -556,7 +556,7 @@ print_completion() {
     echo ""
 }
 
-# Interactive launcher - MOVED TO BEGINNING OF FLOW
+# Interactive launcher - AT THE END OF SETUP
 launch_app() {
     print_header "🚀 CHOOSE YOUR MODE"
     
@@ -566,157 +566,109 @@ launch_app() {
     echo ""
     
     echo -e "${BCYAN}[2]${NC} ${WHITE}Terminal Mode${NC}"
-    echo -e "    ${GRAY}Configure API keys now, use CLI commands${NC}"
+    echo -e "    ${GRAY}Use CLI commands - configure API keys manually${NC}"
     echo ""
     
     read -p "$(echo -e ${BYELLOW}Select mode [1-2]:${NC} )" choice
     
     case $choice in
         1)
-            # GUI Mode - Skip API config
-            export SETUP_MODE="gui"
+            # GUI Mode - Auto-launch
             print_separator
             echo ""
-            print_success "GUI Mode selected! Skipping API key configuration."
-            print_info "You can configure API keys later in the GUI's API Keys tab."
+            print_info "Launching GUI mode..."
             echo ""
+            
+            # Activate venv and launch GUI
+            source venv/bin/activate
+            
+            echo -e "${BCYAN}[→]${NC} Starting EMYUEL GUI..."
+            echo -e "${GRAY}    Press Ctrl+C to stop${NC}"
+            echo ""
+            print_separator
+            echo ""
+            
+            # Launch GUI in foreground
+            python -m gui.emyuel_gui
+            
+            echo ""
+            print_success "GUI closed. Thank you for using EMYUEL!"
             ;;
         2)
-            # Terminal Mode - Run API config
-            export SETUP_MODE="terminal"
+            # Terminal Mode - Show manual setup
             print_separator
             echo ""
             print_success "Terminal Mode selected!"
             echo ""
-            ;;
-        *)
-            # Default to GUI
-            export SETUP_MODE="gui"
+            print_info "Configure API keys using one of these methods:"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Using CLI tool:${NC}"
+            echo -e "    ${GRAY}source venv/bin/activate${NC}"
+            echo -e "    ${GRAY}python -m cli.emyuel_cli config --provider openai${NC}"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Or edit .env file directly:${NC}"
+            echo -e "    ${GRAY}nano .env${NC}"
+            echo -e "    ${GRAY}# Add: OPENAI_API_KEY=sk-...${NC}"
+            echo ""
             print_separator
             echo ""
-            print_warning "Invalid option. Defaulting to GUI Mode."
-            print_info "You can configure API keys later in the GUI."
+            print_success "You can now run scans:"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Activate virtual environment:${NC}"
+            echo -e "    ${GRAY}source venv/bin/activate${NC}"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Run CLI scan:${NC}"
+            echo -e "    ${GRAY}python -m cli.emyuel_cli scan --target /path/to/code${NC}"
+            echo ""
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Or launch GUI:${NC}"
+            echo -e "    ${GRAY}python -m gui.emyuel_gui${NC}"
+            echo ""
+            ;;
+        *)
+            # Default to showing commands
+            echo ""
+            print_warning "Invalid option."
+            echo ""
+            print_success "Setup complete! You can:"
+            echo -e "    ${GRAY}source venv/bin/activate${NC}"
+            echo -e "    ${GRAY}python -m gui.emyuel_gui  ${BCYAN}# GUI mode${NC}"
+            echo -e "    ${GRAY}python -m cli.emyuel_cli scan --target /path  ${BCYAN}# CLI mode${NC}"
             echo ""
             ;;
     esac
 }
 
-# Setup environment variables and API keys (CONDITIONAL)
+# Setup environment file (NO API KEY PROMPT - users configure later)
 setup_env() {
-    # Skip API config if GUI mode
-    if [ "$SETUP_MODE" = "gui" ]; then
-        print_header "⚙️  ENVIRONMENT SETUP"
-        print_info "Skipping API key configuration (GUI mode)."
-        print_info "Configure your API keys in the GUI's API Keys tab."
-        return
-    fi
+    print_header "⚙️  ENVIRONMENT SETUP"
     
-    # Original API config for Terminal mode
-    print_header "⚙️  LLM API Key Configuration"
-    
-    echo -e "${CYAN}Choose your LLM provider:${NC}"
-    echo "  1) OpenAI (GPT-4)"
-    echo "  2) Google Gemini"
-    echo "  3) Anthropic Claude"
-    echo "  4) Configure later"
-    echo ""
-    
-    read -p "Select option [1-4]: " provider_choice
-    
-    case $provider_choice in
-        1)
-            read -p "Enter your OpenAI API key: " api_key
-            if [ ! -z "$api_key" ]; then
-                echo "OPENAI_API_KEY=$api_key" > .env
-                print_success "OpenAI API key configured!"
-            fi
-            ;;
-        2)
-            read -p "Enter your Google Gemini API key: " api_key
-            if [ ! -z "$api_key" ]; then
-                echo "GOOGLE_AI_API_KEY=$api_key" > .env
-                print_success "Google Gemini API key configured!"
-            fi
-            ;;
-        3)
-            read -p "Enter your Anthropic API key: " api_key
-            if [ ! -z "$api_key" ]; then
-                echo "ANTHROPIC_API_KEY=$api_key" > .env
-                print_success "Anthropic Claude API key configured!"
-            fi
-            ;;
-        4)
-            print_info "Skipping API key configuration"
-            print_info "You can configure later using: python -m cli.emyuel_cli config"
-            ;;
-        *)
-            print_warning "Invalid option. Skipping API key configuration."
-            ;;
-    esac
-}
-
-# Final launcher after setup
-final_launcher() {
-    if [ "$SETUP_MODE" = "gui" ]; then
-        # GUI Mode - Launch immediately
-        print_separator
-        echo ""
-        print_info "Launching GUI mode..."
-        echo ""
-        
-        # Activate venv and launch GUI
-        source venv/bin/activate
-        
-        echo -e "${BCYAN}[→]${NC} Starting EMYUEL GUI..."
-        echo -e "${GRAY}    Press Ctrl+C to stop${NC}"
-        echo ""
-        print_separator
-        echo ""
-        
-        # Launch GUI in foreground
-        python -m gui.emyuel_gui
-        
-        echo ""
-        print_success "GUI closed. Thank you for using EMYUEL!"
+    # Just create basic .env if it doesn't exist
+    if [ ! -f ".env" ]; then
+        touch .env
+        print_success "Created .env file"
     else
-        # Terminal Mode - Show instructions
-        print_separator
-        echo ""
-        print_success "Setup complete! You can now:"
-        echo ""
-        echo -e "${BCYAN}[→]${NC} ${WHITE}Activate virtual environment:${NC}"
-        echo -e "    ${GRAY}source venv/bin/activate${NC}"
-        echo ""
-        echo -e "${BCYAN}[→]${NC} ${WHITE}Run CLI scan:${NC}"
-        echo -e "    ${GRAY}python -m cli.emyuel_cli scan --target /path/to/code${NC}"
-        echo ""
-        echo -e "${BCYAN}[→]${NC} ${WHITE}Launch GUI:${NC}"
-        echo -e "    ${GRAY}python -m gui.emyuel_gui${NC}"
-        echo ""
+        print_success ".env file already exists"
     fi
+    
+    print_info "API keys can be configured later:"
+    echo -e "    ${GRAY}• GUI: API Keys tab${NC}"
+    echo -e "    ${GRAY}• CLI: python -m cli.emyuel_cli config${NC}"
 }
 
 # Main installation flow
 main() {
     check_kali
     check_prerequisites
-    
-    # ASK MODE CHOICE FIRST (before API config)
-    launch_app
-    
     install_dependencies
     create_venv
     install_python_deps
-    
-    # API config is now conditional based on mode
     setup_env
-    
     create_directories
     verify_installation
     print_completion
     
-    # Launch based on mode choice
-    final_launcher
+    # Ask mode choice AT THE END (after everything installed)
+    launch_app
 }
 
 # Run main installation
