@@ -983,12 +983,33 @@ class EMYUELGUI:
                     if provider == 'gemini':
                         import google.generativeai as genai
                         genai.configure(api_key=key)
-                        # Use latest model (gemini-pro is deprecated)
-                        model = genai.GenerativeModel('gemini-1.5-flash')
-                        # Test with simple prompt
-                        response = model.generate_content("Test")
-                        if response:
-                            success = True
+                        
+                        # Try multiple models in order (fallback for different API versions)
+                        models_to_try = [
+                            'gemini-1.5-flash',      # Latest (API v1)
+                            'gemini-1.5-pro',        # Latest pro (API v1)
+                            'gemini-pro',            # Legacy (API v1beta)
+                            'models/gemini-pro',     # Fully qualified (API v1beta)
+                        ]
+                        
+                        last_error = None
+                        for model_name in models_to_try:
+                            try:
+                                self.log_console(f"[API] Trying model: {model_name}")
+                                model = genai.GenerativeModel(model_name)
+                                response = model.generate_content("Test")
+                                if response:
+                                    self.log_console(f"[API] ✓ Success with model: {model_name}")
+                                    success = True
+                                    break
+                            except Exception as model_error:
+                                last_error = str(model_error)
+                                self.log_console(f"[API] Model {model_name} failed: {last_error}")
+                                continue
+                        
+                        if not success:
+                            error_msg = f"All models failed. Last error: {last_error}"
+                            raise Exception(error_msg)
                     
                     elif provider == 'openai':
                         from openai import OpenAI
