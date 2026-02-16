@@ -211,30 +211,36 @@ class SecurityToolsManager:
         # Check if it's pre-installed on Kali
         if self.is_kali and 'pre-installed' in install_cmd.lower():
             print(f"  ℹ️  {tool_name} should be pre-installed on Kali")
+            print(f"     Try: whereis {tool_name}")
             return False
         
         if not install_cmd or 'sudo apt-get' not in install_cmd:
             print(f"  ⚠️  No auto-install available for {tool_name}")
+            print(f"     Manual install: {install_cmd}")
             return False
         
-        print(f"  Installing {tool_name}...")
+        print(f"  ⏳ Installing {tool_name}...")
         
         try:
+            # Run with live output for sudo prompt
             result = subprocess.run(
                 install_cmd,
                 shell=True,
-                capture_output=True,
                 text=True,
                 timeout=180  # 3 minutes max
             )
             
             if result.returncode == 0:
-                print(f"  ✅ {tool_name} installed")
+                print(f"  ✅ {tool_name} installed successfully")
                 return True
             else:
-                print(f"  ❌ Failed to install {tool_name}")
+                print(f"  ❌ Failed to install {tool_name} (exit code: {result.returncode})")
+                print(f"     Try manually: {install_cmd}")
                 return False
                 
+        except subprocess.TimeoutExpired:
+            print(f"  ❌ Installation timed out for {tool_name}")
+            return False
         except Exception as e:
             print(f"  ❌ Error installing {tool_name}: {e}")
             return False
@@ -341,19 +347,56 @@ def main():
         
         if response == 'y':
             print()
-            print("Installing missing required tools...")
+            print("="*60)
+            print("  🔧 AUTO-INSTALLING MISSING REQUIRED TOOLS")
+            print("="*60)
             print()
+            print("⚠️  You may be prompted for your sudo password")
+            print()
+            
+            installed_count = 0
+            failed_count = 0
             
             for tool_name, status in results.items():
                 if not status['installed'] and not status['optional']:
                     tool_info = manager.security_tools[tool_name]
-                    manager.auto_install_linux(tool_name, tool_info)
+                    
+                    # Show what we're installing
+                    install_key = 'install_kali' if manager.is_kali else 'install_linux'
+                    install_cmd = tool_info.get(install_key, '')
+                    
+                    print(f"📦 {tool_name}")
+                    print(f"   Command: {install_cmd}")
+                    print()
+                    
+                    success = manager.auto_install_linux(tool_name, tool_info)
+                    
+                    if success:
+                        installed_count += 1
+                    else:
+                        failed_count += 1
+                    
+                    print()
+            
+            # Summary
+            print("="*60)
+            print(f"  INSTALLATION SUMMARY")
+            print("="*60)
+            print(f"  ✅ Installed: {installed_count}")
+            print(f"  ❌ Failed: {failed_count}")
+            print("="*60)
+            print()
             
             # Re-check after installation
+            if installed_count > 0:
+                print("🔄 Re-checking tools after installation...")
+                print()
+                results = manager.check_all_tools()
+        else:
             print()
-            print("Re-checking after installation...")
+            print("⏭️  Skipping auto-installation")
+            print("   You can install tools manually later")
             print()
-            results = manager.check_all_tools()
     
     # Print install instructions
     manager.print_install_instructions(results)
