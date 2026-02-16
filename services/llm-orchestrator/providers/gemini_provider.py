@@ -1,15 +1,14 @@
 """
 Google Gemini Provider Implementation
 
-Gemini Pro based security analysis provider
+Gemini 2.5 based security analysis provider using NEW SDK
 """
 
 import json
 import time
+import asyncio
 from typing import Dict, List, Any
 from datetime import datetime
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 from .base import (
     LLMProvider,
@@ -26,51 +25,53 @@ from .base import (
 
 
 class GeminiProvider(LLMProvider):
-    """Google Gemini Pro provider implementation"""
+    """Google Gemini 2.5 provider implementation with NEW SDK"""
     
-    def __init__(self, api_key: str, model: str = "gemini-1.5-flash", config: Dict[str, Any] = None):
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash", config: Dict[str, Any] = None):
         config = config or {}
         super().__init__(api_key, model, config)
         
-        genai.configure(api_key=api_key)
+        # NEW SDK: Import and setup
+        try:
+            from google import genai
+            self.genai = genai
+            self.client = genai.Client(api_key=api_key)
+        except ImportError:
+            raise ImportError("google-genai package not installed. Run: pip install google-genai")
         
-        # Configure safety settings to allow security content
-        self.safety_settings = {
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-        }
-        
-        generation_config = {
+        self.generation_config = {
             "temperature": config.get('temperature', 0.1),
             "top_p": 0.95,
             "top_k": 40,
             "max_output_tokens": config.get('max_tokens', 4096),
         }
         
-        self.model_instance = genai.GenerativeModel(
-            model_name=model,
-            generation_config=generation_config,
-            safety_settings=self.safety_settings
-        )
+        # Note: NEW SDK handles safety settings differently
+        # For security analysis, we need less restrictive settings
+        self.safety_settings = config.get('safety_settings', [])
     
     def _get_provider_type(self) -> ProviderType:
         return ProviderType.GEMINI
     
     async def _call_api(self, prompt: str) -> tuple:
-        """Make API call to Gemini"""
+        """Make API call to Gemini with NEW SDK"""
         start_time = time.time()
         
         try:
-            response = await self.model_instance.generate_content_async(prompt)
+            # NEW SDK: Use client.models.generate_content
+            response = await asyncio.to_thread(
+                self.client.models.generate_content,
+                model=self.model,
+                contents=prompt
+            )
+            
             processing_time = time.time() - start_time
             
             if not response.text:
                 raise ProviderInvalidResponseError("Empty response from Gemini")
             
             content = response.text
-            # Gemini doesn't provide token count in same way, estimate
+            # Estimate token usage
             tokens_used = len(prompt) // 4 + len(content) // 4
             
             return content, tokens_used, processing_time

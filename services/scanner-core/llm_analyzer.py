@@ -237,22 +237,23 @@ If no vulnerabilities: {{"vulnerabilities": []}}
                 raise e
     
     async def _call_gemini(self, prompt: str) -> str:
-        """Call Google Gemini API"""
+        """Call Google Gemini API with NEW SDK"""
         try:
-            import google.generativeai as genai
+            from google import genai  # NEW SDK
         except ImportError:
-            raise ImportError("google-generativeai package not installed. Run: pip install google-generativeai")
+            raise ImportError("google-genai package not installed. Run: pip install google-genai")
         
         api_key = self.api_keys.get_key('gemini')
         if not api_key:
             raise ValueError("Gemini API key not configured")
         
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # NEW SDK: Use Client-based API
+        client = genai.Client(api_key=api_key)
         
         response = await asyncio.to_thread(
-            model.generate_content,
-            prompt
+            client.models.generate_content,
+            model='gemini-2.5-flash',  # Current stable model
+            contents=prompt
         )
         
         return response.text

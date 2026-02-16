@@ -1000,9 +1000,9 @@ class EMYUELGUI:
                             # Create client with API key
                             client = genai.Client(api_key=key)
                             
-                            # Test with simple generation
+                            # Test with simple generation using current stable model
                             response = client.models.generate_content(
-                                model='gemini-2.0-flash-exp',  # Latest model
+                                model='gemini-2.5-flash',  # Current stable model
                                 contents='Test'
                             )
                             

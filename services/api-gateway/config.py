@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     
     # Gemini
     GOOGLE_AI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"  # Current stable model
     GEMINI_MAX_TOKENS: int = 4096
     GEMINI_TEMPERATURE: float = 0.1
     
