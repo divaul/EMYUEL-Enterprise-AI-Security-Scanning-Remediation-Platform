@@ -22,7 +22,7 @@ from gui.tabs import (
     setup_advanced_tab,
     setup_ai_analysis_tab,
     setup_api_tab,
-    setup_results_tab
+    setup_reports_tab  # Changed from setup_results_tab
 )
 
 # Add parent directory to path
@@ -361,10 +361,10 @@ class EMYUELGUI:
         notebook.add(api_keys_frame, text='API Keys')
         setup_api_tab(api_keys_frame, self)  # Using modular setup
         
-        # Tab 5: Results (MODULAR)
-        results_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
-        notebook.add(results_frame, text='Results')
-        setup_results_tab(results_frame, self)  # Using modular setup
+        # Tab 5: Reports (MODULAR) - Changed from Results
+        reports_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        notebook.add(reports_frame, text='📊 Reports')
+        setup_reports_tab(reports_frame, self)  # Using modular setup
         
         # Status bar
         status_frame = tk.Frame(self.root, bg=self.colors['bg_secondary'], height=40)
@@ -1222,6 +1222,54 @@ class EMYUELGUI:
             
             # Execute on main thread
             self.root.after(0, update)
+    
+    # ============ REPORTS TAB  METHODS ============
+    
+    def generate_ai_report(self):
+        """Generate AI-enhanced report (stub - full implementation in gui_methods_to_add.py)"""
+        messagebox.showinfo("AI Report", "AI report generation - coming soon!\nCheck gui_methods_to_add.py for full implementation.")
+        self.log_console("[TODO] Generate AI-enhanced report - see gui_methods_to_add.py")
+    
+    def generate_raw_report(self):
+        """Generate raw report (wrapper for existing generate_report)"""
+        self.generate_report()
+    
+    def refresh_report_history(self):
+        """Refresh report history (stub)"""
+        if hasattr(self, 'report_history_text'):
+            self.report_history_text.config(state='normal')
+            self.report_history_text.delete('1.0', tk.END)
+            self.report_history_text.insert('1.0', "No reports yet. Generate a report to see history.")
+            self.report_history_text.config(state='disabled')
+    
+    def update_report_summary(self):
+        """Update report summary after scan"""
+        if not hasattr(self, 'report_summary_label'):
+            return
+        
+        if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
+            summary = "No scan completed yet. Run a scan first to generate reports."
+        else:
+            target = self.last_scan_results.get('target', 'Unknown')
+            total = self.last_scan_results.get('total_findings', 0)
+            severity = self.last_scan_results.get('findings_by_severity', {})
+            
+            summary = f"Target: {target}\n"
+            summary += f"Total Findings: {total} vulnerabilities\n"
+            summary += f"Critical: {severity.get('critical', 0)} | "
+            summary += f"High: {severity.get('high', 0)} | "
+            summary += f"Medium: {severity.get('medium', 0)} | "
+            summary += f"Low: {severity.get('low', 0)}"
+            
+            # Enable report buttons
+            if hasattr(self, 'generate_ai_report_btn'):
+                self.generate_ai_report_btn.config(state='normal')
+            if hasattr(self, 'generate_raw_report_btn'):
+                self.generate_raw_report_btn.config(state='normal')
+        
+        self.report_summary_label.config(text=summary)
+    
+    # ==============================================
     
     def run(self):
         """Run the GUI"""
