@@ -496,11 +496,26 @@ except ImportError as e:
 print_completion() {
     clear
     echo ""
-    echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
-    echo -e "${BGREEN}║${NC}    ${BGREEN}✓  INSTALLATION SUCCESSFUL!${NC}                                   ${BGREEN}║${NC}"
-    echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
-    echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    
+    # Check if there were critical issues
+    DEPS_FAILED=${DEPS_EXIT_CODE:-0}
+    TOOLS_FAILED=${TOOLS_EXIT_CODE:-0}
+    
+    if [ $DEPS_FAILED -ne 0 ] || [ $TOOLS_FAILED -ne 0 ]; then
+        # Setup with warnings
+        echo -e "${BYELLOW}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BYELLOW}║${NC}                                                                       ${BYELLOW}║${NC}"
+        echo -e "${BYELLOW}║${NC}    ${BYELLOW}⚠  SETUP COMPLETE - WITH WARNINGS${NC}                              ${BYELLOW}║${NC}"
+        echo -e "${BYELLOW}║${NC}                                                                       ${BYELLOW}║${NC}"
+        echo -e "${BYELLOW}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    else
+        # Perfect installation
+        echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
+        echo -e "${BGREEN}║${NC}    ${BGREEN}✓  INSTALLATION SUCCESSFUL!${NC}                                   ${BGREEN}║${NC}"
+        echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
+        echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    fi
     echo ""
     
     print_header "🚀 QUICK START GUIDE"
