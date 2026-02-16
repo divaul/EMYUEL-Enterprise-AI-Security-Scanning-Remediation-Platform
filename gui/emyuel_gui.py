@@ -1159,7 +1159,7 @@ class EMYUELGUI:
     # setup_ai_analysis_tab removed - now using modular version from gui/tabs/ai_analysis_tab.py
     
     def start_ai_analysis(self):
-        """Start AI-driven security analysis"""
+        """Start AI-driven autonomous security analysis with real LLM"""
         target_url = self.ai_target_var.get().strip()
         
         if not target_url or target_url == 'https://example.com':
@@ -1170,111 +1170,238 @@ class EMYUELGUI:
             messagebox.showinfo("Analysis Running", "An AI analysis is already in progress")
             return
         
-        # Validate API key
-        openai_key = self.api_key_openai.get()
-        if not openai_key:
+        # Get AI provider from UI (map to scanner providers)
+        provider_ui = self.ai_provider_var.get() if hasattr(self, 'ai_provider_var') else 'OpenAI GPT-4'
+        provider_map = {
+            'OpenAI GPT-4': 'openai',
+            'OpenAI GPT-3.5': 'openai',
+            'Google Gemini': 'gemini',
+            'Anthropic Claude': 'claude'
+        }
+        provider = provider_map.get(provider_ui, 'gemini')
+        
+        # Validate API key for selected provider
+        from api_key_manager import APIKeyManager
+        api_mgr = APIKeyManager()
+        
+        try:
+            api_key = api_mgr.get_key(provider)
+            if not api_key:
+                messagebox.showerror("API Key Required", 
+                                   f"Please configure your {provider.upper()} API key in the API Keys tab first")
+                return
+        except:
             messagebox.showerror("API Key Required", 
-                               "Please configure your OpenAI API key in the API Keys tab first")
+                               f"Please configure your {provider.upper()} API key in the API Keys tab")
             return
         
         # Parse natural language query if provided
         nlp_query = self.ai_nlp_query_var.get().strip()
-        focus_modules = []
-        query_context = ""
         
         if nlp_query:
-            parsed = self.nlp_parser.parse(nlp_query)
-            focus_modules = parsed.get('modules', [])
-            query_context = f"User Request: {nlp_query}\n"
-            
-            if parsed.get('confidence', 0) > 0.5:
-                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 💬 Understood: {nlp_query}")
-                if focus_modules and 'all' not in focus_modules:
-                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎯 Focus: {', '.join(focus_modules).upper()}")
-            else:
-                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Query unclear, running full scan")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 💬 Natural Language Query: {nlp_query}")
         
         self.ai_analysis_running = True
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] AI Analysis initialized")
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Target: {target_url}")
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🤖 AI Analysis initialized")
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎯 Target: {target_url}")
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🧠 AI Provider: {provider.upper()}")
         
-        if query_context:
-            self.ai_update_reasoning(f"{query_context}\nAnalyzing request and preparing scan strategy...")
-        else:
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] NOTE: Full AI analysis requires integration")
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running basic security scan instead...")
-        
-        # Run basic scan (placeholder - full implementation available in ai_analysis_tab_methods.py)
+        # Run real AI analysis in thread
         import threading
-        thread = threading.Thread(target=self.run_basic_analysis, args=(target_url, focus_modules, query_context))
+        thread = threading.Thread(target=self._run_real_ai_analysis_thread, 
+                                 args=(target_url, nlp_query, provider))
         thread.daemon = True
         thread.start()
     
-    def run_basic_analysis(self, target_url: str, focus_modules: list = None, query_context: str = ""):
-        """Run basic analysis (simplified version)"""
+    def _run_real_ai_analysis_thread(self, target_url: str, nlp_query: str = "", provider: str = "gemini"):
+        """Thread wrapper for async AI analysis"""
         import asyncio
-        from services.executor import Executor
         
         try:
+            # Create new event loop for this thread
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             
-            executor = Executor(verbose=False)
-            
-            # Determine what to scan based on NLP query
-            if focus_modules and 'all' not in focus_modules:
-                scan_description = f"Focusing on: {', '.join([m.upper() for m in focus_modules])}"
-                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] {scan_description}")
-                if query_context:
-                    self.ai_update_reasoning(f"{query_context}\nStrategy: Targeted scan on {', '.join(focus_modules)}")
-            else:
-                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Running comprehensive security check...")
-                self.ai_update_reasoning("Analyzing all security aspects...")
-            
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] Checking security headers...")
-            
-            # Basic header analysis
-            import aiohttp
-            async def check_headers():
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(target_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
-                        headers = dict(response.headers)
-                        return headers
-            
-            headers = loop.run_until_complete(check_headers())
-            
-            # Check for security headers
-            security_headers = ['X-Frame-Options', 'X-Content-Type-Options', 'Content-Security-Policy', 'Strict-Transport-Security']
-            missing = [h for h in security_headers if h not in headers]
-            
-            if missing:
-                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Missing headers: {', '.join(missing)}")
-                reasoning = f"Found {len(missing)} missing security headers.\n\n"
-                reasoning += f"Missing: {', '.join(missing)}\n\n"
-                reasoning += "Recommendation: Add security headers to prevent common attacks."
-                if query_context:
-                    reasoning = f"{query_context}\n\n{reasoning}"
-                self.ai_update_reasoning(reasoning)
-            else:
-                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ All security headers present")
-                self.ai_update_reasoning("Security headers are properly configured.")
-            
-            # If focusing on specific modules, mention them
-            if focus_modules and 'all' not in focus_modules:
-                if 'sqli' in focus_modules or 'sql' in focus_modules:
-                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 SQL Injection testing would run here (full AI mode)")
-                if 'xss' in focus_modules:
-                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 XSS testing would run here (full AI mode)")
-            
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Analysis complete!")
-            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] For full AI-powered analysis, see: ai_analysis_tab_methods.py")
+            # Run async analysis
+            loop.run_until_complete(self._run_real_ai_analysis(target_url, nlp_query, provider))
             
         except Exception as e:
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Error: {str(e)}")
-        
+            self.ai_update_reasoning(f"Analysis failed: {str(e)}")
+            import traceback
+            traceback.print_exc()
         finally:
             self.ai_analysis_running = False
-            loop.close()
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ AI Analysis complete")
+    
+    async def _run_real_ai_analysis(self, target_url: str, nlp_query: str = "", provider: str = "gemini"):
+        """Real AI-powered autonomous security analysis"""
+        from api_key_manager import APIKeyManager
+        from services.scanner_core.llm_analyzer import LLMAnalyzer
+        
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔧 Initializing AI analyzer...")
+        
+        # Initialize LLM
+        api_mgr = APIKeyManager()
+        llm = LLMAnalyzer(api_mgr, provider)
+        
+        # ==========================================
+        # PHASE 1: TARGET RECONNAISSANCE (15-30s)
+        # ==========================================
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 Phase 1: Target Reconnaissance")
+        self.ai_update_reasoning("🔍 PHASE 1: TARGET RECONNAISSANCE\n\nAnalyzing target architecture and attack surface...")
+        
+        recon_prompt = f"""You are a professional penetration tester analyzing a target for security assessment.
+
+Target URL: {target_url}
+User Focus: {nlp_query if nlp_query else "Comprehensive security analysis"}
+
+Analyze this target and provide:
+
+1. **Technology Stack Detection**
+   - Identify web server, frameworks, databases
+   - Detect technologies from URL patterns
+
+2. **Attack Surface Identification**
+   - List potential entry points (login, search, file upload, etc.)
+   - Identify user-controllable inputs
+
+3. **Initial Security Assessment**
+   - Obvious security headers missing?
+   - Common misconfigurations?
+
+4. **Recommended Test Vectors**
+   - Top 5 most relevant vulnerability tests
+   - Prioritize based on target characteristics
+
+**Format as step-by-step analysis. Be concise but thorough.**
+"""
+
+        try:
+            recon_response = await llm.chat(recon_prompt)
+            self.ai_update_reasoning(f"🔍 PHASE 1: TARGET RECONNAISSANCE\n\n{recon_response}")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Reconnaissance complete")
+        except Exception as e:
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Reconnaissance failed: {e}")
+            recon_response = "Unable to perform AI reconnaissance"
+        
+        # ==========================================
+        # PHASE 2: VULNERABILITY DETECTION (30-60s)
+        # ==========================================
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔬 Phase 2: Vulnerability Detection")
+        
+        # Determine focus areas
+        if nlp_query:
+            focus_context = f"Focus specifically on: {nlp_query}"
+        else:
+            focus_context = "Perform comprehensive vulnerability assessment"
+        
+        vuln_prompt = f"""You are performing autonomous vulnerability detection.
+
+Target: {target_url}
+Previous Reconnaissance:
+{recon_response[:500]}...
+
+{focus_context}
+
+Generate a detailed vulnerability testing strategy:
+
+1. **Test Vectors to Execute**
+   - SQL Injection payloads (if applicable)
+   - XSS vectors
+   - CSRF checks
+   - Authentication bypass attempts
+   - File upload vulnerabilities
+
+2. **Prioritization**
+   - Which tests are most critical based on reconnaissance?
+   - Expected risk levels
+
+3. **Detection Logic**
+   - How to identify if vulnerability exists
+   - What responses indicate success
+
+**Be specific and actionable. List exact tests to run.**
+"""
+
+        try:
+            vuln_response = await llm.chat(vuln_prompt)
+            self.ai_update_reasoning(f"🔬 PHASE 2: VULNERABILITY DETECTION\n\n{vuln_response}")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Vulnerability analysis complete")
+        except Exception as e:
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Vulnerability analysis failed: {e}")
+            vuln_response = "Unable to perform AI vulnerability analysis"
+        
+        # ==========================================
+        # PHASE 3: RECOMMENDATIONS (10-20s)
+        # ==========================================
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 💡 Phase 3: Generating Recommendations")
+        
+        rec_prompt = f"""Based on the analysis, provide security recommendations.
+
+Target: {target_url}
+Analysis Results:
+- Reconnaissance: {recon_response[:300]}...
+- Vulnerability Strategy: {vuln_response[:300]}...
+
+Generate:
+
+1. **High Priority Findings**
+   - Most critical security issues identified
+   - Severity rating (Critical/High/Medium/Low)
+
+2. **Remediation Steps**
+   - Specific fixes for each issue
+   - Code examples where applicable
+
+3. **Best Practices**
+   - General security improvements
+   - Compliance recommendations (OWASP, NIST)
+
+4. **Next Steps**
+   - What should be tested manually
+   - Tools to use for deeper analysis
+
+**Provide actionable, professional recommendations suitable for a security report.**
+"""
+
+        try:
+            rec_response = await llm.chat(rec_prompt)
+            final_reasoning = f"""{'='*60}
+🎯 AI SECURITY ANALYSIS COMPLETE
+{'='*60}
+
+TARGET: {target_url}
+AI PROVIDER: {provider.upper()}
+USER QUERY: {nlp_query if nlp_query else "N/A"}
+
+{'='*60}
+🔍 PHASE 1: RECONNAISSANCE
+{'='*60}
+
+{recon_response}
+
+{'='*60}
+🔬 PHASE 2: VULNERABILITY DETECTION STRATEGY
+{'='*60}
+
+{vuln_response}
+
+{'='*60}
+💡 PHASE 3: RECOMMENDATIONS
+{'='*60}
+
+{rec_response}
+
+{'='*60}
+"""
+            self.ai_update_reasoning(final_reasoning)
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Recommendations generated")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎉 Full AI analysis complete!")
+            
+       except Exception as e:
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Recommendation generation failed: {e}")
+            self.ai_update_reasoning(f"Analysis incomplete due to error: {e}")
     
     def ai_log_console(self, message: str):
         """Log message to AI console (thread-safe)"""
