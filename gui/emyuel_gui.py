@@ -768,12 +768,21 @@ class EMYUELGUI:
                 # Get API keys
                 api_key_manager = APIKeyManager()
                 
+                # Check if SSL verification should be skipped
+                skip_ssl = getattr(self, 'opt_skip_ssl_var', tk.BooleanVar(value=False)).get()
+                
                 # Configure scanner
                 config = {
                     'api_key_manager': api_key_manager,
                     'provider': self.provider_var.get(),
-                    'profile': self.profile_var.get()
+                    'profile': self.profile_var.get(),
+                    'verify_ssl': not skip_ssl  # Invert: checkbox is "skip", config is "verify"
                 }
+                
+                # Log SSL warning if verification disabled
+                if skip_ssl:
+                    self.root.after(0, lambda: self.log_console("[WARNING] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!"))
+                    self.root.after(0, lambda: self.log_console("[WARNING] Only use this for testing against sites with invalid/self-signed certificates"))
                 
                 # Create scanner
                 scanner = ScannerCore(config)

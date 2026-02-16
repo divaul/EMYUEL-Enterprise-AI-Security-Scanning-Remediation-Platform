@@ -258,6 +258,7 @@ def setup_advanced_tab(parent, gui_instance):
     gui_instance.opt_recursive_var = tk.BooleanVar(value=True)
     gui_instance.opt_follow_links_var = tk.BooleanVar(value=False)
     gui_instance.opt_bypass_waf_var = tk.BooleanVar(value=False)
+    gui_instance.opt_skip_ssl_var = tk.BooleanVar(value=False)  # SSL verification on by default
 
     tk.Checkbutton(
         adv_frame, text="Recursive Crawling", variable=gui_instance.opt_recursive_var,
@@ -275,6 +276,15 @@ def setup_advanced_tab(parent, gui_instance):
         adv_frame, text="Attempt WAF Bypass (risky)", variable=gui_instance.opt_bypass_waf_var,
         bg=colors['bg_secondary'], fg=colors['text_primary'], selectcolor=colors['bg_tertiary'],
         activebackground=colors['bg_secondary']
+    ).pack(anchor='w', pady=2)
+    
+    # SSL Verification toggle - NEW
+    tk.Checkbutton(
+        adv_frame, text="⚠️ Skip SSL Verification (for invalid/self-signed certs)", 
+        variable=gui_instance.opt_skip_ssl_var,
+        bg=colors['bg_secondary'], fg=colors['warning'], selectcolor=colors['bg_tertiary'],
+        activebackground=colors['bg_secondary'],
+        font=('Segoe UI', 9, 'bold')  # Make it stand out
     ).pack(anchor='w', pady=2)
 
     # ---------- Control buttons (responsive) ----------

@@ -51,7 +51,8 @@ class ScannerCore:
         self.web_scanner = WebScanner(
             self.llm_analyzer,
             max_depth=self.config.get('max_depth', 2),
-            max_pages=self.config.get('max_pages', 50)
+            max_pages=self.config.get('max_pages', 50),
+            verify_ssl=self.config.get('verify_ssl', True)  # Default: verify SSL
         )
         
         self.code_scanner = CodeScanner(self.llm_analyzer)

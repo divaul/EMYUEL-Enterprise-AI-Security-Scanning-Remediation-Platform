@@ -15,7 +15,7 @@ import re
 class WebScanner:
     """Scanner for web applications (URLs)"""
     
-    def __init__(self, llm_analyzer, max_depth=2, max_pages=50):
+    def __init__(self, llm_analyzer, max_depth=2, max_pages=50, verify_ssl=True):
         """
         Initialize web scanner
         
@@ -23,10 +23,12 @@ class WebScanner:
             llm_analyzer: LLM analyzer instance
             max_depth: Maximum crawl depth
             max_pages: Maximum pages to scan
+            verify_ssl: Verify SSL certificates (default: True)
         """
         self.llm = llm_analyzer
         self.max_depth = max_depth
         self.max_pages = max_pages
+        self.verify_ssl = verify_ssl
         self.visited_urls = set()
         self.session = None
     
@@ -46,8 +48,16 @@ class WebScanner:
         
         all_findings = []
         
-        # Create persistent session
-        async with aiohttp.ClientSession() as session:
+        # Create SSL context based on verify_ssl setting
+        import ssl
+        ssl_context = None  # Use default SSL verification
+        if not self.verify_ssl:
+            ssl_context = False  # Disable SSL verification
+            print(f"[Web] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!")
+        
+        # Create persistent session with SSL configuration
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        async with aiohttp.ClientSession(connector=connector) as session:
             self.session = session
             
             # Crawl website
