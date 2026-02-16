@@ -812,6 +812,10 @@ class EMYUELGUI:
                     )
                 )
                 
+                # Store results for report generation
+                self.last_scan_results = results
+                self.root.after(0, lambda: self.log_console(f"[INFO] Scan results stored for report generation"))
+                
                 loop.close()
                 
                 # Update UI with results
@@ -864,6 +868,12 @@ class EMYUELGUI:
         self.log_console(f"[RESULT] High: {by_severity.get('high', 0)}")
         self.log_console(f"[RESULT] Medium: {by_severity.get('medium', 0)}")
         self.log_console(f"[RESULT] Low: {by_severity.get('low', 0)}")
+
+        # Enable report button if we have findings
+        if total_findings > 0:
+            self.log_console(f"[INFO] ✅ You can now generate a report!")
+            if hasattr(self, 'report_btn'):
+                self.report_btn.config(state='normal')
         
         # Show summary dialog
         messagebox.showinfo(
@@ -884,8 +894,72 @@ class EMYUELGUI:
     def generate_report(self):
         """Generate scan report"""
         self.log_console("[REPORT] Generating report...")
-        # TODO: Implement report generation
-        messagebox.showinfo("Report", "Report generation coming soon")
+        
+        # Check if we have scan results
+        if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
+            messagebox.showerror("No Results", "No scan results available. Please run a scan first.")
+            self.log_console("[ERROR] No scan results to generate report from")
+            return
+        
+        try:
+            # Import ReportGenerator
+            import sys
+            from pathlib import Path
+            
+            parent_dir = Path(__file__).resolve().parent.parent
+            libs_dir = parent_dir / "libs" / "reporting"
+            if str(libs_dir) not in sys.path:
+                sys.path.insert(0, str(libs_dir))
+            
+            from report_generator import ReportGenerator
+            
+            # Create output directory
+            reports_dir = parent_dir / "reports"
+            reports_dir.mkdir(exist_ok=True)
+            
+            # Initialize generator
+            templates_dir = libs_dir / "templates"
+            generator = ReportGenerator(templates_dir=templates_dir)
+            
+            self.log_console("[REPORT] Initializing report generator...")
+            
+            # Generate reports in all formats
+            output_files = generator.generate_all(
+                scan_results=self.last_scan_results,
+                output_dir=reports_dir,
+                formats=['html', 'json']  # Skip PDF if reportlab not installed
+            )
+            
+            self.log_console(f"[REPORT] ✅ Reports generated successfully!")
+            
+            # Show success message with file paths
+            report_paths = "\n".join([f"  • {fmt.upper()}: {path}" for fmt, path in output_files.items()])
+            message = f"Reports generated successfully!\n\nOutput files:\n{report_paths}\n\nReport directory: {reports_dir}"
+            
+            messagebox.showinfo("Report Generated", message)
+            
+            # Log each file
+            for fmt, path in output_files.items():
+                self.log_console(f"[REPORT] {fmt.upper()}: {path}")
+            
+            # Open HTML report in browser
+            if 'html' in output_files:
+                import webbrowser
+                html_path = output_files['html']
+                self.log_console(f"[REPORT] Opening HTML report in browser...")
+                webbrowser.open(f"file://{html_path}")
+                
+        except ImportError as e:
+            error_msg = f"Error importing report generator: {e}"
+            self.log_console(f"[ERROR] {error_msg}")
+            messagebox.showerror("Import Error", f"{error_msg}\n\nMake sure report_generator.py is in libs/reporting/")
+            
+        except Exception as e:
+            error_msg = f"Error generating report: {e}"
+            self.log_console(f"[ERROR] {error_msg}")
+            messagebox.showerror("Report Error", error_msg)
+            import traceback
+            traceback.print_exc()
     
     def test_api_key(self, provider):
         """Test API key"""
