@@ -1399,7 +1399,7 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Recommendations generated")
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎉 Full AI analysis complete!")
             
-       except Exception as e:
+        except Exception as e:
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Recommendation generation failed: {e}")
             self.ai_update_reasoning(f"Analysis incomplete due to error: {e}")
     
