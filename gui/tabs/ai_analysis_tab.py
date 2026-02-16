@@ -450,15 +450,43 @@ def setup_ai_analysis_tab(parent, gui_instance):
         font=('Segoe UI', 11, 'bold'),
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
-    ).pack(side='left')
-
-    tk.Label(
-        reasoning_header,
-        text="AI's thought process and decision making",
-        font=('Segoe UI', 8, 'italic'),
-        fg=colors['text_secondary'],
-        bg=colors['bg_secondary']
     ).pack(side='left', padx=(10, 0))
+
+    # Analyze button (in its own dedicated frame with padding)
+    analyze_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'])
+    analyze_frame.pack(fill='x', padx=10, pady=12)
+
+    analyze_btn = tk.Button(
+        analyze_frame,
+        text="🤖 Analyze with AI",
+        font=('Segoe UI', 12, 'bold'),
+        bg=colors['accent_cyan'],
+        fg=colors['bg_primary'],
+        activebackground=colors['accent_purple'],
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.start_ai_analysis,
+        padx=20,
+        pady=10
+    )
+    analyze_btn.pack(side='left', padx=5)
+    
+    # Resume Scan button (hidden by default)
+    gui_instance.resume_scan_btn_ai = tk.Button(
+        analyze_frame,
+        text="▶️ Resume Scan",
+        font=('Segoe UI', 12, 'bold'),
+        bg=colors['success'],
+        fg=colors['bg_primary'],
+        activebackground=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.resume_scan,
+        padx=20,
+        pady=10,
+        state='disabled'
+    )
+    # Don't pack initially - shown by pause_scan() method
 
     gui_instance.ai_reasoning_text = tk.Text(
         reasoning_frame,

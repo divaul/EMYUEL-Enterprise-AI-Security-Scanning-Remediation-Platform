@@ -89,6 +89,43 @@ def setup_advanced_tab(parent, gui_instance):
     )
     browse_btn.grid(row=0, column=1, sticky='e')
 
+    # Scan button container
+    buttons_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'])
+    buttons_frame.pack(fill='x', padx=10, pady=12)
+    
+    # Start Advanced Scan button
+    start_adv_scan_btn = tk.Button(
+        buttons_frame,
+        text="🔍 Start Advanced Scan",
+        font=('Segoe UI', 12, 'bold'),
+        bg=colors['accent_cyan'],
+        fg=colors['bg_primary'],
+        activebackground=colors['accent_purple'],
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.start_advanced_scan,
+        padx=20,
+        pady=10
+    )
+    start_adv_scan_btn.pack(side='left', padx=5)
+    
+    # Resume Scan button (hidden by default)
+    gui_instance.resume_scan_btn_advanced = tk.Button(
+        buttons_frame,
+        text="▶️ Resume Scan",
+        font=('Segoe UI', 12, 'bold'),
+        bg=colors['success'],
+        fg=colors['bg_primary'],
+        activebackground=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.resume_scan,
+        padx=20,
+        pady=10,
+        state='disabled'
+    )
+    # Don't pack initially - shown by pause_scan() method
+
     # Quick actions
     quick_actions_frame = tk.Frame(target_frame, bg=colors['bg_secondary'])
     quick_actions_frame.pack(fill='x', padx=6, pady=(10, 0))
