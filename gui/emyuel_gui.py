@@ -17,9 +17,9 @@ import os
 # Import modular GUI components
 from gui.utils.colors import get_color_scheme
 from gui.components.hover_button import HoverButton
-from gui.tabs.quick_scan_tab import setup_quick_tab
+from gui.tabs.quick_scan_tab import setup_quick_scan_tab
 from gui.tabs.advanced_scan_tab import setup_advanced_tab
-from gui.tabs.ai_analysis_tab import setup_ai_tab
+from gui.tabs.ai_analysis_tab import setup_ai_analysis_tab
 from gui.tabs.api_keys_tab import setup_api_tab
 from gui.tabs.reports_tab import setup_reports_tab
 from gui.tabs.results_tab import setup_results_tab  # Re-enabled for real-time monitoring
