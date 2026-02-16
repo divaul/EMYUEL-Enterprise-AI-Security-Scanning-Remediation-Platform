@@ -17,12 +17,12 @@ import os
 # Import modular GUI components
 from gui.utils.colors import get_color_scheme
 from gui.components.hover_button import HoverButton
-from gui.tabs import (
-    setup_quick_scan_tab,
-    setup_advanced_tab,
-    setup_ai_analysis_tab,
-    setup_api_tab,
-    setup_reports_tab  # Changed from setup_results_tab
+from gui.tabs.quick_scan_tab import setup_quick_scan_tab
+from gui.tabs.advanced_scan_tab import setup_advanced_scan_tab
+from gui.tabs.ai_analysis_tab import setup_ai_analysis_tab
+from gui.tabs.api_keys_tab import setup_api_keys_tab
+from gui.tabs.reports_tab import setup_reports_tab
+from gui.tabs.results_tab import setup_results_tab  # Re-enabled for real-time monitoring
 )
 
 # Add parent directory to path
@@ -479,19 +479,24 @@ class EMYUELGUI:
         setup_advanced_tab(advanced_frame, self)  # Using modular setup
         
         # Tab 3: AI Analysis (MODULAR)
-        ai_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        ai_frame = tk.Frame(notebook, bg=self.colors['bg_secondary'])
+        setup_ai_analysis_tab(ai_frame, self)
         notebook.add(ai_frame, text='AI Analysis')
-        setup_ai_analysis_tab(ai_frame, self)  # Using modular setup
         
-        # Tab 4: API Keys (MODULAR)
-        api_keys_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        # Results tab - Real-time scan monitoring
+        results_frame = tk.Frame(notebook, bg=self.colors['bg_secondary'])
+        setup_results_tab(results_frame, self)
+        notebook.add(results_frame, text='📊 Results')
+        
+        # API Keys tab
+        api_keys_frame = tk.Frame(notebook, bg=self.colors['bg_secondary'])
+        setup_api_keys_tab(api_keys_frame, self)
         notebook.add(api_keys_frame, text='API Keys')
-        setup_api_tab(api_keys_frame, self)  # Using modular setup
         
-        # Tab 5: Reports (MODULAR) - Changed from Results
-        reports_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
-        notebook.add(reports_frame, text='📊 Reports')
-        setup_reports_tab(reports_frame, self)  # Using modular setup
+        # Reports tab
+        reports_frame = tk.Frame(notebook, bg=self.colors['bg_secondary'])
+        setup_reports_tab(reports_frame, self)
+        notebook.add(reports_frame, text='📄 Reports')
         
         # Status bar
         status_frame = tk.Frame(self.root, bg=self.colors['bg_secondary'], height=40)
