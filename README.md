@@ -80,30 +80,55 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design.
 - API key for at least one LLM provider (OpenAI, Google AI, or Anthropic)
 - (Optional) Docker & Docker Compose for containerized deployment
 
+> **✨ NEW: Smart Setup**
+> 
+> Our enhanced setup automatically:
+> - ✅ Checks and installs Python packages
+> - ✅ Verifies system tools (Git, Node.js, curl)
+> - ✅ Detects cybersecurity tools (nmap, sqlmap, etc.)
+> - ✅ Auto-updates outdated dependencies
+> - ✅ Provides install guidance for missing tools
+
 ### Installation
 
-#### Quick Setup (Windows)
+#### Quick Setup (Windows) - Recommended
 
 ```batch
 # Navigate to project directory
 cd c:\Users\divau\Documents\cyber\emyuel
 
-# Run setup script
+# Run smart setup script
 setup.bat
+
+# The script will automatically:
+# 1. Create virtual environment
+# 2. Check Python version
+# 3. Verify system tools (Git, curl, Node.js)
+# 4. Check & install Python packages
+# 5. Detect security tools (nmap, sqlmap, nikto, etc.)
+# 6. Provide installation instructions for missing tools
 
 # Activate virtual environment
 venv\Scripts\activate.bat
 ```
 
-#### Quick Setup (Linux)
+#### Quick Setup (Linux/Kali) - Recommended
 
 ```bash
 # Navigate to project directory
 cd ~/emyuel
 
-# Run setup script
-chmod +x setup.sh
-./setup.sh
+# Run smart setup script
+chmod +x setup-kali.sh
+./setup-kali.sh
+
+# The script will automatically:
+# 1. Check system requirements
+# 2. Create virtual environment
+# 3. Verify system tools
+# 4. Install/upgrade Python packages
+# 5. Check cybersecurity tools (auto-install option on Kali)
+# 6. Configure environment
 
 # Activate virtual environment
 source venv/bin/activate
@@ -190,6 +215,119 @@ python -m gui.emyuel_gui
 **For Kali Linux users:** If you get `no display` error, use CLI mode instead - it's more suitable for penetration testing workflows.
 
 See [QUICKSTART.md](QUICKSTART.md) for detailed examples and [DOKUMENTASI_PROGRAM.md](DOKUMENTASI_PROGRAM.md) for comprehensive documentation in Bahasa Indonesia.
+
+## 📦 Dependency Management
+
+EMYUEL includes intelligent dependency management that automatically handles all requirements:
+
+### 🐍 Python Packages (`check_dependencies.py`)
+
+Automatically manages Python package dependencies:
+
+- ✅ **Version checking** - Compares installed vs required versions
+- ✅ **Auto-install** - Installs missing packages
+- ✅ **Auto-upgrade** - Updates outdated packages
+- ✅ **Smart detection** - Uses packaging module for accurate comparison
+
+**Usage:**
+```bash
+python check_dependencies.py
+```
+
+**Features:**
+- Parses `requirements.txt` 
+- Compares operators (>=, ==, >, <, <=)
+- Colored output (✅ OK, ❌ Missing, ⚠️ Outdated)
+- Batch installation/upgrade
+
+---
+
+### 🔧 System Tools (`check_system_tools.py`)
+
+Verifies essential development tools:
+
+**Checked Tools:**
+- **Git** (>= 2.0.0) - Version control
+- **curl** (>= 7.0.0) - HTTP client
+- **Node.js** (>= 14.0.0) - JavaScript runtime (optional)
+- **npm** (>= 6.0.0) - Package manager (optional)
+
+**Usage:**
+```bash
+python check_system_tools.py
+```
+
+**Features:**
+- Cross-platform (Windows/Linux/Mac)
+- Version comparison
+- **Auto-install on Linux** (with sudo)
+- Install instructions per OS
+
+---
+
+### 🔐 Security Tools (`check_security_tools.py`)
+
+Detects cybersecurity testing tools:
+
+**Essential Tools (9 total):**
+
+**Reconnaissance:**
+- **nmap** - Network scanner
+- **dirb** - Directory bruteforce (optional)
+- **gobuster** - DNS/VHost busting (optional)
+
+**Scanning:**
+- **nikto** - Web vulnerability scanner
+- **wpscan** - WordPress scanner (optional)
+
+**Exploitation:**
+- **sqlmap** - SQL injection tool
+
+**Brute Force:**
+- **hydra** - Login cracker (optional)
+
+**Password Cracking:**
+- **john** - John the Ripper (optional)
+- **hashcat** - Password recovery (optional)
+
+**Usage:**
+```bash
+python check_security_tools.py
+```
+
+**Features:**
+- **Kali Linux detection** - Shows pre-installed tools
+- Priority levels (High/Medium/Low)
+- Category grouping
+- **Auto-install on Linux/Kali**
+- Detailed installation instructions
+
+---
+
+### 🎯 Complete Setup Flow
+
+When you run `setup.bat` or `setup-kali.sh`:
+
+```
+1. ✅ Python version check (>= 3.10)
+   ↓
+2. ✅ Virtual environment creation
+   ↓
+3. ✅ pip upgrade
+   ↓
+4. ✅ System tools verification
+   - Git, curl, Node.js, npm
+   ↓
+5. ✅ Python packages management
+   - Auto-install missing
+   - Auto-upgrade outdated
+   ↓
+6. ✅ Security tools detection
+   - nmap, sqlmap, nikto, etc.
+   - Auto-install (Linux/Kali)
+   ↓
+✅ Ready for Security Testing!
+```
 
 ## 📚 Documentation
 
