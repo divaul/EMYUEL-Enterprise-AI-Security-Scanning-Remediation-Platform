@@ -315,6 +315,7 @@ create_directories() {
         "logs"
         "$HOME/.emyuel/states"
         "$HOME/.emyuel/cache"
+        "$HOME/.emyuel"
     )
     
     for dir in "${DIRS[@]}"; do
@@ -325,6 +326,13 @@ create_directories() {
             print_success "$dir exists"
         fi
     done
+    
+    # Check if database can be initialized
+    if [ -f "$HOME/.emyuel/scan_history.db" ]; then
+        print_success "Scan history database exists"
+    else
+        print_info "Database will be created on first scan"
+    fi
 }
 
 # Verify installation
@@ -397,7 +405,9 @@ print_completion() {
     echo "   • Advanced Scan tab - Directory scanning"
     echo "   • 🤖 AI Analysis tab - Autonomous AI-driven testing"
     echo "   • API Keys tab - Configure OpenAI/Gemini/Claude"
-    echo "   • Results tab - View findings and generate reports"
+    echo "   • 📊 Results tab - Real-time scan monitoring"
+    echo "   • 📋 Reports tab - View findings, browse history, generate reports"
+    echo "   • 🗄️ Database - Persistent scan history (SQLite)"
     echo ""
     
     echo -e "${YELLOW}4. Configure API keys (if skipped):${NC}"
@@ -428,6 +438,7 @@ print_completion() {
     echo "  🔓 Brute Force - Authentication testing (default creds, wordlist, exhaustive)"
     echo "  💬 Natural Language - English & Indonesian query support"
     echo "  🎨 Enhanced GUI - Modern design with gradient buttons"
+    echo "  🗄️ Database - Persistent scan history with search & export"
     echo ""
     
     echo -e "${CYAN}Documentation:${NC}"

@@ -62,9 +62,11 @@ rich>=13.7.0                      # Rich console output
 # httpx>=0.26.0
 
 # ============================================================================
-# OPTIONAL: DATABASE (if using persistent storage)
+# DATABASE (SQLite built-in)
 # ============================================================================
-# Uncomment if you need database support
+# SQLite3 is built into Python - no additional packages needed
+# Database location: ~/.emyuel/scan_history.db
+# Optional: Uncomment SQLalchemy if you need ORM features
 # sqlalchemy>=2.0.25
 # asyncpg>=0.29.0
 
