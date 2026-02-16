@@ -930,6 +930,9 @@ class EMYUELGUI:
             if hasattr(self, 'report_btn'):
                 self.report_btn.config(state='normal')
         
+        # CRITICAL FIX: Store scan results for Reports tab (Bug Fix #9)
+        self.last_scan_results = results
+        
         # Update Reports tab summary (NEW!)
         self.update_report_summary()
         self.update_bug_monitoring_dashboard()
