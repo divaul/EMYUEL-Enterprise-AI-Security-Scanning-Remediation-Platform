@@ -302,5 +302,52 @@ def setup_reports_tab(parent, gui_instance):
     )
     gui_instance.report_history_text.pack(fill='both', expand=True, padx=10, pady=10)
     
+    # ──────── LEGACY: CONSOLE OUTPUT (for compatibility) ────────
+    # This is needed because other parts of the code reference console_text
+    console_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    console_frame.pack(fill='both', expand=True, padx=20, pady=(20, 20))
+    
+    console_header = tk.Frame(console_frame, bg=colors['bg_secondary'])
+    console_header.pack(fill='x', padx=20, pady=(15, 10))
+    
+    console_label = tk.Label(
+        console_header,
+        text="💻 Console Output",
+        font=('Segoe UI', 12, 'bold'),
+        fg=colors['text_primary'],
+        bg=colors['bg_secondary']
+    )
+    console_label.pack(side='left')
+    
+    # Clear console button
+    clear_btn = tk.Button(
+        console_header,
+        text="🗑️ Clear",
+        font=('Segoe UI', 9),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_secondary'],
+        activebackground=colors['error'],
+        activeforeground='#ffffff',
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.clear_console,
+        padx=15,
+        pady=5
+    )
+    clear_btn.pack(side='right')
+    
+    gui_instance.console_text = scrolledtext.ScrolledText(
+        console_frame,
+        font=('Consolas', 9),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_primary'],
+        insertbackground=colors['accent_cyan'],
+        relief='flat',
+        state='disabled',
+        wrap='word',
+        height=10
+    )
+    gui_instance.console_text.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+    
     # Initial refresh
     gui_instance.refresh_report_history()
