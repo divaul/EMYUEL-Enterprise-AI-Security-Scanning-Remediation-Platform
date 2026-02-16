@@ -1,58 +1,162 @@
-"""AI Analysis tab setup - AI-driven autonomous security analysis (responsive tweaks)"""
+"""
+ai_analysis_tab.py
 
+AI Analysis tab setup - responsive layout + cross-platform mousewheel support.
+
+Usage:
+    Replace your existing ai_analysis_tab.py with this file (or copy the function
+    setup_ai_analysis_tab into your project). This code expects a `gui_instance`
+    object that provides:
+      - colors (dict)
+      - start_ai_analysis (callable)
+      - create_scrollable_frame(parent) optional helper (if present, this will be used)
+      - attributes like ai_target_var, ai_nlp_query_var, ai_depth_var, etc. will be set on gui_instance
+"""
+
+import sys
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 
 
 def setup_ai_analysis_tab(parent, gui_instance):
     """
-    Setup AI-driven autonomous security analysis tab (responsive-friendly)
-    
+    Setup AI-driven autonomous security analysis tab (responsive + cross-platform scroll)
+
     Args:
         parent: Parent frame for this tab
-        gui_instance: Reference to main EMYUELGUI instance for colors and callbacks
+        gui_instance: Reference to main GUI instance for colors and callbacks
     """
-    colors = gui_instance.colors
+    colors = getattr(gui_instance, "colors", {
+        'bg_primary': '#0b1220',
+        'bg_secondary': '#0f1724',
+        'bg_tertiary': '#0b1222',
+        'text_primary': '#e6eef8',
+        'text_secondary': '#9fb0c9',
+        'accent_cyan': '#00d4ff',
+        'accent_purple': '#7c3aed',
+        'success': '#10b981',
+        'warning': '#f59e0b',
+        'error': '#ef4444',
+        'border': '#243244'
+    })
 
-    # Ensure parent expands (best-effort — depends on how parent is managed by the app)
+    # If gui_instance provides a helper to create a standard scrollable frame, use it
+    try:
+        scrollable_frame, canvas = gui_instance.create_scrollable_frame(parent)
+        # `create_scrollable_frame` should return (frame, canvas). If it doesn't, fallback below.
+        if not isinstance(scrollable_frame, tk.Frame):
+            raise Exception("create_scrollable_frame did not return expected frame")
+        # If the helper provided a canvas, try to find the internal canvas_window if needed later
+        canvas_window = None
+    except Exception:
+        # Fallback: build our own canvas + scrollbar + scrollable_frame
+        canvas = tk.Canvas(parent, bg=colors['bg_primary'], highlightthickness=0, borderwidth=0)
+        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview,
+                                bg=colors['bg_secondary'],
+                                troughcolor=colors['bg_primary'],
+                                activebackground=colors['accent_cyan'])
+        scrollable_frame = tk.Frame(canvas, bg=colors['bg_primary'])
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Auto-resize canvas width to parent frame width on configure
+        def _on_parent_resize(event):
+            try:
+                new_width = max(100, event.width - scrollbar.winfo_width() - 8)
+                canvas.itemconfig(canvas_window, width=new_width)
+                canvas.configure(width=new_width)
+            except Exception:
+                pass
+
+        parent.bind("<Configure>", _on_parent_resize)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+    # Ensure parent expands where possible
     try:
         parent.grid_rowconfigure(0, weight=1)
         parent.grid_columnconfigure(0, weight=1)
     except Exception:
         pass
 
-    # Scrollable container
-    canvas = tk.Canvas(parent, bg=colors['bg_primary'], highlightthickness=0, borderwidth=0)
-    scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview,
-                            bg=colors['bg_secondary'],
-                            troughcolor=colors['bg_primary'],
-                            activebackground=colors['accent_cyan'])
-    scrollable_frame = tk.Frame(canvas, bg=colors['bg_primary'])
-
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-
-    canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
-
-    # Allow parent resizing to adjust canvas width (helps responsiveness)
-    def _on_parent_resize(event):
-        # subtract a small margin to avoid horizontal scrollbar showing unnecessarily
+    # -------------------------
+    # Cross-platform mousewheel
+    # -------------------------
+    def _on_mousewheel(event):
+        """Scroll handler supporting Windows, macOS, and Linux."""
         try:
-            new_width = max(100, event.width - scrollbar.winfo_width() - 8)
+            # Linux: event.num == 4 (up), 5 (down)
+            if hasattr(event, "num") and (event.num == 4 or event.num == 5):
+                if event.num == 4:
+                    canvas.yview_scroll(-1, "units")
+                else:
+                    canvas.yview_scroll(1, "units")
+            else:
+                # Windows and macOS: event.delta positive or negative
+                # On Windows event.delta is multiples of 120; on macOS it can be various small values
+                delta = 0
+                try:
+                    delta = int(event.delta / 120)
+                except Exception:
+                    # fallback if delta not divisible by 120 (macOS often)
+                    delta = 1 if event.delta > 0 else -1
+                if delta == 0:
+                    delta = 1 if event.delta > 0 else -1
+                # We negate delta so that positive wheel (away from user) scrolls down
+                canvas.yview_scroll(-delta, "units")
         except Exception:
-            new_width = event.width - 8
-        canvas.itemconfig(canvas_window, width=new_width)
-        canvas.configure(width=new_width)
+            # swallow any exceptions from event handling to avoid breaking UI
+            return "break"
 
-    parent.bind("<Configure>", _on_parent_resize)
+    def _bind_mousewheel(widget):
+        """
+        Bind enter/leave events on `widget` so that mousewheel events are only
+        captured when pointer is over this widget. This avoids interfering with other widgets.
+        """
+        def _on_enter(e):
+            if sys.platform.startswith("linux"):
+                # X11 / many linux distros generate Button-4/5 for wheel
+                widget.bind_all("<Button-4>", _on_mousewheel)
+                widget.bind_all("<Button-5>", _on_mousewheel)
+            else:
+                # Windows & Mac use MouseWheel
+                widget.bind_all("<MouseWheel>", _on_mousewheel)
+                # Also try momentum events on some macOS builds:
+                widget.bind_all("<Shift-MouseWheel>", _on_mousewheel)
 
-    canvas.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
+        def _on_leave(e):
+            try:
+                if sys.platform.startswith("linux"):
+                    widget.unbind_all("<Button-4>")
+                    widget.unbind_all("<Button-5>")
+                else:
+                    widget.unbind_all("<MouseWheel>")
+                    widget.unbind_all("<Shift-MouseWheel>")
+            except Exception:
+                pass
 
-    # Header
+        widget.bind("<Enter>", _on_enter)
+        widget.bind("<Leave>", _on_leave)
+
+    # Bind to the scrollable_frame and canvas (if available) for reliability
+    try:
+        _bind_mousewheel(scrollable_frame)
+        if canvas is not None:
+            _bind_mousewheel(canvas)
+    except Exception:
+        pass
+
+    # -------------------------
+    # Build UI inside scrollable_frame
+    # -------------------------
+
     header_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     header_frame.pack(fill='x', padx=15, pady=10)
 
@@ -90,7 +194,11 @@ def setup_ai_analysis_tab(parent, gui_instance):
     url_input_container.grid_columnconfigure(0, weight=1)  # Entry expands
     url_input_container.grid_columnconfigure(1, weight=0)
 
-    gui_instance.ai_target_var = tk.StringVar(value='https://testphp.vulnweb.com')
+    # Prepare vars on gui_instance
+    gui_instance.ai_target_var = getattr(gui_instance, 'ai_target_var', tk.StringVar(value='https://testphp.vulnweb.com'))
+    gui_instance.ai_nlp_query_var = getattr(gui_instance, 'ai_nlp_query_var', tk.StringVar())
+    gui_instance.ai_depth_var = getattr(gui_instance, 'ai_depth_var', tk.StringVar(value='Standard'))
+    gui_instance.ai_provider_var = getattr(gui_instance, 'ai_provider_var', tk.StringVar(value='OpenAI GPT-4'))
 
     url_entry = tk.Entry(
         url_input_container,
@@ -115,7 +223,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         activeforeground='#ffffff',
         relief='flat',
         cursor='hand2',
-        command=gui_instance.start_ai_analysis,
+        command=getattr(gui_instance, 'start_ai_analysis', lambda: None),
         padx=16,
         pady=8
     )
@@ -156,8 +264,6 @@ def setup_ai_analysis_tab(parent, gui_instance):
     nlp_input_container = tk.Frame(nlp_frame, bg=colors['bg_secondary'])
     nlp_input_container.pack(fill='x', padx=15, pady=(0, 8))
     nlp_input_container.grid_columnconfigure(0, weight=1)  # Input expands
-
-    gui_instance.ai_nlp_query_var = tk.StringVar()
 
     nlp_entry = tk.Entry(
         nlp_input_container,
@@ -236,7 +342,6 @@ def setup_ai_analysis_tab(parent, gui_instance):
     ).grid(row=0, column=0, sticky='w', pady=(0, 5), padx=(0, 10))
 
     depth_options = ['Quick', 'Standard', 'Deep', 'Comprehensive']
-    gui_instance.ai_depth_var = tk.StringVar(value='Standard')
 
     depth_frame = tk.Frame(config_container, bg=colors['bg_tertiary'], relief='flat', bd=1)
     depth_frame.grid(row=1, column=0, sticky='ew', pady=(0, 5), padx=(0, 10))
@@ -260,7 +365,6 @@ def setup_ai_analysis_tab(parent, gui_instance):
     ).grid(row=0, column=1, sticky='w', pady=(0, 5), padx=(10, 0))
 
     provider_options = ['OpenAI GPT-4', 'Google Gemini', 'Anthropic Claude']
-    gui_instance.ai_provider_var = tk.StringVar(value='OpenAI GPT-4')
 
     provider_frame = tk.Frame(config_container, bg=colors['bg_tertiary'], relief='flat', bd=1)
     provider_frame.grid(row=1, column=1, sticky='ew', pady=(0, 5), padx=(10, 0))
@@ -288,14 +392,14 @@ def setup_ai_analysis_tab(parent, gui_instance):
 
     # Steps container with styled scroll - RESPONSIVE
     steps_canvas = tk.Canvas(
-        progress_frame, 
-        bg=colors['bg_tertiary'], 
+        progress_frame,
+        bg=colors['bg_tertiary'],
         highlightthickness=0,
         borderwidth=0
     )
     steps_scroll = tk.Scrollbar(
-        progress_frame, 
-        orient="vertical", 
+        progress_frame,
+        orient="vertical",
         command=steps_canvas.yview,
         bg=colors['bg_secondary'],
         troughcolor=colors['bg_primary'],
@@ -308,16 +412,17 @@ def setup_ai_analysis_tab(parent, gui_instance):
         lambda e: steps_canvas.configure(scrollregion=steps_canvas.bbox("all"))
     )
 
-    # Bind canvas width to be responsive
-    def _configure_canvas_width(event):
-        # small margin to avoid overlap with scrollbar
-        steps_canvas.itemconfig(steps_canvas_window, width=max(100, event.width - 8))
-
     steps_canvas_window = steps_canvas.create_window((0, 0), window=gui_instance.ai_steps_frame, anchor="nw")
-    steps_canvas.bind('<Configure>', _configure_canvas_width)
+
+    def _configure_steps_canvas_width(event):
+        try:
+            steps_canvas.itemconfig(steps_canvas_window, width=max(100, event.width - 8))
+        except Exception:
+            pass
+
+    steps_canvas.bind('<Configure>', _configure_steps_canvas_width)
     steps_canvas.configure(yscrollcommand=steps_scroll.set)
 
-    # Set minimum height but allow expansion
     steps_canvas.config(height=200)
 
     steps_canvas.pack(side="left", fill="both", expand=True, padx=20, pady=(0, 15))
@@ -385,7 +490,6 @@ def setup_ai_analysis_tab(parent, gui_instance):
         bg=colors['bg_secondary']
     ).pack(side='left')
 
-    # Clear button
     clear_console_btn = tk.Button(
         console_header,
         text="🗑️ Clear",
