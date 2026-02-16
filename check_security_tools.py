@@ -208,11 +208,26 @@ class SecurityToolsManager:
         install_key = 'install_kali' if self.is_kali else 'install_linux'
         install_cmd = tool_info.get(install_key, '')
         
-        # Check if it's pre-installed on Kali
-        if self.is_kali and 'pre-installed' in install_cmd.lower():
-            print(f"  ℹ️  {tool_name} should be pre-installed on Kali")
-            print(f"     Try: whereis {tool_name}")
-            return False
+        # Extract actual install command (ignore "Pre-installed" part)
+        # Example: "Pre-installed on Kali, or: sudo apt-get install nmap -y"
+        if 'pre-installed' in install_cmd.lower():
+            # Check if there's an "or:" part with actual install command
+            if ' or:' in install_cmd.lower() or ' or ' in install_cmd.lower():
+                # Extract command after "or:"
+                parts = install_cmd.split(' or')
+                if len(parts) > 1:
+                    install_cmd = parts[-1].strip().lstrip(':').strip()
+                    print(f"  ℹ️  {tool_name} claims to be pre-installed, but not found")
+                    print(f"     Attempting installation anyway...")
+                else:
+                    print(f"  ⚠️  {tool_name} should be pre-installed on Kali")
+                    print(f"     No install command available. Try: sudo apt-get update && sudo apt-get install {tool_name} -y")
+                    return False
+            else:
+                # No "or" clause - try standard apt-get
+                install_cmd = f"sudo apt-get install {tool_name} -y"
+                print(f"  ℹ️  {tool_name} claims to be pre-installed, but not found")
+                print(f"     Trying: {install_cmd}")
         
         if not install_cmd or 'sudo apt-get' not in install_cmd:
             print(f"  ⚠️  No auto-install available for {tool_name}")
