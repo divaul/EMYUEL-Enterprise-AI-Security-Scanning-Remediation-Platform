@@ -60,19 +60,25 @@ class WebScanner:
         async with aiohttp.ClientSession(connector=connector) as session:
             self.session = session
             
-            # Crawl website
-            print(f"[Web] Crawling {start_url}...")
-            pages = await self._crawl(start_url)
-            print(f"[Web] Found {len(pages)} pages to scan")
-            
-            # Scan each page
-            for i, page_data in enumerate(pages):
-                print(f"[Web] Scanning page {i+1}/{len(pages)}: {page_data['url']}")
+            try:
+                # Crawl website
+                print(f"[Web] Crawling {start_url}...")
+                pages = await self._crawl(start_url)
+                print(f"[Web] Found {len(pages)} pages to scan")
                 
-                page_findings = await self._scan_page(page_data, modules)
-                all_findings.extend(page_findings)
-            
-            self.session = None
+                # Scan each page
+                for i, page_data in enumerate(pages):
+                    print(f"[Web] Scanning page {i+1}/{len(pages)}: {page_data['url']}")
+                    
+                    page_findings = await self._scan_page(page_data, modules)
+                    all_findings.extend(page_findings)
+                    
+                    # Memory optimization: release HTML after processing (Bug Fix #7)
+                    page_data['html'] = None
+                    
+            finally:
+                # Always cleanup session reference (Bug Fix #3)
+                self.session = None
         
         # Deduplicate findings
         unique_findings = self._deduplicate_findings(all_findings)
@@ -101,7 +107,13 @@ class WebScanner:
             try:
                 # Fetch page
                 async with self.session.get(url, timeout=10, allow_redirects=True) as response:
-                    html = await response.text()
+                    # Handle encoding errors (Bug Fix #4)
+                    try:
+                        html = await response.text(errors='replace')
+                    except Exception as e:
+                        print(f"[Web] Encoding error reading {url}: {e}")
+                        continue
+                    
                     headers = dict(response.headers)
                     
                     page_data = {
@@ -116,12 +128,16 @@ class WebScanner:
                     
                     # Extract links for further crawling
                     if depth < self.max_depth:
-                        soup = BeautifulSoup(html, 'html.parser')
-                        links = self._extract_links(soup, url, start_url)
-                        
-                        for link in links:
-                            if link not in self.visited_urls:
-                                to_visit.append((link, depth + 1))
+                        # Handle HTML parsing errors (Bug Fix #4)
+                        try:
+                            soup = BeautifulSoup(html, 'html.parser')
+                            links = self._extract_links(soup, url, start_url)
+                            
+                            for link in links:
+                                if link not in self.visited_urls:
+                                    to_visit.append((link, depth + 1))
+                        except Exception as e:
+                            print(f"[Web] HTML parsing error for {url}: {e}")
                 
             except Exception as e:
                 print(f"[Web] Error crawling {url}: {e}")

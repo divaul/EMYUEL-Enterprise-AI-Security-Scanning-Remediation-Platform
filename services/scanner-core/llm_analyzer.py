@@ -250,11 +250,18 @@ If no vulnerabilities: {{"vulnerabilities": []}}
         # NEW SDK: Use Client-based API
         client = genai.Client(api_key=api_key)
         
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model='gemini-2.5-flash',  # Current stable model
-            contents=prompt
-        )
+        try:
+            # Add timeout to prevent hanging (Bug Fix #8)
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    client.models.generate_content,
+                    model='gemini-2.5-flash',  # Current stable model
+                    contents=prompt
+                ),
+                timeout=30.0  # 30 second timeout
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError("Gemini API request timed out after 30 seconds")
         
         return response.text
     
