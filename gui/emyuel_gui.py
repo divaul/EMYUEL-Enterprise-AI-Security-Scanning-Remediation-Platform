@@ -874,7 +874,10 @@ class EMYUELGUI:
         
         # Show progress
         self.progress_var.set(10)
-        self.progress_label.config(text="Scan in progress...")
+        if hasattr(self, 'progress_label'):
+            self.progress_label.config(text="Scan in progress...")
+        if hasattr(self, 'status_label'):
+            self.status_label.config(text="Initializing...", fg=self.colors['warning'])
     
     def _display_scan_results(self, results: Dict[str, Any]):
         """Display scan results in UI"""
@@ -892,14 +895,16 @@ class EMYUELGUI:
         
         # Update progress
         self.progress_var.set(100)
-        self.progress_label.config(text="Scan completed")
+        if hasattr(self, 'progress_label'):
+            self.progress_label.config(text="Scan completed")
         
         # Update status
         total_findings = results.get('total_findings', 0)
-        self.status_label.config(
-            text=f"Scan complete: {total_findings} vulnerabilities found",
-            fg=self.colors['success'] if total_findings == 0 else self.colors['warning']
-        )
+        if hasattr(self, 'status_label'):
+            self.status_label.config(
+                text=f"Scan complete: {total_findings} vulnerabilities found",
+                fg=self.colors['success'] if total_findings == 0 else self.colors['warning']
+            )
         
         # Update severity stats
         by_severity = results.get('findings_by_severity', {})
