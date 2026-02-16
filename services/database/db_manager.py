@@ -90,7 +90,7 @@ class DatabaseManager:
                     request_data TEXT,
                     response_data TEXT,
                     remediation TEXT,
-                    references TEXT,
+                    refs TEXT,
                     cvss_score REAL,
                     cvss_vector TEXT,
                     owasp_category TEXT,
