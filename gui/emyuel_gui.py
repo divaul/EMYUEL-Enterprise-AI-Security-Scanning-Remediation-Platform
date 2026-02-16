@@ -981,23 +981,42 @@ class EMYUELGUI:
                 
                 try:
                     if provider == 'gemini':
-                        import google.generativeai as genai
-                        genai.configure(api_key=key)
-                        
-                        # Simpler approach: just list models to verify API key works
-                        # This works across ALL library versions
+                        # Try NEW SDK first (google-genai), then fallback to OLD SDK (google-generativeai)
                         try:
-                            self.log_console(f"[API] Verifying Gemini API key...")
-                            models = genai.list_models()
-                            # If we can list models, API key is valid
-                            model_count = len(list(models))
-                            self.log_console(f"[API] ✓ Successfully listed {model_count} models")
-                            success = True
-                        except Exception as list_error:
-                            # Fallback: try simple generate_content call with any available model
-                            self.log_console(f"[API] list_models failed, trying direct generation...")
+                            # NEW SDK (google-genai) - https://ai.google.dev/gemini-api/docs/quickstart
+                            from google import genai
+                            self.log_console(f"[API] Using NEW Gemini SDK (google-genai)")
+                            
+                            # Create client with API key
+                            client = genai.Client(api_key=key)
+                            
+                            # Test with simple generation
+                            response = client.models.generate_content(
+                                model='gemini-2.0-flash-exp',  # Latest model
+                                contents='Test'
+                            )
+                            
+                            if response and response.text:
+                                self.log_console(f"[API] ✓ NEW SDK validation successful")
+                                success = True
+                        
+                        except ImportError:
+                            # Fallback to OLD SDK (google-generativeai)
+                            self.log_console(f"[API] NEW SDK not found, trying OLD SDK (google-generativeai)")
+                            
+                            import google.generativeai as genai
+                            genai.configure(api_key=key)
+                            
+                            # Try list_models to verify API key works (universal compatibility)
                             try:
-                                # Get first available model
+                                self.log_console(f"[API] Verifying with list_models()...")
+                                models = list(genai.list_models())
+                                model_count = len(models)
+                                self.log_console(f"[API] ✓ Successfully listed {model_count} models")
+                                success = True
+                            except Exception as list_error:
+                                # Last resort: try direct generation with first available model
+                                self.log_console(f"[API] list_models failed, trying direct generation...")
                                 for m in genai.list_models():
                                     if 'generateContent' in m.supported_generation_methods:
                                         self.log_console(f"[API] Using model: {m.name}")
@@ -1006,9 +1025,11 @@ class EMYUELGUI:
                                         if response:
                                             success = True
                                             break
-                            except:
-                                error_msg = str(list_error)
-                                raise Exception(error_msg)
+                        
+                        except Exception as sdk_error:
+                            error_msg = str(sdk_error)
+                            self.log_console(f"[API] SDK test failed: {error_msg}")
+                            raise Exception(error_msg)
                     
                     elif provider == 'openai':
                         from openai import OpenAI
