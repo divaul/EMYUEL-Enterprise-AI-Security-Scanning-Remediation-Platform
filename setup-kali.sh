@@ -1,52 +1,94 @@
 #!/bin/bash
-# EMYUEL Setup Script for Kali Linux
-# Simple Python-based installation (NO Docker required)
+# ═══════════════════════════════════════════════════════════════════════════
+# EMYUEL - Enterprise AI-Powered Security Scanner
+# Automated Setup Script for Kali Linux
+# ═══════════════════════════════════════════════════════════════════════════
 
 set -e  # Exit on error
 
-# Colors for output
+# ═══════════════════════════════════════════════════════════════════════════
+# COLOR DEFINITIONS
+# ═══════════════════════════════════════════════════════════════════════════
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GRAY='\033[0;90m'
 NC='\033[0m' # No Color
 
-# Header
+# Bold colors
+BRED='\033[1;31m'
+BGREEN='\033[1;32m'
+BYELLOW='\033[1;33m'
+BCYAN='\033[1;36m'
+
+# Background colors
+BG_BLUE='\033[44m'
+BG_GREEN='\033[42m'
+BG_RED='\033[41m'
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DISPLAY BANNER
+# ═══════════════════════════════════════════════════════════════════════════
 clear
 echo -e "${CYAN}"
 cat << "EOF"
-    ███████╗███╗   ███╗██╗   ██╗██╗   ██╗███████╗██╗     
-    ██╔════╝████╗ ████║╚██╗ ██╔╝██║   ██║██╔════╝██║     
-    █████╗  ██╔████╔██║ ╚████╔╝ ██║   ██║█████╗  ██║     
-    ██╔══╝  ██║╚██╔╝██║  ╚██╔╝  ██║   ██║██╔══╝  ██║     
-    ███████╗██║ ╚═╝ ██║   ██║   ╚██████╔╝███████╗███████╗
-    ╚══════╝╚═╝     ╚═╝   ╚═╝    ╚═════╝ ╚══════╝╚══════╝
-    
-    AI-Powered Security Scanner - Kali Linux Setup
+    ╔═══════════════════════════════════════════════════════════════════════╗
+    ║                                                                       ║
+    ║   ███████╗███╗   ███╗██╗   ██╗██╗   ██╗███████╗██╗                   ║
+    ║   ██╔════╝████╗ ████║╚██╗ ██╔╝██║   ██║██╔════╝██║                   ║
+    ║   █████╗  ██╔████╔██║ ╚████╔╝ ██║   ██║█████╗  ██║                   ║
+    ║   ██╔══╝  ██║╚██╔╝██║  ╚██╔╝  ██║   ██║██╔══╝  ██║                   ║
+    ║   ███████╗██║ ╚═╝ ██║   ██║   ╚██████╔╝███████╗███████╗              ║
+    ║   ╚══════╝╚═╝     ╚═╝   ╚═╝    ╚═════╝ ╚══════╝╚══════╝              ║
+    ║                                                                       ║
+    ║        Enterprise AI-Powered Security Scanning Platform              ║
+    ║                    Automated Setup Wizard                            ║
+    ║                                                                       ║
+    ╚═══════════════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
+echo -e "${GRAY}    Version: 2.0.0 | Platform: Kali Linux | Runtime: Python 3.10+${NC}"
+echo -e "${GRAY}    ─────────────────────────────────────────────────────────────────${NC}"
 echo ""
 
+# ═══════════════════════════════════════════════════════════════════════════
+# UTILITY FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+
 print_header() {
-    echo -e "\n${GREEN}========================================${NC}"
-    echo -e "${GREEN}  $1${NC}"
-    echo -e "${GREEN}========================================${NC}\n"
+    echo ""
+    echo -e "${BCYAN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BCYAN}║${NC} ${WHITE}$1${NC}"
+    echo -e "${BCYAN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
 }
 
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "${BGREEN}[✓]${NC} ${GREEN}$1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "${BRED}[✗]${NC} ${RED}$1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC}  $1"
+    echo -e "${BYELLOW}[!]${NC} ${YELLOW}$1${NC}"
 }
 
 print_info() {
-    echo -e "${CYAN}ℹ${NC}  $1"
+    echo -e "${BCYAN}[ℹ]${NC} ${CYAN}$1${NC}"
+}
+
+print_step() {
+    echo -e "${BLUE}[→]${NC} ${WHITE}$1${NC}"
+}
+
+print_separator() {
+    echo -e "${GRAY}    ─────────────────────────────────────────────────────────────────${NC}"
 }
 
 # Check if running on Kali Linux
@@ -124,9 +166,10 @@ check_prerequisites() {
 
 # Install system dependencies
 install_dependencies() {
-    print_header "Installing System Dependencies"
+    print_header "📦 INSTALLING SYSTEM DEPENDENCIES"
     
-    print_info "Installing required Kali packages..."
+    print_info "Updating package repositories..."
+    print_separator
     
     # Essential packages for security scanning
     PACKAGES=(
@@ -140,16 +183,31 @@ install_dependencies() {
         "wget"
     )
     
-    sudo apt update
+    sudo apt update > /dev/null 2>&1
+    
+    local total=${#PACKAGES[@]}
+    local current=0
     
     for pkg in "${PACKAGES[@]}"; do
+        current=$((current + 1))
+        echo -ne "\r${BLUE}[→]${NC} Installing packages... ${BCYAN}[$current/$total]${NC} ${pkg}                    "
+        
         if dpkg -l | grep -q "^ii  $pkg "; then
-            print_success "$pkg already installed"
+            echo -ne "\r"
+            print_success "$pkg ${GRAY}(already installed)${NC}"
         else
-            echo "Installing $pkg..."
-            sudo apt install -y "$pkg" || print_warning "Failed to install $pkg"
+            if sudo apt install -y "$pkg" > /dev/null 2>&1; then
+                echo -ne "\r"
+                print_success "$pkg ${GRAY}(newly installed)${NC}"
+            else
+                echo -ne "\r"
+                print_warning "$pkg ${GRAY}(failed to install)${NC}"
+            fi
         fi
     done
+    
+    echo ""
+    print_separator
 }
 
 # Create virtual environment
@@ -401,81 +459,101 @@ except ImportError as e:
 
 # Print completion information
 print_completion() {
-    print_header "Installation Complete!"
-    
-    echo -e "${GREEN}✓ EMYUEL successfully installed on Kali Linux!${NC}"
+    clear
+    echo ""
+    echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
+    echo -e "${BGREEN}║${NC}    ${BGREEN}✓  INSTALLATION SUCCESSFUL!${NC}                                   ${BGREEN}║${NC}"
+    echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
+    echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     
-    echo -e "${CYAN}Quick Start:${NC}"
-    echo ""
-    echo -e "${YELLOW}1. Activate virtual environment:${NC}"
-    echo "   source venv/bin/activate"
+    print_header "🚀 QUICK START GUIDE"
+    
+    echo -e "${BCYAN}[1]${NC} ${WHITE}Activate Virtual Environment${NC}"
+    echo -e "    ${GRAY}source venv/bin/activate${NC}"
     echo ""
     
-    echo -e "${YELLOW}2. Run CLI scan:${NC}"
-    echo "   python -m cli.emyuel_cli scan --target /path/to/code"
+    echo -e "${BCYAN}[2]${NC} ${WHITE}Launch GUI Mode${NC} ${BGREEN}(Recommended)${NC}"
+    echo -e "    ${GRAY}python -m gui.emyuel_gui${NC}"
     echo ""
     
-    echo -e "${YELLOW}3. Run GUI mode:${NC}"
-    echo "   python -m gui.emyuel_gui"
-    echo ""
-    echo -e "${CYAN}   GUI Features:${NC}"
-    echo "   • Quick Scan tab - URL input + vulnerability selection"
-    echo "   • Advanced Scan tab - Directory scanning"
-    echo "   • 🤖 AI Analysis tab - Autonomous AI-driven testing"
-    echo "   • API Keys tab - Configure OpenAI/Gemini/Claude"
-    echo "   • 📊 Results tab - Real-time scan monitoring"
-    echo "   • 📋 Reports tab - View findings, browse history, generate reports"
-    echo "   • 🗄️ Database - Persistent scan history (SQLite)"
+    echo -e "${BCYAN}[3]${NC} ${WHITE}Run CLI Scan${NC}"
+    echo -e "    ${GRAY}python -m cli.emyuel_cli scan --target /path/to/code${NC}"
     echo ""
     
-    echo -e "${YELLOW}4. Configure API keys (if skipped):${NC}"
-    echo "   python -m cli.emyuel_cli config --provider openai"
+    print_separator
+    print_header "⚡ FEATURES OVERVIEW"
+    
+    echo -e "${BCYAN}┌─${NC} ${WHITE}GUI Features${NC}"
+    echo -e "${BCYAN}│${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Quick Scan${NC}         ${GRAY}URL input + vulnerability selection${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Advanced Scan${NC}      ${GRAY}Directory scanning with custom profiles${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}AI Analysis${NC}        ${GRAY}Autonomous AI-driven security testing${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Results Monitor${NC}    ${GRAY}Real-time scan progress tracking${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Reports Hub${NC}        ${GRAY}Browse history, search, export reports${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Database${NC}           ${GRAY}Persistent scan history (SQLite)${NC}"
+    echo -e "${BCYAN}└─${NC} ${BGREEN}▸${NC} ${GREEN}API Keys${NC}           ${GRAY}Manage OpenAI/Gemini/Claude credentials${NC}"
     echo ""
     
-    echo -e "${CYAN}Available Commands:${NC}"
-    echo "  scan     - Start security scan"
-    echo "  resume   - Resume paused scan"
-    echo "  list     - List resumable scans"
-    echo "  report   - Generate scan reports"
-    echo "  config   - Configure API keys"
+    echo -e "${BCYAN}┌─${NC} ${WHITE}Security Modules${NC}"
+    echo -e "${BCYAN}│${NC}"
+    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}XSS Detection${NC}       ${GRAY}Cross-Site Scripting vulnerabilities${NC}"
+    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}SQL Injection${NC}       ${GRAY}Database injection attacks${NC}"
+    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}CSRF${NC}                ${GRAY}Cross-Site Request Forgery${NC}"
+    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Auth Bypass${NC}         ${GRAY}Authentication vulnerabilities${NC}"
+    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Headers${NC}             ${GRAY}Security header analysis${NC}"
+    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Brute Force${NC}         ${GRAY}Credential testing${NC}"
+    echo -e "${BCYAN}└─${NC} ${BYELLOW}◆${NC} ${YELLOW}AI-Powered${NC}          ${GRAY}GPT-4 autonomous testing${NC}"
     echo ""
     
-    echo -e "${CYAN}Example Scans:${NC}"
-    echo "  # Full scan"
-    echo "  python -m cli.emyuel_cli scan --target /var/www/myapp"
+    print_separator
+    print_header "📁 DIRECTORY STRUCTURE"
+    
+    echo -e "${GRAY}  ~/.emyuel/                 ${BCYAN}Application Data${NC}"
+    echo -e "${GRAY}  ├─ scan_history.db         ${GREEN}✓${NC} Scan database"
+    echo -e "${GRAY}  ├─ states/                 ${GREEN}✓${NC} Scan states"
+    echo -e "${GRAY}  └─ cache/                  ${GREEN}✓${NC} Cache files"
     echo ""
-    echo "  # Targeted scan"
-    echo "  python -m cli.emyuel_cli scan --target /opt/webapp --modules sqli,xss"
-    echo ""
-    echo "  # With specific provider"
-    echo "  python -m cli.emyuel_cli scan --target ~/code --provider gemini"
+    echo -e "${GRAY}  ./reports/                 ${BCYAN}Generated Reports${NC}"
+    echo -e "${GRAY}  ./logs/                    ${BCYAN}Application Logs${NC}"
     echo ""
     
-    echo -e "${CYAN}New Features:${NC}"
-    echo "  🤖 AI Analysis - Autonomous security testing with GPT-4"
-    echo "  🔓 Brute Force - Authentication testing (default creds, wordlist, exhaustive)"
-    echo "  💬 Natural Language - English & Indonesian query support"
-    echo "  🎨 Enhanced GUI - Modern design with gradient buttons"
-    echo "  🗄️ Database - Persistent scan history with search & export"
+    print_separator
+    print_header "⚙️  CONFIGURATION"
+    
+    echo -e "${BCYAN}[→]${NC} ${WHITE}Configure API Keys${NC} ${GRAY}(if skipped during setup)${NC}"
+    echo -e "    ${GRAY}python -m cli.emyuel_cli config --provider openai${NC}"
     echo ""
     
-    echo -e "${CYAN}Documentation:${NC}"
-    echo "  Quick Start:        QUICKSTART.md"
-    echo "  Full Docs (ID):     DOKUMENTASI_PROGRAM.md"
-    echo "  Architecture:       docs/ARCHITECTURE.md"
-    echo "  Bug Fixes:          .gemini/antigravity/brain/.../bug_fixes.md"
+    echo -e "${BCYAN}[→]${NC} ${WHITE}Edit Environment${NC}"
+    echo -e "    ${GRAY}nano .env${NC}"
     echo ""
     
-    echo -e "${YELLOW}⚠  Important Notes:${NC}"
-    echo "  • Docker is NOT required - runs natively on Python"
-    echo "  • API key needed from OpenAI/Gemini/Claude"
-    echo "  • Activate venv before running: source venv/bin/activate"
-    echo "  • Reports saved to: ./reports/"
-    echo "  • AI Analysis requires OpenAI API key"
+    print_separator
+    print_header "💡 PRO TIPS"
+    
+    echo -e "${BYELLOW}[!]${NC} ${YELLOW}Natural Language Queries${NC}"
+    echo -e "    ${GRAY}Use English or Indonesian in AI Analysis tab${NC}"
     echo ""
     
-    print_success "Ready to scan! Happy hacking! 🛡️"
+    echo -e "${BYELLOW}[!]${NC} ${YELLOW}Scan History${NC}"
+    echo -e "    ${GRAY}All scans are automatically saved to database${NC}"
+    echo -e "    ${GRAY}Browse/export from Reports tab${NC}"
+    echo ""
+    
+    echo -e "${BYELLOW}[!]${NC} ${YELLOW}Pause & Resume${NC}"
+    echo -e "    ${GRAY}Scans automatically pause on API errors${NC}"
+    echo -e "    ${GRAY}Click 'Resume' button to continue${NC}"
+    echo ""
+    
+    print_separator
+    
+    echo ""
+    echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BGREEN}║${NC}  ${WHITE}EMYUEL is ready!${NC}  Start scanning for vulnerabilities now! 🛡️       ${BGREEN}║${NC}"
+    echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
 }
 
 # Main installation flow
