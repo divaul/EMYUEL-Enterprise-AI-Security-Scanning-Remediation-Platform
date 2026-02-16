@@ -500,8 +500,9 @@ print_completion() {
     # Check if there were critical issues
     DEPS_FAILED=${DEPS_EXIT_CODE:-0}
     TOOLS_FAILED=${TOOLS_EXIT_CODE:-0}
+    VERIFY_FAILED=${VERIFY_EXIT_CODE:-0}
     
-    if [ $DEPS_FAILED -ne 0 ] || [ $TOOLS_FAILED -ne 0 ]; then
+    if [ $DEPS_FAILED -ne 0 ] || [ $TOOLS_FAILED -ne 0 ] || [ $VERIFY_FAILED -ne 0 ]; then
         # Setup with warnings
         echo -e "${BYELLOW}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
         echo -e "${BYELLOW}║${NC}                                                                       ${BYELLOW}║${NC}"
