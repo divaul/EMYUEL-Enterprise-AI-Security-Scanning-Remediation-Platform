@@ -468,7 +468,7 @@ try:
 except ImportError as e:
     print(f'✗ Import error: {e}')
     exit(1)
-" && print_success "Core dependencies verified" || print_error "Dependency verification failed"
+" && print_success "Core dependencies verified" || { print_error "Dependency verification failed"; return 1; }
     
     # Test CLI
     if python3 -m cli.emyuel_cli --help &> /dev/null; then
@@ -490,6 +490,8 @@ except ImportError as e:
     else
         print_warning "AI Analysis modules check failed"
     fi
+    
+    return 0
 }
 
 # Print completion information
@@ -769,7 +771,11 @@ main() {
     install_python_deps
     setup_env
     create_directories
+    
+    # Verify installation and capture exit code
     verify_installation
+    VERIFY_EXIT_CODE=$?
+    
     print_completion
     
     # Ask mode choice AT THE END (after everything installed)
