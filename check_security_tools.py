@@ -401,21 +401,40 @@ def main():
     # Print install instructions
     manager.print_install_instructions(results)
     
+    # Re-count after potential installation
+    missing_required = sum(1 for r in results.values() 
+                          if not r['installed'] and not r['optional'])
+    
     # Final verdict
     print()
     if missing_required == 0:
         print("✅ All required security tools are available!")
+        missing_optional = sum(1 for r in results.values() 
+                              if not r['installed'] and r['optional'])
         if missing_optional > 0:
             print(f"ℹ️  {missing_optional} optional tool(s) not installed")
         print()
         print("EMYUEL is ready for security testing!")
         return 0
     else:
-        print(f"⚠️  {missing_required} required security tool(s) missing")
+        print(f"⚠️  {missing_required} required security tool(s) still missing")
         print()
-        print("Please install missing tools for full functionality")
-        print("The platform will work with reduced capabilities")
-        return 0  # Don't fail setup, just warn
+        print("⚠️  IMPORTANT: Some security scanning features will not work")
+        print("   without these tools. Please install them manually:")
+        print()
+        
+        for tool_name, status in results.items():
+            if not status['installed'] and not status['optional']:
+                tool_info = manager.security_tools[tool_name]
+                install_key = 'install_kali' if manager.is_kali else 'install_linux'
+                print(f"   • {tool_name}: {tool_info.get(install_key, 'N/A')}")
+        
+        print()
+        print("⏭️  Setup will continue, but tool scans may fail")
+        
+        # Return non-zero to indicate tools are missing
+        # But don't fail setup completely (return 1 instead of exit code > 1)
+        return 1
 
 
 if __name__ == "__main__":

@@ -288,6 +288,30 @@ install_python_deps() {
     echo ""
     
     python3 check_security_tools.py
+    TOOLS_EXIT_CODE=$?
+    
+    echo ""
+    
+    if [ $TOOLS_EXIT_CODE -eq 0 ]; then
+        print_success "All required security tools are available"
+    else
+        print_warning "Some required security tools are missing"
+        print_warning "Auto-installation may have failed - check output above"
+        echo ""
+        echo -e "${YELLOW}⚠️  You can:${NC}"
+        echo -e "   ${GRAY}1. Install tools manually after setup${NC}"
+        echo -e "   ${GRAY}2. Re-run: python3 check_security_tools.py${NC}"
+        echo -e "   ${GRAY}3. Continue anyway (reduced functionality)${NC}"
+        echo ""
+        read -p "$(echo -e ${BYELLOW}Continue setup anyway? [Y/n]:${NC} )" -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo ""
+            print_error "Setup aborted by user"
+            print_info "Install the missing tools and run ./setup.sh again"
+            exit 1
+        fi
+    fi
     
     echo ""
     print_success "Dependency checks completed"
