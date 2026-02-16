@@ -10,6 +10,12 @@ from typing import Dict, List, Any, Optional, Set
 from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
 import re
+import sys
+from pathlib import Path
+
+# Import scanner exceptions for pause/resume
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'libs'))
+from scanner_exceptions import APIError, ScanPausedException
 
 
 class WebScanner:
@@ -32,13 +38,14 @@ class WebScanner:
         self.visited_urls = set()
         self.session = None
     
-    async def scan_url(self, start_url: str, modules: List[str] = None) -> List[Dict[str, Any]]:
+    async def scan_url(self, start_url: str, modules: List[str] = None, resume_state: Dict = None) -> List[Dict[str, Any]]:
         """
-        Scan website starting from URL
+        Scan website starting from URL with pause/resume support
         
         Args:
             start_url: Starting URL
             modules: Vulnerability modules to check
+            resume_state: Optional state to resume from (after pause)
             
         Returns:
             List of vulnerability findings
@@ -46,7 +53,13 @@ class WebScanner:
         if modules is None or 'all' in modules:
             modules = ['xss', 'sqli', 'headers', 'info_disclosure', 'ssl']
         
-        all_findings = []
+        # Restore state if resuming
+        if resume_state:
+            self.visited_urls = resume_state.get('visited_urls', set())
+            all_findings = resume_state.get('partial_results', [])
+            print(f"[Web] ▶️ Resuming from {len(self.visited_urls)} visited pages")
+        else:
+            all_findings = []
         
         # Create SSL context based on verify_ssl setting
         import ssl
@@ -70,11 +83,34 @@ class WebScanner:
                 for i, page_data in enumerate(pages):
                     print(f"[Web] Scanning page {i+1}/{len(pages)}: {page_data['url']}")
                     
-                    page_findings = await self._scan_page(page_data, modules)
-                    all_findings.extend(page_findings)
-                    
-                    # Memory optimization: release HTML after processing (Bug Fix #7)
-                    page_data['html'] = None
+                    try:
+                        page_findings = await self._scan_page(page_data, modules)
+                        all_findings.extend(page_findings)
+                        
+                        # Memory optimization: release HTML after processing (Bug Fix #7)
+                        page_data['html'] = None
+                        
+                    except APIError as api_err:
+                        # API error occurred - save state and pause scan
+                        print(f"[Web] ⚠️ API Error: {api_err.message}")
+                        print(f"[Web] Pausing scan at page {i+1}/{len(pages)}")
+                        
+                        # Save current state for resume
+                        scan_state = {
+                            'target': start_url,
+                            'modules': modules,
+                            'pages_scanned': i,
+                            'total_pages': len(pages),
+                            'partial_results': all_findings,
+                            'visited_urls': self.visited_urls.copy(),
+                            'remaining_pages': pages[i:]  # Save unscanned pages
+                        }
+                        
+                        # Raise ScanPausedException to trigger pause
+                        raise ScanPausedException(
+                            reason=f"API Error: {api_err.message}",
+                            state=scan_state
+                        )
                     
             finally:
                 # Always cleanup session reference (Bug Fix #3)

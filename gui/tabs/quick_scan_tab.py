@@ -95,7 +95,25 @@ def setup_quick_scan_tab(parent, gui_instance):
         pady=8
     )
     quick_scan_btn.grid(row=0, column=1, sticky='e')
-
+    
+    # Resume Scan button (hidden by default, shown when paused)
+    gui_instance.resume_scan_btn_quick = tk.Button(
+        url_input_frame,
+        text="▶️ Resume Scan",
+        font=('Segoe UI', 11, 'bold'),
+        bg=colors['success'],
+        fg=colors['bg_primary'],
+        activebackground=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.resume_scan,
+        padx=16,
+        pady=8,
+        state='disabled'  # Initially disabled
+    )
+    gui_instance.resume_scan_btn_quick.grid(row=0, column=2, sticky='e', padx=(5, 0))
+    gui_instance.resume_scan_btn_quick.grid_remove()  # Hide initially
+    
     # URL Examples — flow-friendly (wrap as space allows)
     url_examples_label = tk.Label(
         url_frame,
