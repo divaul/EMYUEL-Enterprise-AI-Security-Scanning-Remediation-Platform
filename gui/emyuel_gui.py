@@ -174,6 +174,11 @@ class EMYUELGUI:
         self.is_scanning = False
         self.scan_thread = None
         
+        # Progress tracking (initialized here, UI widgets set in setup_ui)
+        self.progress_var = tk.IntVar(value=0)
+        self.progress_label = None  # Will be set by setup_ui
+        self.status_label = None    # Will be set by setup_ui
+        
         # Build UI
         self.setup_ui()
         
