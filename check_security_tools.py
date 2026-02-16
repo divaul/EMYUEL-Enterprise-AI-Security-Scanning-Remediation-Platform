@@ -141,12 +141,17 @@ class SecurityToolsManager:
                 cmd,
                 capture_output=capture,
                 text=True,
-                timeout=5,
-                stderr=subprocess.DEVNULL
+                timeout=10,  # Increased from 5 to 10 seconds
+                stderr=subprocess.STDOUT  # Capture stderr to stdout (help messages often go to stderr)
             )
-            return result.returncode == 0, result.stdout.strip()
-        except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-            return False, ""
+            # Consider command successful if exit code is 0
+            return result.returncode == 0, result.stdout.strip() if result.stdout else ""
+        except subprocess.TimeoutExpired:
+            return False, "Timeout"
+        except FileNotFoundError:
+            return False, "Not found"
+        except Exception as e:
+            return False, str(e)
     
     def check_tool(self, tool_name: str, tool_info: Dict) -> bool:
         """Check if a security tool is installed"""
