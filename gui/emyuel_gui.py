@@ -187,6 +187,15 @@ class EMYUELGUI:
             'remaining_pages': []
         }
         
+        # Database for persistent scan history
+        try:
+            from services.database.db_manager import DatabaseManager
+            self.db = DatabaseManager()
+            print("[DB] ✅ Database initialized successfully")
+        except Exception as e:
+            print(f"[DB] ⚠️ Failed to initialize database: {e}")
+            self.db = None
+        
         # Progress tracking (initialized here, UI widgets set in setup_ui)
         self.progress_var = tk.IntVar(value=0)
         self.progress_label = None  # Will be set by setup_ui
@@ -964,8 +973,27 @@ class EMYUELGUI:
                     )
                 )
                 
-                # Store results for report generation
+                # Store last scan results (keep for backwards compatibility)
                 self.last_scan_results = results
+                
+                # Save to database for persistent history
+                if self.db:
+                    try:
+                        from datetime import datetime
+                        scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        scan_data = {
+                            'scan_id': scan_id,
+                            'target': target,
+                            'scan_type': 'quick',  # TODO: detect scan type
+                            'modules': modules if modules else ['all'],
+                            'total_pages': results.get('total_pages', 0),
+                            'findings': results.get('findings', [])
+                        }
+                        saved_id = self.db.save_scan(scan_data)
+                        self.root.after(0, lambda: self.log_console(f"[DB] ✅ Scan saved to database: {saved_id}"))
+                    except Exception as e:
+                        self.root.after(0, lambda: self.log_console(f"[DB] ⚠️ Failed to save scan: {e}"))
+
                 self.root.after(0, lambda: self.log_console(f"[INFO] Scan results stored for report generation"))
                 
                 loop.close()
@@ -2084,6 +2112,315 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             html_file.write_text(html_template, encoding='utf-8')
         
         return html_file
+    
+    # ============ SCAN HISTORY MANAGEMENT (Database) ============
+    
+    def refresh_scan_history(self):
+        """Load scans from database and populate listbox"""
+        if not self.db:
+            self.log_console("[DB] ⚠️ Database not available")
+            return
+        
+        try:
+            # Clear listbox
+            self.scan_history_listbox.delete(0, tk.END)
+            self.scan_history_ids = []
+            
+            # Get scans from database
+            scans = self.db.get_all_scans(limit=50)
+            
+            if not scans:
+                self.scan_history_listbox.insert(tk.END, "No scans found - Run a scan to see history here")
+                self.selected_scan_details.config(text="No scans in database yet")
+                return
+            
+            # Populate listbox
+            for scan in scans:
+                # Format: URL | timestamp | findings count
+                timestamp = scan.get('timestamp', 'Unknown').split('.')[0]  # Remove microseconds
+                text = f"{scan['target_url']} | {timestamp} | {scan['total_findings']} findings"
+                
+                self.scan_history_listbox.insert(tk.END, text)
+                self.scan_history_ids.append(scan['scan_id'])
+            
+            # Auto-select most recent (first item)
+            if len(scans) > 0:
+                self.scan_history_listbox.select_set(0)
+                self.scan_history_listbox.event_generate('<<ListboxSelect>>')
+            
+            self.log_console(f"[DB] Loaded {len(scans)} scans from history")
+            
+        except Exception as e:
+            self.log_console(f"[DB] ⚠️ Error loading scan history: {e}")
+            print(f"[DB] Error: {e}")
+    
+    def on_scan_selected(self, event):
+        """Handle scan selection from listbox"""
+        if not self.db:
+            return
+        
+        selection = self.scan_history_listbox.curselection()
+        if not selection:
+            return
+        
+        try:
+            index = selection[0]
+            
+            # Check if this is the "no scans" message
+            if not self.scan_history_ids:
+                return
+            
+            if index >= len(self.scan_history_ids):
+                return
+            
+            scan_id = self.scan_history_ids[index]
+            
+            # Load scan from database
+            scan = self.db.get_scan_by_id(scan_id)
+            
+            if not scan:
+                self.log_console(f"[DB] ⚠️ Scan not found: {scan_id}")
+                return
+            
+            # Update details display
+            timestamp = scan.get('timestamp', 'Unknown').split('.')[0]
+            modules = ', '.join(scan.get('modules', []))
+            
+            details_text = f"""✅ Selected Scan Details:
+Target: {scan['target_url']}
+Scanned: {timestamp}
+Total Findings: {scan['total_findings']} (Critical: {scan['critical_count']}, High: {scan['high_count']}, Medium: {scan['medium_count']}, Low: {scan['low_count']})
+Modules: {modules}
+Status: {scan['status']}"""
+            
+            self.selected_scan_details.config(text=details_text)
+            
+            # Enable delete button
+            if hasattr(self, 'delete_scan_btn'):
+                self.delete_scan_btn.config(state='normal')
+            
+            # Update report summary to show selected scan
+            self.report_summary_label.config(text=details_text)
+            
+            # Update last_scan_results for report generation
+            self.last_scan_results = {
+                'target': scan['target_url'],
+                'total_findings': scan['total_findings'],
+                'findings': scan['findings'],
+                'findings_by_severity': {
+                    'critical': scan['critical_count'],
+                    'high': scan['high_count'],
+                    'medium': scan['medium_count'],
+                    'low': scan['low_count'],
+                    'info': scan['info_count']
+                }
+            }
+            
+            # Enable report buttons
+            if hasattr(self, 'generate_ai_report_btn'):
+                self.generate_ai_report_btn.config(state='normal')
+            if hasattr(self, 'generate_raw_report_btn'):
+                self.generate_raw_report_btn.config(state='normal')
+            
+            # Update bugs dashboard
+            self._update_bugs_dashboard(scan['findings'])
+            
+            self.log_console(f"[DB] ✅ Loaded scan: {scan['target_url']} ({scan['total_findings']} findings)")
+            
+        except Exception as e:
+            self.log_console(f"[DB] ⚠️ Error loading scan details: {e}")
+            print(f"[DB] Error: {e}")
+    
+    def search_scans(self):
+        """Search scans by target URL"""
+        if not self.db:
+            return
+        
+        query = self.scan_search_var.get().strip()
+        
+        if not query:
+            # If empty, show all scans
+            self.refresh_scan_history()
+            return
+        
+        try:
+            # Search database
+            results = self.db.search_scans(query)
+            
+            # Clear listbox
+            self.scan_history_listbox.delete(0, tk.END)
+            self.scan_history_ids = []
+            
+            if not results:
+                self.scan_history_listbox.insert(tk.END, f"No scans found matching '{query}'")
+                return
+            
+            # Populate with search results
+            for scan in results:
+                timestamp = scan.get('timestamp', 'Unknown').split('.')[0]
+                text = f"{scan['target_url']} | {timestamp} | {scan['total_findings']} findings"
+                
+                self.scan_history_listbox.insert(tk.END, text)
+                self.scan_history_ids.append(scan['scan_id'])
+            
+            self.log_console(f"[DB] Found {len(results)} scans matching '{query}'")
+            
+        except Exception as e:
+            self.log_console(f"[DB] ⚠️ Search error: {e}")
+    
+    def delete_selected_scan(self):
+        """Delete selected scan from history"""
+        if not self.db:
+            return
+        
+        selection = self.scan_history_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("No Selection", "Please select a scan to delete")
+            return
+        
+        try:
+            index = selection[0]
+            
+            if index >= len(self.scan_history_ids):
+                return
+            
+            scan_id = self.scan_history_ids[index]
+            
+            # Confirm deletion
+            if not messagebox.askyesno("Confirm Delete", 
+                "Are you sure you want to delete this scan from history?\n\n" +
+                "This action cannot be undone."):
+                return
+            
+            # Delete from database
+            if self.db.delete_scan(scan_id):
+                self.log_console(f"[DB] ✅ Deleted scan: {scan_id}")
+                
+                # Refresh list
+                self.refresh_scan_history()
+                
+                # Clear selection details
+                self.selected_scan_details.config(text="Scan deleted - Select another scan")
+                
+                # Disable delete button
+                if hasattr(self, 'delete_scan_btn'):
+                    self.delete_scan_btn.config(state='disabled')
+            else:
+                self.log_console(f"[DB] ⚠️ Failed to delete scan: {scan_id}")
+                messagebox.showerror("Delete Failed", "Could not delete scan from database")
+                
+        except Exception as e:
+            self.log_console(f"[DB] ⚠️ Delete error: {e}")
+            messagebox.showerror("Error", f"Failed to delete scan: {e}")
+    
+    def _update_bugs_dashboard(self, findings):
+        """Update bugs monitoring dashboard with findings"""
+        if not hasattr(self, 'bugs_scrollable_frame'):
+            return
+        
+        try:
+            # Clear existing bugs
+            for widget in self.bugs_scrollable_frame.winfo_children():
+                widget.destroy()
+            
+            if not findings:
+                # Show empty message
+                tk.Label(
+                    self.bugs_scrollable_frame,
+                    text="No vulnerabilities in selected scan",
+                    font=('Segoe UI', 10),
+                    fg=self.colors['text_secondary'],
+                    bg=self.colors['bg_tertiary'],
+                    justify='center',
+                    pady=40
+                ).pack(fill='both', expand=True)
+                
+                # Update counts
+                if hasattr(self, 'bugs_total_count'):
+                    self.bugs_total_count.config(text="0")
+                if hasattr(self, 'bugs_critical_count'):
+                    self.bugs_critical_count.config(text="0")
+                if hasattr(self, 'bugs_high_count'):
+                    self.bugs_high_count.config(text="0")
+                if hasattr(self, 'bugs_other_count'):
+                    self.bugs_other_count.config(text="0")
+                return
+            
+            # Count by severity
+            counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'info': 0}
+            for finding in findings:
+                sev = finding.get('severity', 'info').lower()
+                if sev in counts:
+                    counts[sev] += 1
+            
+            # Update count labels
+            if hasattr(self, 'bugs_total_count'):
+                self.bugs_total_count.config(text=str(len(findings)))
+            if hasattr(self, 'bugs_critical_count'):
+                self.bugs_critical_count.config(text=str(counts['critical']))
+            if hasattr(self, 'bugs_high_count'):
+                self.bugs_high_count.config(text=str(counts['high']))
+            if hasattr(self, 'bugs_other_count'):
+                self.bugs_other_count.config(text=str(counts['medium'] + counts['low'] + counts['info']))
+            
+            # Add finding rows (limit for performance)
+            for i, finding in enumerate(findings[:50]):  # Limit to 50
+                row_frame = tk.Frame(self.bugs_scrollable_frame, bg=self.colors['bg_tertiary'])
+                row_frame.pack(fill='x', pady=1)
+                
+                # Severity
+                sev = finding.get('severity', 'info').lower()
+                sev_icons = {
+                    'critical': ('🔴', self.colors['critical']),
+                    'high': ('🟠', self.colors['error']),
+                    'medium': ('🟡', self.colors['warning']),
+                    'low': ('🟢', self.colors['success']),
+                    'info': ('ℹ️', self.colors['text_secondary'])
+                }
+                icon, color = sev_icons.get(sev, ('•', self.colors['text_secondary']))
+                
+                tk.Label(
+                    row_frame,
+                    text=f"{icon} {sev.upper()}",
+                    font=('Segoe UI', 9),
+                    fg=color,
+                    bg=self.colors['bg_tertiary'],
+                width=15
+                ).pack(side='left', padx=5)
+                
+                tk.Label(
+                    row_frame,
+                    text=finding.get('vulnerability_type', finding.get('type', 'Unknown')),
+                    font=('Segoe UI', 9),
+                    fg=self.colors['text_primary'],
+                    bg=self.colors['bg_tertiary'],
+                    anchor='w',
+                    width=20
+                ).pack(side='left', padx=5)
+                
+                url_text = finding.get('url', '')[:40] + ('...' if len(finding.get('url', '')) > 40 else '')
+                tk.Label(
+                    row_frame,
+                    text=url_text,
+                    font=('Segoe UI', 9),
+                    fg=self.colors['text_secondary'],
+                    bg=self.colors['bg_tertiary'],
+                    anchor='w',
+                    width=30
+                ).pack(side='left', padx=5)
+                
+                desc = finding.get('description', finding.get('title', ''))[:30]
+                tk.Label(
+                    row_frame,
+                    text=desc + ('...' if len(finding.get('description', '')) > 30 else ''),
+                    font=('Segoe UI', 8),
+                    fg=self.colors['text_secondary'],
+                    bg=self.colors['bg_tertiary'],
+                    anchor='w'
+                ).pack(side='left', padx=5, fill='x', expand=True)
+                
+        except Exception as e:
+            print(f"[GUI] Error updating bugs dashboard: {e}")
     
     # ==============================================
     

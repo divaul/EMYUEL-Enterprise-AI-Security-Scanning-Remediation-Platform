@@ -228,7 +228,127 @@ def setup_reports_tab(parent, gui_instance):
     )
     gui_instance.bugs_empty_label.pack(fill='both', expand=True)
     
+    # ──────── SCAN HISTORY SELECTION ────────
+    history_select_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    history_select_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+    
+    history_header = tk.Frame(history_select_frame, bg=colors['bg_secondary'])
+    history_header.pack(fill='x', padx=20, pady=(15, 10))
+    
+    tk.Label(
+        history_header,
+        text="📋 Scan History - Select Scan to View/Export",
+        font=('Segoe UI', 12, 'bold'),
+        fg=colors['text_primary'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+    
+    # Refresh button
+    refresh_history_btn = tk.Button(
+        history_header,
+        text="🔄 Refresh",
+        font=('Segoe UI', 9),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_secondary'],
+        activebackground=colors['accent_cyan'],
+        activeforeground='white',
+        relief='flat',
+        cursor='hand2',
+        command=lambda: gui_instance.refresh_scan_history(),
+        padx=12,
+        pady=5
+    )
+    refresh_history_btn.pack(side='right')
+    
+    # Search box
+    search_frame = tk.Frame(history_select_frame, bg=colors['bg_secondary'])
+    search_frame.pack(fill='x', padx=20, pady=(0, 10))
+    
+    tk.Label(
+        search_frame,
+        text="🔍 Search:",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).pack(side='left', padx=(0, 5))
+    
+    gui_instance.scan_search_var = tk.StringVar()
+    gui_instance.scan_search_var.trace('w', lambda *args: gui_instance.search_scans())
+    
+    search_entry = tk.Entry(
+        search_frame,
+        textvariable=gui_instance.scan_search_var,
+        font=('Segoe UI', 10),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_primary'],
+        relief='flat',
+        bd=5
+    )
+    search_entry.pack(side='left', fill='x', expand=True, padx=5)
+    
+    # Listbox for scan history
+    list_container = tk.Frame(history_select_frame, bg=colors['bg_tertiary'])
+    list_container.pack(fill='both', expand=True, padx=20, pady=(0, 10))
+    
+    scrollbar = tk.Scrollbar(list_container)
+    scrollbar.pack(side='right', fill='y')
+    
+    gui_instance.scan_history_listbox = tk.Listbox(
+        list_container,
+        yscrollcommand=scrollbar.set,
+        font=('Segoe UI', 10),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_primary'],
+        selectbackground=colors['accent_cyan'],
+        selectforeground='white',
+        selectmode='single',
+        relief='flat',
+        height=6
+    )
+    gui_instance.scan_history_listbox.pack(fill='both', expand=True, padx=5, pady=5)
+    scrollbar.config(command=gui_instance.scan_history_listbox.yview)
+    
+    # Bind selection event
+    gui_instance.scan_history_listbox.bind('<<ListboxSelect>>', gui_instance.on_scan_selected)
+    
+    # Store scan IDs mapping
+    gui_instance.scan_history_ids = []  # List of scan_ids corresponding to listbox items
+    
+    # Action buttons for selected scan
+    action_frame = tk.Frame(history_select_frame, bg=colors['bg_secondary'])
+    action_frame.pack(fill='x', padx=20, pady=(0, 15))
+    
+    gui_instance.delete_scan_btn = tk.Button(
+        action_frame,
+        text="🗑️ Delete Selected",
+        font=('Segoe UI', 9),
+        bg=colors['error'],
+        fg='white',
+        activebackground='#c0392b',
+        relief='flat',
+        cursor='hand2',
+        command=gui_instance.delete_selected_scan,
+        padx=15,
+        pady=5,
+        state='disabled'
+    )
+    gui_instance.delete_scan_btn.pack(side='right', padx=5)
+    
+    # Selected scan details display
+    gui_instance.selected_scan_details = tk.Label(
+        history_select_frame,
+        text="No scan selected - Select from history above",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary'],
+        justify='left',
+        anchor='w',
+        padx=20
+    )
+    gui_instance.selected_scan_details.pack(fill='x', padx=20, pady=(0, 15))
+    
     # ──────── SCAN SUMMARY ────────
+
     summary_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     summary_frame.pack(fill='x', padx=20, pady=(0, 20))
     
