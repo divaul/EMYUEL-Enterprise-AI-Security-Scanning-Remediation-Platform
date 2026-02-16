@@ -940,10 +940,6 @@ class EMYUELGUI:
         self.log_console("[SCAN] Pausing scan...")
         # TODO: Implement pause
     
-            messagebox.showerror("Report Error", error_msg)
-            import traceback
-            traceback.print_exc()
-    
     def test_api_key(self, provider):
         """Test API key"""
         key = getattr(self, f"api_key_{provider}").get()
