@@ -196,6 +196,13 @@ class EMYUELGUI:
             print(f"[DB] ⚠️ Failed to initialize database: {e}")
             self.db = None
         
+        # Initialize scan history attributes (before tab creation)
+        self.scan_history_listbox = None
+        self.scan_history_ids = []
+        self.scan_search_var = None
+        self.selected_scan_details = None
+        self.delete_scan_btn = None
+        
         # Progress tracking (initialized here, UI widgets set in setup_ui)
         self.progress_var = tk.IntVar(value=0)
         self.progress_label = None  # Will be set by setup_ui
@@ -505,7 +512,11 @@ class EMYUELGUI:
         # Reports tab
         reports_frame = tk.Frame(notebook, bg=self.colors['bg_secondary'])
         setup_reports_tab(reports_frame, self)
-        notebook.add(reports_frame, text='📄 Reports')
+        notebook.add(reports_frame, text='📋 Reports')
+        
+        # Auto-load scan history after tab is created
+        if self.db and hasattr(self, 'scan_history_listbox') and self.scan_history_listbox:
+            self.root.after(100, self.refresh_scan_history)  # Delayed to ensure UI is ready
         
         # Status bar
         status_frame = tk.Frame(self.root, bg=self.colors['bg_secondary'], height=40)
@@ -979,10 +990,9 @@ class EMYUELGUI:
                 # Save to database for persistent history
                 if self.db:
                     try:
-                        from datetime import datetime
-                        scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        # Use scan_id from scanner (passed as parameter)
                         scan_data = {
-                            'scan_id': scan_id,
+                            'scan_id': scan_id,  # Use existing scan_id from scanner
                             'target': target,
                             'scan_type': 'quick',  # TODO: detect scan type
                             'modules': modules if modules else ['all'],
@@ -992,7 +1002,7 @@ class EMYUELGUI:
                         saved_id = self.db.save_scan(scan_data)
                         self.root.after(0, lambda: self.log_console(f"[DB] ✅ Scan saved to database: {saved_id}"))
                     except Exception as e:
-                        self.root.after(0, lambda: self.log_console(f"[DB] ⚠️ Failed to save scan: {e}"))
+                        self.root.after(0, lambda err=str(e): self.log_console(f"[DB] ⚠️ Failed to save scan: {err}"))
 
                 self.root.after(0, lambda: self.log_console(f"[INFO] Scan results stored for report generation"))
                 
@@ -2121,6 +2131,10 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             self.log_console("[DB] ⚠️ Database not available")
             return
         
+        # Check if UI widgets exist
+        if not hasattr(self, 'scan_history_listbox') or not self.scan_history_listbox:
+            return  # UI not ready yet
+        
         try:
             # Clear listbox
             self.scan_history_listbox.delete(0, tk.END)
@@ -2131,7 +2145,8 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             
             if not scans:
                 self.scan_history_listbox.insert(tk.END, "No scans found - Run a scan to see history here")
-                self.selected_scan_details.config(text="No scans in database yet")
+                if self.selected_scan_details:
+                    self.selected_scan_details.config(text="No scans in database yet")
                 return
             
             # Populate listbox
