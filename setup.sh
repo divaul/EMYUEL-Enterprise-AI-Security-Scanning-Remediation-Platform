@@ -595,33 +595,87 @@ launch_app() {
             print_success "GUI closed. Thank you for using EMYUEL!"
             ;;
         2)
-            # Terminal Mode - Show manual setup
-            print_separator
+            # Terminal Mode - Show professional setup guide
+            clear
             echo ""
-            print_success "Terminal Mode selected!"
+            echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+            echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
+            echo -e "${BGREEN}║${NC}    ${BGREEN}✓  SETUP COMPLETE - TERMINAL MODE${NC}                              ${BGREEN}║${NC}"
+            echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
+            echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
             echo ""
-            print_info "Configure API keys using one of these methods:"
-            echo ""
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Using CLI tool:${NC}"
-            echo -e "    ${GRAY}source venv/bin/activate${NC}"
-            echo -e "    ${GRAY}python -m cli.emyuel_cli config --provider openai${NC}"
-            echo ""
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Or edit .env file directly:${NC}"
-            echo -e "    ${GRAY}nano .env${NC}"
-            echo -e "    ${GRAY}# Add: OPENAI_API_KEY=sk-...${NC}"
-            echo ""
-            print_separator
-            echo ""
-            print_success "You can now run scans:"
-            echo ""
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Activate virtual environment:${NC}"
+            
+            print_header "⚡ QUICK START - TERMINAL MODE"
+            
+            echo -e "${BCYAN}[1]${NC} ${WHITE}Activate Virtual Environment${NC}"
             echo -e "    ${GRAY}source venv/bin/activate${NC}"
             echo ""
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Run CLI scan:${NC}"
-            echo -e "    ${GRAY}python -m cli.emyuel_cli scan --target /path/to/code${NC}"
+            
+            echo -e "${BCYAN}[2]${NC} ${WHITE}Configure API Keys${NC} ${BYELLOW}(Required)${NC}"
+            echo -e "    ${BGREEN}▸${NC} ${GREEN}Using CLI Configuration Tool:${NC}"
+            echo -e "      ${GRAY}python -m cli.emyuel_cli config --provider openai${NC}"
             echo ""
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Or launch GUI:${NC}"
+            echo -e "    ${BGREEN}▸${NC} ${GREEN}Or Edit .env File Directly:${NC}"
+            echo -e "      ${GRAY}nano .env${NC}"
+            echo -e "      ${GRAY}# Add one of:${NC}"
+            echo -e "      ${GRAY}#   OPENAI_API_KEY=sk-...${NC}"
+            echo -e "      ${GRAY}#   GOOGLE_AI_API_KEY=...${NC}"
+            echo -e "      ${GRAY}#   ANTHROPIC_API_KEY=sk-ant-...${NC}"
+            echo ""
+            
+            print_separator
+            print_header "🔍 SCANNING COMMANDS"
+            
+            echo -e "${BCYAN}┌─${NC} ${WHITE}CLI Scan Examples${NC}"
+            echo -e "${BCYAN}│${NC}"
+            echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Full Security Scan${NC}"
+            echo -e "${BCYAN}│${NC}   ${GRAY}python -m cli.emyuel_cli scan --target /var/www/myapp${NC}"
+            echo ""
+            echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Targeted Vulnerability Scan${NC}"
+            echo -e "${BCYAN}│${NC}   ${GRAY}python -m cli.emyuel_cli scan --target /opt/webapp --modules sqli,xss${NC}"
+            echo ""
+            echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}With Specific AI Provider${NC}"
+            echo -e "${BCYAN}│${NC}   ${GRAY}python -m cli.emyuel_cli scan --target ~/code --provider gemini${NC}"
+            echo ""
+            echo -e "${BCYAN}└─${NC} ${BYELLOW}◆${NC} ${YELLOW}Resume Paused Scan${NC}"
+            echo -e "    ${GRAY}python -m cli.emyuel_cli resume --scan-id <scan-id>${NC}"
+            echo ""
+            
+            print_separator
+            print_header "🎨 GUI MODE (ALTERNATIVE)"
+            
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Launch GUI Anytime:${NC}"
             echo -e "    ${GRAY}python -m gui.emyuel_gui${NC}"
+            echo ""
+            echo -e "${GRAY}    GUI Features:${NC}"
+            echo -e "${GRAY}    • Visual scan configuration${NC}"
+            echo -e "${GRAY}    • Real-time progress monitoring${NC}"
+            echo -e "${GRAY}    • Interactive API key management${NC}"
+            echo -e "${GRAY}    • Scan history browser${NC}"
+            echo -e "${GRAY}    • AI-powered analysis${NC}"
+            echo ""
+            
+            print_separator
+            print_header "📚 HELPFUL RESOURCES"
+            
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Documentation${NC}"
+            echo -e "    ${GRAY}cat QUICKSTART.md${NC}"
+            echo -e "    ${GRAY}cat DOKUMENTASI_PROGRAM.md${NC}"
+            echo ""
+            
+            echo -e "${BCYAN}[→]${NC} ${WHITE}View Available Commands${NC}"
+            echo -e "    ${GRAY}python -m cli.emyuel_cli --help${NC}"
+            echo ""
+            
+            echo -e "${BCYAN}[→]${NC} ${WHITE}Check Dependencies${NC}"
+            echo -e "    ${GRAY}python3 check_dependencies.py${NC}"
+            echo ""
+            
+            print_separator
+            echo ""
+            echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
+            echo -e "${BGREEN}║${NC}  ${WHITE}Ready to scan!${NC}  Happy hacking! 🛡️ 💻                                ${BGREEN}║${NC}"
+            echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
             echo ""
             ;;
         *)
