@@ -174,6 +174,19 @@ class EMYUELGUI:
         self.is_scanning = False
         self.scan_thread = None
         
+        # Pause/Resume state management (NEW!)
+        self.scan_paused = False
+        self.scan_pause_reason = None
+        self.scan_state = {
+            'target': None,
+            'modules': None,
+            'pages_scanned': 0,
+            'total_pages': 0,
+            'partial_results': [],
+            'visited_urls': set(),
+            'remaining_pages': []
+        }
+        
         # Progress tracking (initialized here, UI widgets set in setup_ui)
         self.progress_var = tk.IntVar(value=0)
         self.progress_label = None  # Will be set by setup_ui
@@ -194,6 +207,64 @@ class EMYUELGUI:
         """Exit fullscreen mode"""
         self.is_fullscreen = False
         self.root.attributes('-fullscreen', False)
+    
+    def pause_scan(self, reason: str):
+        """Pause current scan due to error or user request"""
+        self.scan_paused = True
+        self.scan_pause_reason = reason
+        self.is_scanning = False
+        
+        # Update UI
+        self.log_console(f"[SCAN] ⚠️ Scan paused: {reason}")
+        self.log_console(f"[SCAN] Progress: {self.scan_state.get('pages_scanned', 0)}/{self.scan_state.get('total_pages', 0)} pages")
+        self.log_console(f"[SCAN] Fix the issue and click 'Resume Scan' to continue")
+        
+        if hasattr(self, 'status_label') and self.status_label:
+            self.status_label.config(text=f"⚠️ Paused: {reason}", fg=self.colors['warning'])
+        
+        # Show resume buttons
+        for btn_attr in ['resume_scan_btn_quick', 'resume_scan_btn_advanced', 'resume_scan_btn_ai']:
+            if hasattr(self, btn_attr):
+                btn = getattr(self, btn_attr)
+                if btn and btn.winfo_exists():
+                    btn.config(state='normal')
+    
+    def resume_scan(self):
+        """Resume paused scan from saved state"""
+        if not self.scan_paused:
+            messagebox.showinfo("No Paused Scan", "There is no paused scan to resume.")
+            return
+        
+        if not self.scan_state.get('target'):
+            messagebox.showerror("Error", "Scan state corrupted - cannot resume")
+            self.clear_scan_state()
+            return
+        
+        self.log_console(f"[SCAN] ▶️ Resuming scan...")
+        self.scan_paused = False
+        self.scan_pause_reason = None
+        
+        # Hide resume buttons
+        for btn_attr in ['resume_scan_btn_quick', 'resume_scan_btn_advanced', 'resume_scan_btn_ai']:
+            if hasattr(self, btn_attr):
+                btn = getattr(self, btn_attr)
+                if btn and btn.winfo_exists():
+                    btn.config(state='disabled')
+        
+        # Continue scan
+        target = self.scan_state.get('target')
+        modules = self.scan_state.get('modules', ['all'])
+        self._execute_real_scan(target, modules, resume_state=self.scan_state.copy())
+    
+    def clear_scan_state(self):
+        """Clear saved scan state"""
+        self.scan_paused = False
+        self.scan_pause_reason = None
+        self.scan_state = {
+            'target': None, 'modules': None, 'pages_scanned': 0,
+            'total_pages': 0, 'partial_results': [], 'visited_urls': set(),
+            'remaining_pages': []
+        }
     
     def create_scrollable_frame(self, parent):
         """Create a scrollable frame container with always-visible scrollbar"""
@@ -773,8 +844,8 @@ class EMYUELGUI:
         # Start real scan
         self._execute_real_scan(target, modules)
     
-    def _execute_real_scan(self, target: str, modules: Optional[List[str]] = None):
-        """Execute real scan in background thread"""
+    def _execute_real_scan(self, target: str, modules: Optional[List[str]] = None, resume_state: Optional[Dict] = None):
+        """Execute real scan in background thread with pause/resume support"""
         import threading
         
         def run_scan():
@@ -782,6 +853,10 @@ class EMYUELGUI:
                 import asyncio
                 import sys
                 from pathlib import Path
+                
+                # Import scanner exceptions
+                sys.path.insert(0, str(Path(__file__).parent.parent / 'libs'))
+                from scanner_exceptions import ScanPausedException, APIError
                 
                 # Ensure parent directory is in path
                 parent_dir = Path(__file__).parent.parent
@@ -858,6 +933,11 @@ class EMYUELGUI:
                 
                 # Update UI with results
                 self.root.after(0, lambda: self._display_scan_results(results))
+                
+            except ScanPausedException as e:
+                # Scan paused - save state and trigger pause UI
+                self.scan_state = e.state
+                self.root.after(0, lambda reason=e.reason: self.pause_scan(reason))
                 
             except Exception as e:
                 import traceback

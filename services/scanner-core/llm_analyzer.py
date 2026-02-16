@@ -1,13 +1,21 @@
 """
-LLM Analyzer - Use LLM for intelligent vulnerability analysis
+LLM Analyzer - AI-powered vulnerability analysis
 
-Supports OpenAI, Google Gemini, and Anthropic Claude
+Integrates with multiple LLM providers (OpenAI, Anthropic, Gemini)
+for advanced security analysis
 """
 
 import json
 import re
 from typing import Dict, Any, List, Optional
 import asyncio
+import logging
+from pathlib import Path
+import sys
+
+# Add libs to path for scanner exceptions
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / 'libs'))
+from scanner_exceptions import APIError
 
 
 class LLMAnalyzer:
@@ -245,7 +253,7 @@ If no vulnerabilities: {{"vulnerabilities": []}}
         
         api_key = self.api_keys.get_key('gemini')
         if not api_key:
-            raise ValueError("Gemini API key not configured")
+            raise APIError("API_KEY_MISSING", "Gemini API key not configured")
         
         # NEW SDK: Use Client-based API
         client = genai.Client(api_key=api_key)
@@ -261,7 +269,26 @@ If no vulnerabilities: {{"vulnerabilities": []}}
                 timeout=30.0  # 30 second timeout
             )
         except asyncio.TimeoutError:
-            raise TimeoutError("Gemini API request timed out after 30 seconds")
+            raise APIError("API_TIMEOUT", "Gemini API request timed out after 30 seconds")
+        except Exception as e:
+            # Parse error for specific codes
+            error_str = str(e).lower()
+            
+            # Invalid API key - should pause scan
+            if "api key" in error_str or "invalid_argument" in error_str or "not valid" in error_str:
+                raise APIError("API_KEY_INVALID", f"Invalid Gemini API key: {str(e)}")
+            
+            # Quota exceeded - should pause scan
+            elif "quota" in error_str or "rate limit" in error_str or "resource_exhausted" in error_str:
+                raise APIError("API_QUOTA_EXCEEDED", f"Gemini API quota exceeded: {str(e)}")
+            
+            # Permission denied
+            elif "permission" in error_str or "forbidden" in error_str:
+                raise APIError("API_PERMISSION_DENIED", f"Permission denied: {str(e)}")
+            
+            # Generic API error
+            else:
+                raise APIError("API_ERROR", f"Gemini API error: {str(e)}")
         
         return response.text
     
