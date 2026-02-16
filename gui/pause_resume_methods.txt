@@ -1,0 +1,87 @@
+    def pause_scan(self, reason: str):
+        """
+        Pause current scan due to error or user request
+        
+        Args:
+            reason: Human-readable reason for pause
+        """
+        self.scan_paused = True
+        self.scan_pause_reason = reason
+        self.is_scanning = False
+        
+        # Update UI
+        self.log_console(f"[SCAN] ⚠️ Scan paused: {reason}")
+        self.log_console(f"[SCAN] Progress saved: {self.scan_state.get('pages_scanned', 0)}/{self.scan_state.get('total_pages', 0)} pages scanned")
+        self.log_console(f"[SCAN] Fix the issue and click 'Resume Scan' to continue")
+        
+        if hasattr(self, 'status_label') and self.status_label:
+            self.status_label.config(
+                text=f"⚠️ Paused: {reason}",
+                fg=self.colors['warning']
+            )
+        
+        # Show resume button in all tabs
+        for btn_attr in ['resume_scan_btn_quick', 'resume_scan_btn_advanced', 'resume_scan_btn_ai']:
+            if hasattr(self, btn_attr):
+                btn = getattr(self, btn_attr)
+                if btn and btn.winfo_exists():
+                    btn.config(state='normal')
+                    try:
+                        btn.pack(pady=10, side='left', padx=5)
+                    except:
+                        pass  # Already packed
+    
+    def resume_scan(self):
+        """Resume paused scan from saved state"""
+        if not self.scan_paused:
+            messagebox.showinfo("No Paused Scan", "There is no paused scan to resume.")
+            return
+        
+        if not self.scan_state.get('target'):
+            messagebox.showerror("Error", "Scan state corrupted - cannot resume")
+            self.clear_scan_state()
+            return
+        
+        self.log_console(f"[SCAN] ▶️ Resuming scan from {self.scan_state.get('pages_scanned', 0)}/{self.scan_state.get('total_pages', 0)}")
+        self.log_console(f"[SCAN] Target: {self.scan_state.get('target')}")
+        
+        # Clear pause state
+        self.scan_paused = False
+        self.scan_pause_reason = None
+        
+        # Hide resume buttons
+        for btn_attr in ['resume_scan_btn_quick', 'resume_scan_btn_advanced', 'resume_scan_btn_ai']:
+            if hasattr(self, btn_attr):
+                btn = getattr(self, btn_attr)
+                if btn and btn.winfo_exists():
+                    btn.config(state='disabled')
+                    try:
+                        btn.pack_forget()
+                    except:
+                        pass
+        
+        # Continue scan with saved state
+        self._continue_scan_from_state()
+    
+    def clear_scan_state(self):
+        """Clear saved scan state"""
+        self.scan_paused = False
+        self.scan_pause_reason = None
+        self.scan_state = {
+            'target': None,
+            'modules': None,
+            'pages_scanned': 0,
+            'total_pages': 0,
+            'partial_results': [],
+            'visited_urls': set(),
+            'remaining_pages': []
+        }
+    
+    def _continue_scan_from_state(self):
+        """Continue scan using saved state - called after resume"""
+        # Extract state
+        target = self.scan_state.get('target')
+        modules = self.scan_state.get('modules', ['all'])
+        
+        # Re-run scan with resume state
+        self._execute_real_scan(target, modules, resume_state=self.scan_state.copy())
