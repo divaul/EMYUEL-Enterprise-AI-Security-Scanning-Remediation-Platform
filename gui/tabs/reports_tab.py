@@ -45,6 +45,189 @@ def setup_reports_tab(parent, gui_instance):
         justify='left'
     ).pack(anchor='w', padx=20, pady=(0, 15))
     
+    # ──────── BUG MONITORING DASHBOARD ────────
+    monitoring_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    monitoring_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+    
+    tk.Label(
+        monitoring_frame,
+        text="🐛 Bug Monitoring Dashboard",
+        font=('Segoe UI', 12, 'bold'),
+        fg=colors['text_primary'],
+        bg=colors['bg_secondary']
+    ).pack(anchor='w', padx=20, pady=(15, 10))
+    
+    # Stats cards row
+    stats_container = tk.Frame(monitoring_frame, bg=colors['bg_secondary'])
+    stats_container.pack(fill='x', padx=20, pady=(0, 15))
+    
+    # Create 4 stat cards
+    for i in range(4):
+        stats_container.grid_columnconfigure(i, weight=1, uniform='stat')
+    
+    # Card 1: Total Bugs
+    card1 = tk.Frame(stats_container, bg=colors['bg_tertiary'], relief='flat', bd=1, highlightthickness=1, highlightbackground=colors['border'])
+    card1.grid(row=0, column=0, sticky='nsew', padx=(0, 10), pady=5)
+    
+    gui_instance.bugs_total_count = tk.Label(
+        card1,
+        text="0",
+        font=('Segoe UI', 24, 'bold'),
+        fg=colors['text_primary'],
+        bg=colors['bg_tertiary']
+    )
+    gui_instance.bugs_total_count.pack(pady=(15, 5))
+    
+    tk.Label(
+        card1,
+        text="Total Bugs",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_tertiary']
+    ).pack(pady=(0, 15))
+    
+    # Card 2: Critical
+    card2 = tk.Frame(stats_container, bg=colors['bg_tertiary'], relief='flat', bd=1, highlightthickness=1, highlightbackground=colors['error'])
+    card2.grid(row=0, column=1, sticky='nsew', padx=(0, 10), pady=5)
+    
+    gui_instance.bugs_critical_count = tk.Label(
+        card2,
+        text="0",
+        font=('Segoe UI', 24, 'bold'),
+        fg=colors['error'],
+        bg=colors['bg_tertiary']
+    )
+    gui_instance.bugs_critical_count.pack(pady=(15, 5))
+    
+    tk.Label(
+        card2,
+        text="Critical",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_tertiary']
+    ).pack(pady=(0, 15))
+    
+    # Card 3: High
+    card3 = tk.Frame(stats_container, bg=colors['bg_tertiary'], relief='flat', bd=1, highlightthickness=1, highlightbackground=colors['warning'])
+    card3.grid(row=0, column=2, sticky='nsew', padx=(0, 10), pady=5)
+    
+    gui_instance.bugs_high_count = tk.Label(
+        card3,
+        text="0",
+        font=('Segoe UI', 24, 'bold'),
+        fg=colors['warning'],
+        bg=colors['bg_tertiary']
+    )
+    gui_instance.bugs_high_count.pack(pady=(15, 5))
+    
+    tk.Label(
+        card3,
+        text="High",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_tertiary']
+    ).pack(pady=(0, 15))
+    
+    # Card 4: Medium/Low
+    card4 = tk.Frame(stats_container, bg=colors['bg_tertiary'], relief='flat', bd=1, highlightthickness=1, highlightbackground=colors['success'])
+    card4.grid(row=0, column=3, sticky='nsew', pady=5)
+    
+    gui_instance.bugs_other_count = tk.Label(
+        card4,
+        text="0",
+        font=('Segoe UI', 24, 'bold'),
+        fg=colors['success'],
+        bg=colors['bg_tertiary']
+    )
+    gui_instance.bugs_other_count.pack(pady=(15, 5))
+    
+    tk.Label(
+        card4,
+        text="Medium/Low",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_tertiary']
+    ).pack(pady=(0, 15))
+    
+    # Bug List Table
+    tk.Label(
+        monitoring_frame,
+        text="📋 Discovered Vulnerabilities",
+        font=('Segoe UI', 11, 'bold'),
+        fg=colors['text_primary'],
+        bg=colors['bg_secondary']
+    ).pack(anchor='w', padx=20, pady=(10, 8))
+    
+    # Create table with scrollbar
+    table_container = tk.Frame(monitoring_frame, bg=colors['bg_tertiary'])
+    table_container.pack(fill='both', expand=True, padx=20, pady=(0, 15))
+    
+    # Table headers
+    headers_frame = tk.Frame(table_container, bg=colors['bg_tertiary'])
+    headers_frame.pack(fill='x', pady=(10, 0))
+    
+    headers = [
+        ("Severity", 0.15),
+        ("Type", 0.25),
+        ("Location", 0.35),
+        ("Description", 0.25)
+    ]
+    
+    for header, weight in headers:
+        col_frame = tk.Frame(headers_frame, bg=colors['bg_tertiary'])
+        col_frame.pack(side='left', fill='both', expand=True)
+        if weight:
+            col_frame.pack_configure(fill='both', expand=True)
+        
+        tk.Label(
+            col_frame,
+            text=header,
+            font=('Segoe UI', 9, 'bold'),
+            fg=colors['accent_cyan'],
+            bg=colors['bg_tertiary'],
+            anchor='w',
+            padx=10
+        ).pack(fill='x')
+    
+    # Scrollable bug list
+    bugs_list_frame = tk.Frame(table_container, bg=colors['bg_tertiary'])
+    bugs_list_frame.pack(fill='both', expand=True)
+    
+    bugs_canvas = tk.Canvas(
+        bugs_list_frame,
+        bg=colors['bg_tertiary'],
+        highlightthickness=0,
+        height=200
+    )
+    bugs_scrollbar = tk.Scrollbar(bugs_list_frame, orient="vertical", command=bugs_canvas.yview)
+    bugs_scrollable = tk.Frame(bugs_canvas, bg=colors['bg_tertiary'])
+    
+    bugs_scrollable.bind(
+        "<Configure>",
+        lambda e: bugs_canvas.configure(scrollregion=bugs_canvas.bbox("all"))
+    )
+    
+    bugs_canvas.create_window((0, 0), window=bugs_scrollable, anchor="nw")
+    bugs_canvas.configure(yscrollcommand=bugs_scrollbar.set)
+    
+    bugs_canvas.pack(side="left", fill="both", expand=True)
+    bugs_scrollbar.pack(side="right", fill="y")
+    
+    # Store reference for updating
+    gui_instance.bugs_scrollable_frame = bugs_scrollable
+    
+    # Empty state message
+    gui_instance.bugs_empty_label = tk.Label(
+        bugs_scrollable,
+        text="No vulnerabilities discovered yet.\nRun a scan to populate this dashboard.",
+        font=('Segoe UI', 10),
+        fg=colors['text_secondary'],
+        bg=colors['bg_tertiary'],
+        justify='center',
+        pady=40
+    )
+    gui_instance.bugs_empty_label.pack(fill='both', expand=True)
+    
     # ──────── SCAN SUMMARY ────────
     summary_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     summary_frame.pack(fill='x', padx=20, pady=(0, 20))
@@ -73,6 +256,7 @@ def setup_reports_tab(parent, gui_instance):
         pady=15
     )
     gui_instance.report_summary_label.pack(fill='x')
+
     
     # ──────── REPORT TYPE SELECTION ────────
     report_types_frame = tk.Frame(scrollable_frame, bg=colors['bg_primary'])

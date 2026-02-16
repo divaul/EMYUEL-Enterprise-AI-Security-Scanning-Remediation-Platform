@@ -922,6 +922,7 @@ class EMYUELGUI:
         
         # Update Reports tab summary (NEW!)
         self.update_report_summary()
+        self.update_bug_monitoring_dashboard()
         
         # Show summary dialog
         messagebox.showinfo(
@@ -1629,6 +1630,158 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
         except:
             # If root doesn't exist, call directly
             _update()
+    
+    def update_bug_monitoring_dashboard(self):
+        """Update bug monitoring dashboard with discovered vulnerabilities (thread-safe)"""
+        def _update():
+            try:
+                # Check if widgets exist
+                if not (hasattr(self, 'bugs_total_count') and 
+                       hasattr(self, 'bugs_scrollable_frame')):
+                    return
+                
+                # Get findings from scan results
+                if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
+                    # No scan results - show empty state
+                    total = critical = high = other = 0
+                    findings = []
+                else:
+                    findings = self.last_scan_results.get('findings', [])
+                    severity_counts = self.last_scan_results.get('findings_by_severity', {})
+                    
+                    total = len(findings)
+                    critical = severity_counts.get('critical', 0)
+                    high = severity_counts.get('high', 0)
+                    medium = severity_counts.get('medium', 0)
+                    low = severity_counts.get('low', 0)
+                    other = medium + low
+                
+                # Update stat cards
+                self.bugs_total_count.config(text=str(total))
+                self.bugs_critical_count.config(text=str(critical))
+                self.bugs_high_count.config(text=str(high))
+                self.bugs_other_count.config(text=str(other))
+                
+                # Clear existing bug list
+                for widget in self.bugs_scrollable_frame.winfo_children():
+                    widget.destroy()
+                
+                if total == 0:
+                    # Show empty state
+                    self.bugs_empty_label = tk.Label(
+                        self.bugs_scrollable_frame,
+                        text="No vulnerabilities discovered yet.\nRun a scan to populate this dashboard.",
+                        font=('Segoe UI', 10),
+                        fg=self.colors['text_secondary'],
+                        bg=self.colors['bg_tertiary'],
+                        justify='center',
+                        pady=40
+                    )
+                    self.bugs_empty_label.pack(fill='both', expand=True)
+                else:
+                    # Populate bug list
+                    for idx, finding in enumerate(findings):
+                        severity = finding.get('severity', 'unknown').upper()
+                        vuln_type = finding.get('type', 'Unknown')
+                        location = finding.get('file', finding.get('url', 'N/A'))
+                        description = finding.get('description', finding.get('message', 'No description'))
+                        
+                        # Truncate long strings
+                        if len(location) > 50:
+                            location = location[:47] + "..."
+                        if len(description) > 60:
+                            description = description[:57] + "..."
+                        
+                        # Create row
+                        row = tk.Frame(self.bugs_scrollable_frame, bg=self.colors['bg_tertiary'])
+                        row.pack(fill='x', pady=1)
+                        
+                        # Severity color coding
+                        severity_colors = {
+                            'CRITICAL': self.colors['error'],
+                            'HIGH': self.colors['warning'],
+                            'MEDIUM': self.colors['accent_cyan'],
+                            'LOW': self.colors['success']
+                        }
+                        sev_color = severity_colors.get(severity, self.colors['text_secondary'])
+                        
+                        # Severity badge
+                        sev_frame = tk.Frame(row, bg=self.colors['bg_tertiary'], width=100)
+                        sev_frame.pack(side='left', fill='y', padx=5)
+                        sev_frame.pack_propagate(False)
+                        
+                        sev_badge = tk.Label(
+                            sev_frame,
+                            text=severity,
+                            font=('Segoe UI', 8, 'bold'),
+                            fg=sev_color,
+                            bg=self.colors['bg_tertiary'],
+                            anchor='w'
+                        )
+                        sev_badge.pack(fill='both', expand=True, padx=5, pady=5)
+                        
+                        # Type
+                        type_frame = tk.Frame(row, bg=self.colors['bg_tertiary'])
+                        type_frame.pack(side='left', fill='both', expand=True)
+                        
+                        tk.Label(
+                            type_frame,
+                            text=vuln_type,
+                            font=('Segoe UI', 9),
+                            fg=self.colors['text_primary'],
+                            bg=self.colors['bg_tertiary'],
+                            anchor='w'
+                        ).pack(fill='both', padx=5, pady=5)
+                        
+                        # Location
+                        loc_frame = tk.Frame(row, bg=self.colors['bg_tertiary'])
+                        loc_frame.pack(side='left', fill='both', expand=True)
+                        
+                        tk.Label(
+                            loc_frame,
+                            text=location,
+                            font=('Segoe UI', 9),
+                            fg=self.colors['text_secondary'],
+                            bg=self.colors['bg_tertiary'],
+                            anchor='w'
+                        ).pack(fill='both', padx=5, pady=5)
+                        
+                        # Description
+                        desc_frame = tk.Frame(row, bg=self.colors['bg_tertiary'])
+                        desc_frame.pack(side='left', fill='both', expand=True)
+                        
+                        tk.Label(
+                            desc_frame,
+                            text=description,
+                            font=('Segoe UI', 8),
+                            fg=self.colors['text_secondary'],
+                            bg=self.colors['bg_tertiary'],
+                            anchor='w'
+                        ).pack(fill='both', padx=5, pady=5)
+                        
+                        # Alternating row colors
+                        if idx % 2 == 1:
+                            for frame in [row, sev_frame, type_frame, loc_frame, desc_frame]:
+                                frame.config(bg=self.colors['bg_primary'])
+                            sev_badge.config(bg=self.colors['bg_primary'])
+                            for label in [type_frame, loc_frame, desc_frame]:
+                                for child in label.winfo_children():
+                                    if isinstance(child, tk.Label):
+                                        child.config(bg=self.colors['bg_primary'])
+                
+                self.log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 📊 Bug monitoring dashboard updated: {total} vulnerabilities")
+                
+            except Exception as e:
+                self.log_console(f"[ERROR] Failed to update bug monitoring: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Thread-safe update
+        try:
+            self.root.after(0, _update)
+        except:
+            _update()
+
     
     def _convert_markdown_to_html(self, markdown_content: str, output_dir) -> str:
         """Convert Markdown to styled HTML"""

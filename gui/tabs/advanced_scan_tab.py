@@ -338,7 +338,7 @@ def setup_advanced_tab(parent, gui_instance):
         fg='white',
         relief='flat',
         cursor='hand2',
-        command=gui_instance.generate_report,
+        command=gui_instance.generate_raw_report,
         padx=14,
         pady=10
     )
