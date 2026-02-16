@@ -14,7 +14,7 @@
 # ============================================================================
 openai>=1.12.0                    # OpenAI GPT-3.5/GPT-4
 anthropic>=0.18.0                 # Anthropic Claude
-google-genai>=1.0.0               # NEW Gemini SDK (v2.5-flash)
+google-generativeai>=0.3.0        # Google Gemini API (FIXED: was google-genai)
 
 # ============================================================================
 # WEB SCANNING & HTTP
