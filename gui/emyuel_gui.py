@@ -1987,9 +1987,22 @@ class EMYUELGUI:
             bg=self.colors['bg_secondary']
         ).pack(anchor='w', padx=20, pady=(15, 10))
         
-        # Steps container with scroll
-        steps_canvas = tk.Canvas(progress_frame, bg=self.colors['bg_tertiary'], height=250, highlightthickness=0)
-        steps_scroll = tk.Scrollbar(progress_frame, orient="vertical", command=steps_canvas.yview)
+        # Steps container with styled scroll
+        steps_canvas = tk.Canvas(
+            progress_frame, 
+            bg=self.colors['bg_tertiary'], 
+            height=250, 
+            highlightthickness=0,
+            borderwidth=0
+        )
+        steps_scroll = tk.Scrollbar(
+            progress_frame, 
+            orient="vertical", 
+            command=steps_canvas.yview,
+            bg=self.colors['bg_secondary'],
+            troughcolor=self.colors['bg_primary'],
+            activebackground=self.colors['accent_cyan']
+        )
         self.ai_steps_frame = tk.Frame(steps_canvas, bg=self.colors['bg_tertiary'])
         
         self.ai_steps_frame.bind(
@@ -2016,23 +2029,37 @@ class EMYUELGUI:
         reasoning_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         reasoning_frame.pack(fill='x', padx=20, pady=(0, 20))
         
+        reasoning_header = tk.Frame(reasoning_frame, bg=self.colors['bg_secondary'])
+        reasoning_header.pack(fill='x', padx=20, pady=(15, 10))
+        
         tk.Label(
-            reasoning_frame,
-            text="💬 AI Reasoning",
+            reasoning_header,
+            text="🧠 AI Reasoning",
             font=('Segoe UI', 11, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(15, 10))
+        ).pack(side='left')
+        
+        tk.Label(
+            reasoning_header,
+            text="AI's thought process and decision making",
+            font=('Segoe UI', 8, 'italic'),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(side='left', padx=(10, 0))
         
         self.ai_reasoning_text = tk.Text(
             reasoning_frame,
-            height=4,
+            height=5,
             font=('Segoe UI', 9),
             bg=self.colors['bg_tertiary'],
-            fg=self.colors['text_secondary'],
+            fg=self.colors['text_primary'],
+            insertbackground=self.colors['accent_cyan'],
             relief='flat',
             wrap='word',
-            state='disabled'
+            state='disabled',
+            padx=10,
+            pady=10
         )
         self.ai_reasoning_text.pack(fill='x', padx=20, pady=(0, 15))
         
@@ -2040,25 +2067,46 @@ class EMYUELGUI:
         console_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         console_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
         
+        console_header = tk.Frame(console_frame, bg=self.colors['bg_secondary'])
+        console_header.pack(fill='x', padx=20, pady=(15, 10))
+        
         tk.Label(
-            console_frame,
+            console_header,
             text="📄 Live Console",
             font=('Segoe UI', 11, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(15, 10))
+        ).pack(side='left')
         
-        self.ai_console_text = tk.Text(
+        # Clear button
+        clear_console_btn = tk.Button(
+            console_header,
+            text="🗑️ Clear",
+            font=('Segoe UI', 9),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_secondary'],
+            activebackground=self.colors['error'],
+            activeforeground='#ffffff',
+            relief='flat',
+            cursor='hand2',
+            command=lambda: self.ai_console_text.delete('1.0', tk.END),
+            padx=12,
+            pady=4
+        )
+        clear_console_btn.pack(side='right')
+        
+        self.ai_console_text = scrolledtext.ScrolledText(
             console_frame,
-            height=8,
+            height=10,
             font=('Consolas', 9),
-            bg='#000000',
-            fg='#00ff00',
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_primary'],
+            insertbackground=self.colors['accent_cyan'],
             relief='flat',
             wrap='word',
             state='disabled'
         )
-        self.ai_console_text.pack(fill='both', expand=True, padx=20, pady=(0, 15))
+        self.ai_console_text.pack(fill='both', expand=True, padx=20, pady=(0, 20))
         
         # Initialize AI analysis state
         self.ai_analysis_running = False
