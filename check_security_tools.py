@@ -153,27 +153,34 @@ class SecurityToolsManager:
             return False, str(e)
     
     def check_tool(self, tool_name: str, tool_info: Dict, debug: bool = False) -> bool:
-        """Check if a security tool is installed using 'which' command"""
-        # Use 'which' command - more reliable than running the tool itself
-        success, output = self.run_command(['which', tool_name])
+        """
+        Check if a security tool is installed.
+        
+        CRITICAL: We ONLY check if the binary exists in PATH.
+        We do NOT validate exit codes or version commands.
+        
+        Why? Because many security tools return non-zero exit codes
+        even when installed and working correctly.
+        """
+        # Use Python's built-in shutil.which() - the CORRECT way
+        # This is stable, doesn't depend on shell, and uses Python's PATH
+        tool_path = shutil.which(tool_name)
         
         if debug:
-            print(f"    DEBUG: which {tool_name}")
-            print(f"           Success: {success}, Output: '{output}'")
+            print(f"    DEBUG: shutil.which('{tool_name}')")
+            print(f"           Result: {tool_path}")
         
-        # If 'which' succeeds and returns a path, tool is installed
-        if success and output and '/' in output:
+        # If shutil.which() returns a path, the tool is installed. Period.
+        if tool_path:
             if debug:
-                print(f"           ✓ Tool found at: {output}")
+                print(f"           ✓ Tool found at: {tool_path}")
             return True
         
-        # Fallback: try the original check command
         if debug:
-            print(f"           'which' failed, trying: {tool_info['check_cmd']}")
-        success2, output2 = self.run_command(tool_info['check_cmd'])
-        if debug:
-            print(f"           Fallback success: {success2}")
-        return success2
+            print(f"           ✗ Tool not found in PATH")
+        
+        # Tool not found
+        return False
     
     def check_all_tools(self, debug: bool = False) -> Dict[str, Dict]:
         """Check all security tools"""
