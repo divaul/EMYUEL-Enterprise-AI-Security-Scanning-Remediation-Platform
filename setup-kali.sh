@@ -190,18 +190,49 @@ install_python_deps() {
     echo "Upgrading pip..."
     pip install --upgrade pip setuptools wheel
     
-    # Install requirements
+    # Install packaging for version comparison
+    echo "Installing dependency management tools..."
+    pip install packaging --quiet
+    
+    # Check if requirements.txt exists
     if [ ! -f "requirements.txt" ]; then
         print_error "requirements.txt not found"
         exit 1
     fi
     
-    echo "Installing dependencies from requirements.txt..."
-    echo "(This may take a few minutes...)"
+    # Check system tools first
+    echo ""
+    print_header "Checking System Tools and Frameworks"
+    echo ""
     
-    pip install -r requirements.txt
+    if python3 check_system_tools.py; then
+        print_success "System tools check completed"
+    else
+        print_warning "Some system tools are missing or outdated"
+        echo "The script will continue, but some features may not work"
+    fi
     
-    print_success "Python dependencies installed"
+    # Run smart dependency checker
+    echo ""
+    print_header "Checking and Managing Python Dependencies"
+    echo ""
+    
+    if python3 check_dependencies.py; then
+        print_success "Dependencies managed successfully"
+    else
+        print_warning "Dependency checker had issues, attempting full install..."
+        pip install -r requirements.txt
+    fi
+    
+    # Check cybersecurity tools
+    echo ""
+    print_header "Checking Cybersecurity Tools"
+    echo ""
+    
+    python3 check_security_tools.py
+    
+    echo ""
+    print_success "Dependency checks completed"
 }
 
 # Setup environment file
