@@ -461,9 +461,9 @@ try:
     import click
     import openai
     import anthropic
-    import google.generativeai
+    import google.genai
     import aiohttp
-    import beautifulsoup4
+    import bs4
     print('✓ All core dependencies imported successfully')
 except ImportError as e:
     print(f'✗ Import error: {e}')
