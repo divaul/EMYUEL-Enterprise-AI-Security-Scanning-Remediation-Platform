@@ -36,8 +36,11 @@ class DependencyManager:
                 if not line or line.startswith('#'):
                     continue
                 
+                # Remove inline comments (e.g., "package>=1.0  # comment")
+                line = line.split('#')[0].strip()
+                
                 # Parse package name and version
-                match = re.match(r'^([a-zA-Z0-9_\-\[\]]+)([><=!]+)([\d\.]+)', line)
+                match = re.match(r'^([a-zA-Z0-9_\-\[\]]+)([\><= !]+)([\d\.]+)', line)
                 if match:
                     package_name = match.group(1)
                     operator = match.group(2)
@@ -46,7 +49,7 @@ class DependencyManager:
                         'name': package_name,
                         'operator': operator,
                         'version': version,
-                        'requirement': line
+                        'requirement': line  # Clean line without comments
                     }
         
         self.required_packages = packages
