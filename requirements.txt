@@ -44,6 +44,7 @@ pydantic-settings>=2.1.0          # Settings management
 # ============================================================================
 aiofiles>=23.2.1                  # Async file I/O
 asyncio                           # Async I/O (built-in, but listed for clarity)
+click>=8.1.0                      # CLI framework (for command-line interface)
 
 # ============================================================================
 # LOGGING & DEBUGGING
