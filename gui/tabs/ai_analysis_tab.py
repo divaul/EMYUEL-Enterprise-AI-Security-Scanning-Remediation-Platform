@@ -1,4 +1,4 @@
-"""AI Analysis tab setup - AI-driven autonomous security analysis"""
+"""AI Analysis tab setup - AI-driven autonomous security analysis (responsive tweaks)"""
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext
@@ -6,14 +6,21 @@ from tkinter import ttk, scrolledtext
 
 def setup_ai_analysis_tab(parent, gui_instance):
     """
-    Setup AI-driven autonomous security analysis tab
+    Setup AI-driven autonomous security analysis tab (responsive-friendly)
     
     Args:
         parent: Parent frame for this tab
         gui_instance: Reference to main EMYUELGUI instance for colors and callbacks
     """
     colors = gui_instance.colors
-   
+
+    # Ensure parent expands (best-effort — depends on how parent is managed by the app)
+    try:
+        parent.grid_rowconfigure(0, weight=1)
+        parent.grid_columnconfigure(0, weight=1)
+    except Exception:
+        pass
+
     # Scrollable container
     canvas = tk.Canvas(parent, bg=colors['bg_primary'], highlightthickness=0, borderwidth=0)
     scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview,
@@ -21,22 +28,34 @@ def setup_ai_analysis_tab(parent, gui_instance):
                             troughcolor=colors['bg_primary'],
                             activebackground=colors['accent_cyan'])
     scrollable_frame = tk.Frame(canvas, bg=colors['bg_primary'])
-    
+
     scrollable_frame.bind(
         "<Configure>",
         lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
     )
-    
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+    canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar.set)
-    
+
+    # Allow parent resizing to adjust canvas width (helps responsiveness)
+    def _on_parent_resize(event):
+        # subtract a small margin to avoid horizontal scrollbar showing unnecessarily
+        try:
+            new_width = max(100, event.width - scrollbar.winfo_width() - 8)
+        except Exception:
+            new_width = event.width - 8
+        canvas.itemconfig(canvas_window, width=new_width)
+        canvas.configure(width=new_width)
+
+    parent.bind("<Configure>", _on_parent_resize)
+
     canvas.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
-    
+
     # Header
     header_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     header_frame.pack(fill='x', padx=15, pady=10)
-    
+
     tk.Label(
         header_frame,
         text="🤖 AI-Driven Autonomous Security Analysis",
@@ -44,7 +63,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['accent_cyan'],
         bg=colors['bg_secondary']
     ).pack(anchor='w', padx=15, pady=(10, 3))
-    
+
     tk.Label(
         header_frame,
         text="AI analyzes targets and generates custom testing strategies",
@@ -52,11 +71,11 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
     ).pack(anchor='w', padx=15, pady=(0, 10))
-    
-    # Target URL Section
+
+    # Target URL Section - RESPONSIVE
     url_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
-    url_frame.pack(fill='x', padx=15, pady=(0, 10))
-    
+    url_frame.pack(fill='both', expand=True, padx=15, pady=(0, 10))
+
     tk.Label(
         url_frame,
         text="🎯 Target URL",
@@ -64,14 +83,17 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
     ).pack(anchor='w', padx=15, pady=(10, 8))
-    
-    url_input_frame = tk.Frame(url_frame, bg=colors['bg_secondary'])
-    url_input_frame.pack(fill='x', padx=15, pady=(0, 10))
-    
+
+    # Grid layout for responsive input
+    url_input_container = tk.Frame(url_frame, bg=colors['bg_secondary'])
+    url_input_container.pack(fill='x', padx=15, pady=(0, 10))
+    url_input_container.grid_columnconfigure(0, weight=1)  # Entry expands
+    url_input_container.grid_columnconfigure(1, weight=0)
+
     gui_instance.ai_target_var = tk.StringVar(value='https://testphp.vulnweb.com')
-    
+
     url_entry = tk.Entry(
-        url_input_frame,
+        url_input_container,
         textvariable=gui_instance.ai_target_var,
         font=('Segoe UI', 10),
         bg=colors['bg_tertiary'],
@@ -80,11 +102,11 @@ def setup_ai_analysis_tab(parent, gui_instance):
         relief='flat',
         bd=0
     )
-    url_entry.pack(side='left', fill='x', expand=True, ipady=10, padx=(0, 10))
-    
-    # Start Analysis Button
+    url_entry.grid(row=0, column=0, sticky='ew', ipady=10, padx=(0, 10))
+
+    # Start Analysis Button - responsive placement (no fixed width)
     start_btn = tk.Button(
-        url_input_frame,
+        url_input_container,
         text="🚀 Start AI Analysis",
         font=('Segoe UI', 10, 'bold'),
         bg=colors['accent_cyan'],
@@ -94,18 +116,18 @@ def setup_ai_analysis_tab(parent, gui_instance):
         relief='flat',
         cursor='hand2',
         command=gui_instance.start_ai_analysis,
-        padx=25,
-        pady=10
+        padx=16,
+        pady=8
     )
-    start_btn.pack(side='right')
-    
+    start_btn.grid(row=0, column=1, sticky='e')
+
     # Natural Language Query Section
     nlp_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     nlp_frame.pack(fill='x', padx=15, pady=(0, 10))
-    
+
     nlp_header = tk.Frame(nlp_frame, bg=colors['bg_secondary'])
     nlp_header.pack(fill='x', padx=15, pady=(10, 5))
-    
+
     tk.Label(
         nlp_header,
         text="💬 Natural Language Query",
@@ -113,7 +135,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
     ).pack(side='left')
-    
+
     tk.Label(
         nlp_header,
         text="(Optional)",
@@ -121,7 +143,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
     ).pack(side='left', padx=(5, 0))
-    
+
     tk.Label(
         nlp_frame,
         text="Contoh: 'test keamanan databasenya' atau 'find SQL injection'",
@@ -129,14 +151,16 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
     ).pack(anchor='w', padx=15, pady=(0, 8))
-    
-    nlp_input_frame = tk.Frame(nlp_frame, bg=colors['bg_secondary'])
-    nlp_input_frame.pack(fill='x', padx=15, pady=(0, 8))
-    
+
+    # Grid layout for responsive input
+    nlp_input_container = tk.Frame(nlp_frame, bg=colors['bg_secondary'])
+    nlp_input_container.pack(fill='x', padx=15, pady=(0, 8))
+    nlp_input_container.grid_columnconfigure(0, weight=1)  # Input expands
+
     gui_instance.ai_nlp_query_var = tk.StringVar()
-    
+
     nlp_entry = tk.Entry(
-        nlp_input_frame,
+        nlp_input_container,
         textvariable=gui_instance.ai_nlp_query_var,
         font=('Segoe UI', 10),
         bg=colors['bg_tertiary'],
@@ -145,12 +169,12 @@ def setup_ai_analysis_tab(parent, gui_instance):
         relief='flat',
         bd=0
     )
-    nlp_entry.pack(fill='x', ipady=10)
-    
+    nlp_entry.grid(row=0, column=0, sticky='ew', ipady=10)
+
     # Quick example buttons
     examples_frame = tk.Frame(nlp_frame, bg=colors['bg_secondary'])
     examples_frame.pack(fill='x', padx=15, pady=(0, 10))
-    
+
     tk.Label(
         examples_frame,
         text="Quick examples:",
@@ -158,13 +182,13 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
     ).pack(side='left', padx=(0, 10))
-    
+
     example_queries = [
         ("🗄️ Database", "test keamanan databasenya"),
         ("⚡ XSS", "cari celah XSS"),
         ("🔍 Full Scan", "scan semua kerentanan")
     ]
-    
+
     for label, query in example_queries:
         btn = tk.Button(
             examples_frame,
@@ -181,11 +205,11 @@ def setup_ai_analysis_tab(parent, gui_instance):
             pady=6
         )
         btn.pack(side='left', padx=5)
-    
-    # AI Configuration Section
+
+    # AI Configuration Section - RESPONSIVE GRID LAYOUT
     config_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     config_frame.pack(fill='x', padx=15, pady=(0, 10))
-    
+
     tk.Label(
         config_frame,
         text="⚙️ AI Configuration",
@@ -193,71 +217,67 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
     ).pack(anchor='w', padx=15, pady=(10, 8))
-    
-    # Two-column layout
+
+    # Grid container for responsive layout
     config_container = tk.Frame(config_frame, bg=colors['bg_secondary'])
-    config_container.pack(fill='x', padx=15, pady=(0, 10))
-    
+    config_container.pack(fill='both', expand=True, padx=15, pady=(0, 10))
+
+    # Configure grid weights for responsive resizing (two columns share space)
+    config_container.grid_columnconfigure(0, weight=1, uniform='cfg')
+    config_container.grid_columnconfigure(1, weight=1, uniform='cfg')
+
     # Left column - Analysis Depth
-    left_col = tk.Frame(config_container, bg=colors['bg_secondary'])
-    left_col.pack(side='left', fill='both', expand=True, padx=(0, 10))
-    
     tk.Label(
-        left_col,
+        config_container,
         text="Analysis Depth:",
         font=('Segoe UI', 9, 'bold'),
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
-    ).pack(anchor='w', pady=(0, 5))
-    
+    ).grid(row=0, column=0, sticky='w', pady=(0, 5), padx=(0, 10))
+
     depth_options = ['Quick', 'Standard', 'Deep', 'Comprehensive']
     gui_instance.ai_depth_var = tk.StringVar(value='Standard')
-    
-    depth_frame = tk.Frame(left_col, bg=colors['bg_tertiary'], relief='flat', bd=1)
-    depth_frame.pack(fill='x', pady=(0, 5))
-    
+
+    depth_frame = tk.Frame(config_container, bg=colors['bg_tertiary'], relief='flat', bd=1)
+    depth_frame.grid(row=1, column=0, sticky='ew', pady=(0, 5), padx=(0, 10))
+
     depth_combo = ttk.Combobox(
         depth_frame,
         textvariable=gui_instance.ai_depth_var,
         values=depth_options,
         state='readonly',
-        font=('Segoe UI', 9),
-        width=25
+        font=('Segoe UI', 9)
     )
-    depth_combo.pack(padx=5, pady=5)
-    
+    depth_combo.pack(fill='x', padx=5, pady=5)
+
     # Right column - AI Provider
-    right_col = tk.Frame(config_container, bg=colors['bg_secondary'])
-    right_col.pack(side='left', fill='both', expand=True, padx=(10, 0))
-    
     tk.Label(
-        right_col,
+        config_container,
         text="AI Model Provider:",
         font=('Segoe UI', 9, 'bold'),
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
-    ).pack(anchor='w', pady=(0, 5))
-    
+    ).grid(row=0, column=1, sticky='w', pady=(0, 5), padx=(10, 0))
+
     provider_options = ['OpenAI GPT-4', 'Google Gemini', 'Anthropic Claude']
     gui_instance.ai_provider_var = tk.StringVar(value='OpenAI GPT-4')
-    
-    provider_frame = tk.Frame(right_col, bg=colors['bg_tertiary'], relief='flat', bd=1)
-    provider_frame.pack(fill='x', pady=(0, 5))
-    
+
+    provider_frame = tk.Frame(config_container, bg=colors['bg_tertiary'], relief='flat', bd=1)
+    provider_frame.grid(row=1, column=1, sticky='ew', pady=(0, 5), padx=(10, 0))
+
     provider_combo = ttk.Combobox(
         provider_frame,
         textvariable=gui_instance.ai_provider_var,
         values=provider_options,
         state='readonly',
-        font=('Segoe UI', 9),
-        width=25
+        font=('Segoe UI', 9)
     )
-    provider_combo.pack(padx=5, pady=5)
-    
+    provider_combo.pack(fill='x', padx=5, pady=5)
+
     # Progress Section
     progress_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     progress_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
-    
+
     tk.Label(
         progress_frame,
         text="📊 Analysis Progress",
@@ -265,12 +285,11 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
     ).pack(anchor='w', padx=20, pady=(15, 10))
-    
-    # Steps container with styled scroll
+
+    # Steps container with styled scroll - RESPONSIVE
     steps_canvas = tk.Canvas(
         progress_frame, 
         bg=colors['bg_tertiary'], 
-        height=250, 
         highlightthickness=0,
         borderwidth=0
     )
@@ -283,18 +302,27 @@ def setup_ai_analysis_tab(parent, gui_instance):
         activebackground=colors['accent_cyan']
     )
     gui_instance.ai_steps_frame = tk.Frame(steps_canvas, bg=colors['bg_tertiary'])
-    
+
     gui_instance.ai_steps_frame.bind(
         "<Configure>",
         lambda e: steps_canvas.configure(scrollregion=steps_canvas.bbox("all"))
     )
-    
-    steps_canvas.create_window((0, 0), window=gui_instance.ai_steps_frame, anchor="nw", width=700)
+
+    # Bind canvas width to be responsive
+    def _configure_canvas_width(event):
+        # small margin to avoid overlap with scrollbar
+        steps_canvas.itemconfig(steps_canvas_window, width=max(100, event.width - 8))
+
+    steps_canvas_window = steps_canvas.create_window((0, 0), window=gui_instance.ai_steps_frame, anchor="nw")
+    steps_canvas.bind('<Configure>', _configure_canvas_width)
     steps_canvas.configure(yscrollcommand=steps_scroll.set)
-    
+
+    # Set minimum height but allow expansion
+    steps_canvas.config(height=200)
+
     steps_canvas.pack(side="left", fill="both", expand=True, padx=20, pady=(0, 15))
     steps_scroll.pack(side="right", fill="y", pady=(0, 15), padx=(0, 20))
-    
+
     # Initial placeholder
     tk.Label(
         gui_instance.ai_steps_frame,
@@ -303,14 +331,14 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_secondary'],
         bg=colors['bg_tertiary']
     ).pack(padx=15, pady=30)
-    
+
     # AI Reasoning Section
     reasoning_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     reasoning_frame.pack(fill='x', padx=20, pady=(0, 20))
-    
+
     reasoning_header = tk.Frame(reasoning_frame, bg=colors['bg_secondary'])
     reasoning_header.pack(fill='x', padx=20, pady=(15, 10))
-    
+
     tk.Label(
         reasoning_header,
         text="🧠 AI Reasoning",
@@ -318,7 +346,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
     ).pack(side='left')
-    
+
     tk.Label(
         reasoning_header,
         text="AI's thought process and decision making",
@@ -326,7 +354,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
     ).pack(side='left', padx=(10, 0))
-    
+
     gui_instance.ai_reasoning_text = tk.Text(
         reasoning_frame,
         height=5,
@@ -341,14 +369,14 @@ def setup_ai_analysis_tab(parent, gui_instance):
         pady=10
     )
     gui_instance.ai_reasoning_text.pack(fill='x', padx=20, pady=(0, 15))
-    
+
     # Live Console
     console_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     console_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
-    
+
     console_header = tk.Frame(console_frame, bg=colors['bg_secondary'])
     console_header.pack(fill='x', padx=20, pady=(15, 10))
-    
+
     tk.Label(
         console_header,
         text="📄 Live Console",
@@ -356,7 +384,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         fg=colors['text_primary'],
         bg=colors['bg_secondary']
     ).pack(side='left')
-    
+
     # Clear button
     clear_console_btn = tk.Button(
         console_header,
@@ -373,7 +401,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         pady=4
     )
     clear_console_btn.pack(side='right')
-    
+
     gui_instance.ai_console_text = scrolledtext.ScrolledText(
         console_frame,
         height=10,
@@ -386,7 +414,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         state='disabled'
     )
     gui_instance.ai_console_text.pack(fill='both', expand=True, padx=20, pady=(0, 20))
-    
+
     # Initialize AI analysis state
     gui_instance.ai_analysis_running = False
     gui_instance.ai_step_widgets = []
