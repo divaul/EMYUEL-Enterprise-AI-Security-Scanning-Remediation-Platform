@@ -941,7 +941,7 @@ class EMYUELGUI:
         # TODO: Implement pause
     
     def test_api_key(self, provider):
-        """Test API key"""
+        """Test API key with real API call"""
         key = getattr(self, f"api_key_{provider}").get()
         
         if not key:
@@ -951,44 +951,114 @@ class EMYUELGUI:
         self.log_console(f"[API] Testing {provider} key...")
         
         status_label = getattr(self, f"{provider}_status_label")
+        status_label.config(text="⏳ Testing...", fg=self.colors['warning'])
         
-        # Basic validation
-        try:
-            # Check key format
-            if provider == 'openai':
-                if not key.startswith('sk-'):
-                    raise ValueError("OpenAI key must start with 'sk-'")
-                if len(key) < 20:
-                    raise ValueError("OpenAI key too short")
-            elif provider == 'gemini':
-                if not key.startswith('AI'):
-                    raise ValueError("Gemini key must start with 'AI'")
-                if len(key) < 20:
-                    raise ValueError("Gemini key too short")
-            elif provider == 'claude':
-                if not key.startswith('sk-ant-'):
-                    raise ValueError("Claude key must start with 'sk-ant-'")
-                if len(key) < 20:
-                    raise ValueError("Claude key too short")
+        # Test in background thread
+        def test_in_thread():
+            try:
+                # Basic format validation first
+                if provider == 'openai':
+                    if not key.startswith('sk-'):
+                        raise ValueError("OpenAI key must start with 'sk-'")
+                    if len(key) < 20:
+                        raise ValueError("OpenAI key too short")
+                elif provider == 'gemini':
+                    if not key.startswith('AI'):
+                        raise ValueError("Gemini key must start with 'AI'")
+                    if len(key) < 20:
+                        raise ValueError("Gemini key too short")
+                elif provider == 'claude':
+                    if not key.startswith('sk-ant-'):
+                        raise ValueError("Claude key must start with 'sk-ant-'")
+                    if len(key) < 20:
+                        raise ValueError("Claude key too short")
+                
+                # Now test with real API call
+                self.log_console(f"[API] Making test API call to {provider}...")
+                
+                success = False
+                error_msg = None
+                
+                try:
+                    if provider == 'gemini':
+                        import google.generativeai as genai
+                        genai.configure(api_key=key)
+                        model = genai.GenerativeModel('gemini-pro')
+                        # Test with simple prompt
+                        response = model.generate_content("Test")
+                        if response:
+                            success = True
+                    
+                    elif provider == 'openai':
+                        from openai import OpenAI
+                        client = OpenAI(api_key=key)
+                        # Test with simple completion
+                        response = client.chat.completions.create(
+                            model="gpt-3.5-turbo",
+                            messages=[{"role": "user", "content": "Test"}],
+                            max_tokens=5
+                        )
+                        if response:
+                            success = True
+                    
+                    elif provider == 'claude':
+                        import anthropic
+                        client = anthropic.Anthropic(api_key=key)
+                        # Test with simple message
+                        response = client.messages.create(
+                            model="claude-3-haiku-20240307",
+                            max_tokens=5,
+                            messages=[{"role": "user", "content": "Test"}]
+                        )
+                        if response:
+                            success = True
+                
+                except Exception as api_error:
+                    error_msg = str(api_error)
+                    success = False
+                
+                # Update UI from main thread
+                def update_ui():
+                    if success:
+                        status_label.config(text="✓ Verified", fg=self.colors['success'])
+                        self.log_console(f"[API] ✅ {provider.capitalize()} key is valid and working!")
+                        messagebox.showinfo(
+                            "Key Verified",
+                            f"✅ {provider.capitalize()} API key is VALID!\n\n" +
+                            "The key was successfully tested with a live API call."
+                        )
+                    else:
+                        status_label.config(text="✗ Invalid", fg=self.colors['error'])
+                        self.log_console(f"[ERROR] {provider.capitalize()} key validation failed: {error_msg}")
+                        messagebox.showerror(
+                            "Invalid Key",
+                            f"❌ {provider.capitalize()} API key is INVALID!\n\n" +
+                            f"API Error: {error_msg}\n\n" +
+                            "Please check your API key and try again."
+                        )
+                
+                self.root.after(0, update_ui)
+                
+            except ValueError as e:
+                def show_format_error():
+                    status_label.config(text="✗ Invalid", fg=self.colors['error'])
+                    self.log_console(f"[ERROR] {provider.capitalize()} key format invalid: {e}")
+                    messagebox.showerror("Invalid Key Format", f"{provider.capitalize()} API key format error:\n\n{str(e)}")
+                
+                self.root.after(0, show_format_error)
             
-            # TODO: Add actual API call validation
-            # For now, just format validation
-            status_label.config(text="⚠ Format OK (Not tested live)", fg=self.colors['warning'])
-            
-            self.log_console(f"[API] {provider.capitalize()} key format is valid")
-            self.log_console(f"[WARN] Live API validation not implemented yet")
-            
-            messagebox.showinfo(
-                "Key Validation",
-                f"{provider.capitalize()} key format is valid!\n\n" +
-                "⚠ Note: Live API validation not implemented yet.\n" +
-                "The key will be tested when you run a scan."
-            )
-            
-        except ValueError as e:
-            status_label.config(text="✗ Invalid", fg=self.colors['error'])
-            self.log_console(f"[ERROR] {provider.capitalize()} key validation failed: {e}")
-            messagebox.showerror("Invalid Key", f"{provider.capitalize()} API key is invalid:\n\n{str(e)}")
+            except Exception as e:
+                def show_general_error():
+                    status_label.config(text="⚠ Error", fg=self.colors['warning'])
+                    self.log_console(f"[ERROR] Failed to test {provider} key: {e}")
+                    messagebox.showerror("Test Failed", f"Failed to test API key:\n\n{str(e)}")
+                
+                self.root.after(0, show_general_error)
+        
+        # Run test in background
+        import threading
+        thread = threading.Thread(target=test_in_thread, daemon=True)
+        thread.start()
     
     def save_api_keys(self):
         """Save API keys"""
