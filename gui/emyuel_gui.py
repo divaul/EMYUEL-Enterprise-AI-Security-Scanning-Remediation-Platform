@@ -1910,7 +1910,7 @@ class EMYUELGUI:
             )
             btn.pack(side='left', padx=5)
         
-        # AI Configuration Section (NEW)
+        # AI Configuration Section
         config_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         config_frame.pack(fill='x', padx=20, pady=(0, 20))
         
@@ -1922,17 +1922,18 @@ class EMYUELGUI:
             bg=self.colors['bg_secondary']
         ).pack(anchor='w', padx=20, pady=(15, 10))
         
-        config_grid = tk.Frame(config_frame, bg=self.colors['bg_secondary'])
-        config_grid.pack(fill='x', padx=20, pady=(0, 15))
+        # Two-column layout
+        config_container = tk.Frame(config_frame, bg=self.colors['bg_secondary'])
+        config_container.pack(fill='x', padx=20, pady=(0, 15))
         
-        # Left column
-        left_col = tk.Frame(config_grid, bg=self.colors['bg_secondary'])
-        left_col.pack(side='left', fill='x', expand=True, padx=(0, 10))
+        # Left column - Analysis Depth
+        left_col = tk.Frame(config_container, bg=self.colors['bg_secondary'])
+        left_col.pack(side='left', fill='both', expand=True, padx=(0, 10))
         
         tk.Label(
             left_col,
             text="Analysis Depth:",
-            font=('Segoe UI', 9),
+            font=('Segoe UI', 9, 'bold'),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
         ).pack(anchor='w', pady=(0, 5))
@@ -1940,24 +1941,27 @@ class EMYUELGUI:
         depth_options = ['Quick', 'Standard', 'Deep', 'Comprehensive']
         self.ai_depth_var = tk.StringVar(value='Standard')
         
+        depth_frame = tk.Frame(left_col, bg=self.colors['bg_tertiary'], relief='flat', bd=1)
+        depth_frame.pack(fill='x', pady=(0, 5))
+        
         depth_combo = ttk.Combobox(
-            left_col,
+            depth_frame,
             textvariable=self.ai_depth_var,
             values=depth_options,
             state='readonly',
             font=('Segoe UI', 9),
-            width=20
+            width=25
         )
-        depth_combo.pack(anchor='w', pady=(0, 10))
+        depth_combo.pack(padx=5, pady=5)
         
-        # Right column
-        right_col = tk.Frame(config_grid, bg=self.colors['bg_secondary'])
-        right_col.pack(side='left', fill='x', expand=True, padx=(10, 0))
+        # Right column - AI Provider
+        right_col = tk.Frame(config_container, bg=self.colors['bg_secondary'])
+        right_col.pack(side='left', fill='both', expand=True, padx=(10, 0))
         
         tk.Label(
             right_col,
             text="AI Model Provider:",
-            font=('Segoe UI', 9),
+            font=('Segoe UI', 9, 'bold'),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
         ).pack(anchor='w', pady=(0, 5))
@@ -1965,15 +1969,18 @@ class EMYUELGUI:
         provider_options = ['OpenAI GPT-4', 'Google Gemini', 'Anthropic Claude']
         self.ai_provider_var = tk.StringVar(value='OpenAI GPT-4')
         
+        provider_frame = tk.Frame(right_col, bg=self.colors['bg_tertiary'], relief='flat', bd=1)
+        provider_frame.pack(fill='x', pady=(0, 5))
+        
         provider_combo = ttk.Combobox(
-            right_col,
+            provider_frame,
             textvariable=self.ai_provider_var,
             values=provider_options,
             state='readonly',
             font=('Segoe UI', 9),
-            width=20
+            width=25
         )
-        provider_combo.pack(anchor='w', pady=(0, 10))
+        provider_combo.pack(padx=5, pady=5)
         
         # Progress Section
         progress_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
