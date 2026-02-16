@@ -200,22 +200,47 @@ class EMYUELGUI:
     
     def create_scrollable_frame(self, parent):
         """Create a scrollable frame container"""
+        # Create main container
+        container = tk.Frame(parent, bg=self.colors['bg_primary'])
+        container.pack(fill='both', expand=True)
+        
         # Create canvas
-        canvas = tk.Canvas(parent, bg=self.colors['bg_primary'], highlightthickness=0)
-        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(
+            container, 
+            bg=self.colors['bg_primary'], 
+            highlightthickness=0,
+            borderwidth=0
+        )
+        
+        # Create scrollbar with custom styling
+        scrollbar = tk.Scrollbar(
+            container, 
+            orient="vertical", 
+            command=canvas.yview,
+            bg=self.colors['bg_secondary'],
+            troughcolor=self.colors['bg_primary'],
+            activebackground=self.colors['accent_cyan']
+        )
         
         # Create scrollable frame
         scrollable_frame = tk.Frame(canvas, bg=self.colors['bg_primary'])
         
-        # Configure scroll region
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Configure scroll region when frame size changes
+        def _configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        # Configure canvas width to match container
+        def _configure_canvas_width(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+        
+        scrollable_frame.bind("<Configure>", _configure_scroll_region)
         
         # Create window in canvas
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Bind canvas width
+        canvas.bind('<Configure>', _configure_canvas_width)
         
         # Pack canvas and scrollbar
         canvas.pack(side="left", fill="both", expand=True)
@@ -225,7 +250,15 @@ class EMYUELGUI:
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        # Bind mousewheel to canvas and all children
+        def _bind_to_mousewheel(event):
+            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        def _unbind_from_mousewheel(event):
+            canvas.unbind_all("<MouseWheel>")
+        
+        canvas.bind('<Enter>', _bind_to_mousewheel)
+        canvas.bind('<Leave>', _unbind_from_mousewheel)
         
         return scrollable_frame, canvas
     
@@ -927,16 +960,16 @@ class EMYUELGUI:
         info_label.pack(anchor='w', padx=30, pady=20)
         
         # OpenAI
-        self.create_api_key_section(parent, "OpenAI", self.api_key_openai, "openai")
+        self.create_api_key_section(scrollable_frame, "OpenAI", self.api_key_openai, "openai")
         
         # Google Gemini
-        self.create_api_key_section(parent, "Google Gemini", self.api_key_gemini, "gemini")
+        self.create_api_key_section(scrollable_frame, "Google Gemini", self.api_key_gemini, "gemini")
         
         # Anthropic Claude
-        self.create_api_key_section(parent, "Anthropic Claude", self.api_key_claude, "claude")
+        self.create_api_key_section(scrollable_frame, "Anthropic Claude", self.api_key_claude, "claude")
         
         # Show/Hide toggle
-        show_frame = tk.Frame(parent, bg=self.colors['bg_primary'])
+        show_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_primary'])
         show_frame.pack(fill='x', padx=30, pady=20)
         
         show_check = tk.Checkbutton(
@@ -954,7 +987,7 @@ class EMYUELGUI:
         show_check.pack(side='left')
         
         # Save button
-        save_frame = tk.Frame(parent, bg=self.colors['bg_primary'])
+        save_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_primary'])
         save_frame.pack(fill='x', padx=30, pady=20)
         
         save_btn = tk.Button(
@@ -1037,45 +1070,70 @@ class EMYUELGUI:
         # Create scrollable container
         scrollable_frame, canvas = self.create_scrollable_frame(parent)
         
+        # Header Section
+        header_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        header_frame.pack(fill='x', padx=20, pady=20)
+        
+        tk.Label(
+            header_frame,
+            text="📊 Scan Results & Analytics",
+            font=('Segoe UI', 14, 'bold'),
+            fg=self.colors['accent_cyan'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 5))
+        
+        tk.Label(
+            header_frame,
+            text="Real-time scan progress, findings statistics, and detailed console output",
+            font=('Segoe UI', 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(0, 15))
+        
         # Progress section
         progress_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
-        progress_frame.pack(fill='x', padx=20, pady=20)
+        progress_frame.pack(fill='x', padx=20, pady=(0, 20))
         
         progress_label = tk.Label(
             progress_frame,
-            text="📊 Scan Progress",
-            font=('Arial', 12, 'bold'),
+            text="� Scan Progress",
+            font=('Segoe UI', 12, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
         )
         progress_label.pack(anchor='w', padx=20, pady=(15, 10))
         
+        # Progress bar container
+        progress_container = tk.Frame(progress_frame, bg=self.colors['bg_tertiary'])
+        progress_container.pack(fill='x', padx=20, pady=(0, 10))
+        
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(
-            progress_frame,
+            progress_container,
             variable=self.progress_var,
             maximum=100,
-            mode='determinate'
+            mode='determinate',
+            length=400
         )
-        self.progress_bar.pack(fill='x', padx=20, pady=(0, 10))
+        self.progress_bar.pack(fill='x', padx=10, pady=10)
         
         self.progress_label = tk.Label(
             progress_frame,
             text="No active scan",
-            font=('Arial', 9),
+            font=('Segoe UI', 9),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
         )
         self.progress_label.pack(anchor='w', padx=20, pady=(0, 15))
         
         # Statistics
-        stats_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        stats_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         stats_frame.pack(fill='x', padx=20, pady=(0, 20))
         
         stats_label = tk.Label(
             stats_frame,
-            text="📈 Findings",
-            font=('Arial', 12, 'bold'),
+            text="📈 Vulnerability Findings",
+            font=('Segoe UI', 12, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
         )
@@ -1084,60 +1142,99 @@ class EMYUELGUI:
         stats_inner = tk.Frame(stats_frame, bg=self.colors['bg_secondary'])
         stats_inner.pack(fill='x', padx=20, pady=(0, 15))
         
-        # Create stat boxes
-        self.create_stat_box(stats_inner, "Critical", "0", self.colors['critical'])
-        self.create_stat_box(stats_inner, "High", "0", self.colors['error'])
-        self.create_stat_box(stats_inner, "Medium", "0", self.colors['warning'])
-        self.create_stat_box(stats_inner, "Low", "0", self.colors['text_secondary'])
+        # Create stat boxes with improved styling
+        self.create_stat_box(stats_inner, "Critical", "0", self.colors['critical'], "🔴")
+        self.create_stat_box(stats_inner, "High", "0", self.colors['error'], "🟠")
+        self.create_stat_box(stats_inner, "Medium", "0", self.colors['warning'], "🟡")
+        self.create_stat_box(stats_inner, "Low", "0", self.colors['success'], "🟢")
+        self.create_stat_box(stats_inner, "Info", "0", self.colors['text_secondary'], "ℹ️")
         
         # Console output
-        console_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        console_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         console_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
         
+        console_header = tk.Frame(console_frame, bg=self.colors['bg_secondary'])
+        console_header.pack(fill='x', padx=20, pady=(15, 10))
+        
         console_label = tk.Label(
-            console_frame,
+            console_header,
             text="💻 Console Output",
-            font=('Arial', 12, 'bold'),
+            font=('Segoe UI', 12, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
         )
-        console_label.pack(anchor='w', padx=20, pady=(15, 10))
+        console_label.pack(side='left')
+        
+        # Clear console button
+        clear_btn = tk.Button(
+            console_header,
+            text="🗑️ Clear",
+            font=('Segoe UI', 9),
+            bg=self.colors['bg_tertiary'],
+            fg=self.colors['text_secondary'],
+            activebackground=self.colors['error'],
+            activeforeground='#ffffff',
+            relief='flat',
+            cursor='hand2',
+            command=self.clear_console,
+            padx=15,
+            pady=5
+        )
+        clear_btn.pack(side='right')
         
         self.console_text = scrolledtext.ScrolledText(
             console_frame,
-            font=('Courier New', 9),
+            font=('Consolas', 9),
             bg=self.colors['bg_tertiary'],
             fg=self.colors['text_primary'],
-            insertbackground=self.colors['text_primary'],
+            insertbackground=self.colors['accent_cyan'],
             relief='flat',
-            state='disabled'
+            state='disabled',
+            wrap='word',
+            height=15
         )
         self.console_text.pack(fill='both', expand=True, padx=20, pady=(0, 20))
     
-    def create_stat_box(self, parent, label, value, color):
-        """Create a statistics box"""
-        box = tk.Frame(parent, bg=self.colors['bg_tertiary'], relief='flat')
+    def create_stat_box(self, parent, label, value, color, icon=""):
+        """Create a statistics box with icon"""
+        box = tk.Frame(parent, bg=self.colors['bg_tertiary'], relief='flat', bd=1)
         box.pack(side='left', padx=5, fill='x', expand=True)
+        
+        # Icon if provided
+        if icon:
+            icon_label = tk.Label(
+                box,
+                text=icon,
+                font=('Segoe UI Emoji', 18),
+                bg=self.colors['bg_tertiary']
+            )
+            icon_label.pack(pady=(10, 0))
         
         value_label = tk.Label(
             box,
             text=value,
-            font=('Arial', 24, 'bold'),
+            font=('Segoe UI', 28, 'bold'),
             fg=color,
             bg=self.colors['bg_tertiary']
         )
-        value_label.pack(pady=(15, 5))
+        value_label.pack(pady=(5, 2))
         
         text_label = tk.Label(
             box,
             text=label,
-            font=('Arial', 9),
+            font=('Segoe UI', 9),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_tertiary']
         )
         text_label.pack(pady=(0, 15))
         
         setattr(self, f"stat_{label.lower()}_label", value_label)
+    
+    def clear_console(self):
+        """Clear console output"""
+        self.console_text.config(state='normal')
+        self.console_text.delete('1.0', tk.END)
+        self.console_text.config(state='disabled')
     
     # Event handlers and utility methods
     
@@ -1645,8 +1742,11 @@ class EMYUELGUI:
         """Setup AI-driven autonomous security analysis tab"""
         
         # Scrollable container
-        canvas = tk.Canvas(parent, bg=self.colors['bg_primary'], highlightthickness=0)
-        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(parent, bg=self.colors['bg_primary'], highlightthickness=0, borderwidth=0)
+        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview,
+                                bg=self.colors['bg_secondary'],
+                                troughcolor=self.colors['bg_primary'],
+                                activebackground=self.colors['accent_cyan'])
         scrollable_frame = tk.Frame(canvas, bg=self.colors['bg_primary'])
         
         scrollable_frame.bind(
@@ -1674,7 +1774,7 @@ class EMYUELGUI:
         
         tk.Label(
             header_frame,
-            text="AI analyzes targets, generates custom testing strategies, and adapts based on results",
+            text="AI analyzes targets, generates custom testing strategies, and adapts based on real-time results",
             font=('Segoe UI', 9),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
@@ -1703,7 +1803,7 @@ class EMYUELGUI:
             font=('Segoe UI', 10),
             bg=self.colors['bg_tertiary'],
             fg=self.colors['text_primary'],
-            insertbackground=self.colors['text_primary'],
+            insertbackground=self.colors['accent_cyan'],
             relief='flat',
             bd=0
         )
@@ -1721,22 +1821,34 @@ class EMYUELGUI:
             relief='flat',
             cursor='hand2',
             command=self.start_ai_analysis,
-            padx=20,
+            padx=25,
             pady=10
         )
         start_btn.pack(side='right')
         
-        # Natural Language Query Section (NEW!)
+        # Natural Language Query Section (Enhanced!)
         nlp_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         nlp_frame.pack(fill='x', padx=20, pady=(0, 20))
         
+        nlp_header = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
+        nlp_header.pack(fill='x', padx=20, pady=(15, 5))
+        
         tk.Label(
-            nlp_frame,
-            text="💬 Natural Language Query (Optional)",
+            nlp_header,
+            text="💬 Natural Language Query",
             font=('Segoe UI', 11, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(15, 5))
+        ).pack(side='left')
+        
+        optional_label = tk.Label(
+            nlp_header,
+            text="(Optional)",
+            font=('Segoe UI', 9, 'italic'),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        )
+        optional_label.pack(side='left', padx=(5, 0))
         
         tk.Label(
             nlp_frame,
@@ -1747,7 +1859,7 @@ class EMYUELGUI:
         ).pack(anchor='w', padx=20, pady=(0, 10))
         
         nlp_input_frame = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
-        nlp_input_frame.pack(fill='x', padx=20, pady=(0, 15))
+        nlp_input_frame.pack(fill='x', padx=20, pady=(0, 10))
         
         self.ai_nlp_query_var = tk.StringVar()
         
@@ -1757,46 +1869,111 @@ class EMYUELGUI:
             font=('Segoe UI', 10),
             bg=self.colors['bg_tertiary'],
             fg=self.colors['text_primary'],
-            insertbackground=self.colors['text_primary'],
+            insertbackground=self.colors['accent_cyan'],
             relief='flat',
             bd=0
         )
         nlp_entry.pack(fill='x', ipady=10)
         
-        # Quick example buttons
+        # Quick example buttons with icons
         examples_frame = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
         examples_frame.pack(fill='x', padx=20, pady=(0, 15))
         
         tk.Label(
             examples_frame,
             text="Quick examples:",
-            font=('Segoe UI', 9),
+            font=('Segoe UI', 9, 'bold'),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
         ).pack(side='left', padx=(0, 10))
         
         example_queries = [
-            ("Database", "test keamanan databasenya"),
-            ("XSS", "cari celah XSS"),
-            ("Full Scan", "scan semua kerentanan")
+            ("🗄️ Database", "test keamanan databasenya"),
+            ("⚡ XSS", "cari celah XSS"),
+            ("🔍 Full Scan", "scan semua kerentanan")
         ]
         
         for label, query in example_queries:
             btn = tk.Button(
                 examples_frame,
                 text=label,
-                font=('Segoe UI', 8),
+                font=('Segoe UI', 9),
                 bg=self.colors['bg_tertiary'],
-                fg=self.colors['text_secondary'],
-                activebackground=self.colors['accent_cyan'],
-                activeforeground='#000000',
+                fg=self.colors['accent_cyan'],
+                activebackground=self.colors['accent_purple'],
+                activeforeground='#ffffff',
                 relief='flat',
                 cursor='hand2',
                 command=lambda q=query: self.ai_nlp_query_var.set(q),
-                padx=8,
-                pady=4
+                padx=12,
+                pady=6
             )
-            btn.pack(side='left', padx=2)
+            btn.pack(side='left', padx=5)
+        
+        # AI Configuration Section (NEW)
+        config_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        config_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        tk.Label(
+            config_frame,
+            text="⚙️ AI Configuration",
+            font=('Segoe UI', 11, 'bold'),
+            fg=self.colors['text_primary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', padx=20, pady=(15, 10))
+        
+        config_grid = tk.Frame(config_frame, bg=self.colors['bg_secondary'])
+        config_grid.pack(fill='x', padx=20, pady=(0, 15))
+        
+        # Left column
+        left_col = tk.Frame(config_grid, bg=self.colors['bg_secondary'])
+        left_col.pack(side='left', fill='x', expand=True, padx=(0, 10))
+        
+        tk.Label(
+            left_col,
+            text="Analysis Depth:",
+            font=('Segoe UI', 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', pady=(0, 5))
+        
+        depth_options = ['Quick', 'Standard', 'Deep', 'Comprehensive']
+        self.ai_depth_var = tk.StringVar(value='Standard')
+        
+        depth_combo = ttk.Combobox(
+            left_col,
+            textvariable=self.ai_depth_var,
+            values=depth_options,
+            state='readonly',
+            font=('Segoe UI', 9),
+            width=20
+        )
+        depth_combo.pack(anchor='w', pady=(0, 10))
+        
+        # Right column
+        right_col = tk.Frame(config_grid, bg=self.colors['bg_secondary'])
+        right_col.pack(side='left', fill='x', expand=True, padx=(10, 0))
+        
+        tk.Label(
+            right_col,
+            text="AI Model Provider:",
+            font=('Segoe UI', 9),
+            fg=self.colors['text_secondary'],
+            bg=self.colors['bg_secondary']
+        ).pack(anchor='w', pady=(0, 5))
+        
+        provider_options = ['OpenAI GPT-4', 'Google Gemini', 'Anthropic Claude']
+        self.ai_provider_var = tk.StringVar(value='OpenAI GPT-4')
+        
+        provider_combo = ttk.Combobox(
+            right_col,
+            textvariable=self.ai_provider_var,
+            values=provider_options,
+            state='readonly',
+            font=('Segoe UI', 9),
+            width=20
+        )
+        provider_combo.pack(anchor='w', pady=(0, 10))
         
         # Progress Section
         progress_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
