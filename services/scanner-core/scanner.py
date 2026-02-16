@@ -43,6 +43,80 @@ class ScannerCore:
         
         logger.info(f"Scanner initialized with {len(self.detectors)} detectors")
     
+    async def scan(
+        self,
+        target: str,
+        modules: Optional[List[str]] = None,
+        scan_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Scan web target for vulnerabilities
+        
+        Args:
+            target: Target URL to scan
+            modules: List of vulnerability types to check
+            scan_id: Unique scan ID
+            
+        Returns:
+            Scan results with all findings
+        """
+        start_time = datetime.utcnow()
+        logger.info(f"Starting web scan of target: {target}")
+        
+        # Detect if target is URL (web) or path (project)
+        if target.startswith('http://') or target.startswith('https://'):
+            # Web scanning
+            return await self._scan_web_target(target, modules, scan_id, start_time)
+        else:
+            # Project scanning
+            return await self.scan_project(target, {'scan_id': scan_id})
+    
+    async def _scan_web_target(
+        self,
+        url: str,
+        modules: Optional[List[str]],
+        scan_id: str,
+        start_time: datetime
+    ) -> Dict[str, Any]:
+        """Scan web target for vulnerabilities"""
+        from .web_scanner import WebScanner
+        
+        # Get SSL verification setting from config
+        verify_ssl = self.config.get('verify_ssl', True)
+        
+        # Create web scanner instance
+        web_scanner = WebScanner(
+            llm_analyzer=self.llm,
+            max_depth=2,
+            max_pages=50,
+            verify_ssl=verify_ssl
+        )
+        
+        # Run web scan
+        logger.info(f"Detected web target: {url}")
+        findings = await web_scanner.scan_url(url, modules or ['all'])
+        
+        # Format results
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        results = {
+            'scan_id': scan_id or 'unknown',
+            'target': url,
+            'target_type': 'web',
+            'start_time': start_time.isoformat(),
+            'end_time': end_time.isoformat(),
+            'duration_seconds': duration,
+            'total_findings': len(findings),
+            'findings_by_severity': self._count_by_severity(findings),
+            'findings_by_type': self._count_by_type(findings),
+            'findings': findings
+        }
+        
+        logger.info(f"Web scan completed: {len(findings)} vulnerabilities found in {duration:.2f}s")
+        
+        return results
+    
     async def scan_project(
         self,
         project_path: str,
