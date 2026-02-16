@@ -1762,38 +1762,38 @@ class EMYUELGUI:
         
         # Header
         header_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
-        header_frame.pack(fill='x', padx=20, pady=20)
+        header_frame.pack(fill='x', padx=15, pady=10)
         
         tk.Label(
             header_frame,
             text="🤖 AI-Driven Autonomous Security Analysis",
-            font=('Segoe UI', 14, 'bold'),
+            font=('Segoe UI', 13, 'bold'),
             fg=self.colors['accent_cyan'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(15, 5))
+        ).pack(anchor='w', padx=15, pady=(10, 3))
         
         tk.Label(
             header_frame,
-            text="AI analyzes targets, generates custom testing strategies, and adapts based on real-time results",
-            font=('Segoe UI', 9),
+            text="AI analyzes targets and generates custom testing strategies",
+            font=('Segoe UI', 8),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(0, 15))
+        ).pack(anchor='w', padx=15, pady=(0, 10))
         
         # Target URL Section
         url_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
-        url_frame.pack(fill='x', padx=20, pady=(0, 20))
+        url_frame.pack(fill='x', padx=15, pady=(0, 10))
         
         tk.Label(
             url_frame,
             text="🎯 Target URL",
-            font=('Segoe UI', 11, 'bold'),
+            font=('Segoe UI', 10, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(15, 10))
+        ).pack(anchor='w', padx=15, pady=(10, 8))
         
         url_input_frame = tk.Frame(url_frame, bg=self.colors['bg_secondary'])
-        url_input_frame.pack(fill='x', padx=20, pady=(0, 15))
+        url_input_frame.pack(fill='x', padx=15, pady=(0, 10))
         
         self.ai_target_var = tk.StringVar(value='https://testphp.vulnweb.com')
         
@@ -1826,17 +1826,17 @@ class EMYUELGUI:
         )
         start_btn.pack(side='right')
         
-        # Natural Language Query Section (Enhanced!)
+        # Natural Language Query Section
         nlp_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
-        nlp_frame.pack(fill='x', padx=20, pady=(0, 20))
+        nlp_frame.pack(fill='x', padx=15, pady=(0, 10))
         
         nlp_header = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
-        nlp_header.pack(fill='x', padx=20, pady=(15, 5))
+        nlp_header.pack(fill='x', padx=15, pady=(10, 5))
         
         tk.Label(
             nlp_header,
             text="💬 Natural Language Query",
-            font=('Segoe UI', 11, 'bold'),
+            font=('Segoe UI', 10, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
         ).pack(side='left')
@@ -1852,14 +1852,14 @@ class EMYUELGUI:
         
         tk.Label(
             nlp_frame,
-            text="Contoh: 'test keamanan databasenya' atau 'find SQL injection vulnerabilities'",
-            font=('Segoe UI', 9, 'italic'),
+            text="Contoh: 'test keamanan databasenya' atau 'find SQL injection'",
+            font=('Segoe UI', 8, 'italic'),
             fg=self.colors['text_secondary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(0, 10))
+        ).pack(anchor='w', padx=15, pady=(0, 8))
         
         nlp_input_frame = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
-        nlp_input_frame.pack(fill='x', padx=20, pady=(0, 10))
+        nlp_input_frame.pack(fill='x', padx=15, pady=(0, 8))
         
         self.ai_nlp_query_var = tk.StringVar()
         
@@ -1875,9 +1875,9 @@ class EMYUELGUI:
         )
         nlp_entry.pack(fill='x', ipady=10)
         
-        # Quick example buttons with icons
+        # Quick example buttons
         examples_frame = tk.Frame(nlp_frame, bg=self.colors['bg_secondary'])
-        examples_frame.pack(fill='x', padx=20, pady=(0, 15))
+        examples_frame.pack(fill='x', padx=15, pady=(0, 10))
         
         tk.Label(
             examples_frame,
@@ -1912,19 +1912,19 @@ class EMYUELGUI:
         
         # AI Configuration Section
         config_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
-        config_frame.pack(fill='x', padx=20, pady=(0, 20))
+        config_frame.pack(fill='x', padx=15, pady=(0, 10))
         
         tk.Label(
             config_frame,
             text="⚙️ AI Configuration",
-            font=('Segoe UI', 11, 'bold'),
+            font=('Segoe UI', 10, 'bold'),
             fg=self.colors['text_primary'],
             bg=self.colors['bg_secondary']
-        ).pack(anchor='w', padx=20, pady=(15, 10))
+        ).pack(anchor='w', padx=15, pady=(10, 8))
         
         # Two-column layout
         config_container = tk.Frame(config_frame, bg=self.colors['bg_secondary'])
-        config_container.pack(fill='x', padx=20, pady=(0, 15))
+        config_container.pack(fill='x', padx=15, pady=(0, 10))
         
         # Left column - Analysis Depth
         left_col = tk.Frame(config_container, bg=self.colors['bg_secondary'])
