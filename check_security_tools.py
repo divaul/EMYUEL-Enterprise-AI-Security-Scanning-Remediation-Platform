@@ -152,24 +152,40 @@ class SecurityToolsManager:
         except Exception as e:
             return False, str(e)
     
-    def check_tool(self, tool_name: str, tool_info: Dict) -> bool:
+    def check_tool(self, tool_name: str, tool_info: Dict, debug: bool = False) -> bool:
         """Check if a security tool is installed using 'which' command"""
         # Use 'which' command - more reliable than running the tool itself
         success, output = self.run_command(['which', tool_name])
         
+        if debug:
+            print(f"    DEBUG: which {tool_name}")
+            print(f"           Success: {success}, Output: '{output}'")
+        
         # If 'which' succeeds and returns a path, tool is installed
         if success and output and '/' in output:
+            if debug:
+                print(f"           ✓ Tool found at: {output}")
             return True
         
         # Fallback: try the original check command
+        if debug:
+            print(f"           'which' failed, trying: {tool_info['check_cmd']}")
         success2, output2 = self.run_command(tool_info['check_cmd'])
+        if debug:
+            print(f"           Fallback success: {success2}")
         return success2
     
-    def check_all_tools(self) -> Dict[str, Dict]:
+    def check_all_tools(self, debug: bool = False) -> Dict[str, Dict]:
         """Check all security tools"""
         results = {}
         
+        # Check for debug flag in environment
+        import os
+        debug = debug or os.environ.get('EMYUEL_DEBUG', '').lower() in ('1', 'true', 'yes')
+        
         print("🔐 Checking cybersecurity tools...")
+        if debug:
+            print("    (Debug mode enabled)")
         print()
         
         # Group by category
@@ -185,7 +201,7 @@ class SecurityToolsManager:
             print(f"📁 {category.upper().replace('-', ' ')}")
             
             for tool_name, tool_info in tools:
-                installed = self.check_tool(tool_name, tool_info)
+                installed = self.check_tool(tool_name, tool_info, debug=debug)
                 is_optional = tool_info.get('optional', False)
                 
                 status = {
