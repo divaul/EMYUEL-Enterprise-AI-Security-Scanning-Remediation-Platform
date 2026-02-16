@@ -310,6 +310,36 @@ If no vulnerabilities: {{"vulnerabilities": []}}
             print(f"[LLM] Response was: {response[:200]}")
             return []
     
+    async def chat(self, prompt: str) -> str:
+        """
+        General-purpose chat/completion method for LLM interaction
+        
+        This method provides a simple interface for getting responses from LLM
+        without needing to structure them as vulnerability findings.
+        
+        Args:
+            prompt: Text prompt for the LLM
+            
+        Returns:
+            LLM response as string
+            
+        Raises:
+            ValueError: If API key is not configured
+            Exception: If API call fails
+            
+        Example:
+            >>> llm = LLMAnalyzer(api_mgr, 'gemini')
+            >>> response = await llm.chat("Explain SQL injection in one sentence")
+            >>> print(response)
+        """
+        try:
+            response = await self._call_llm(prompt)
+            self.usage_stats['total_requests'] += 1
+            return response
+        except Exception as e:
+            self.usage_stats['errors'] += 1
+            raise Exception(f"LLM chat failed: {str(e)}")
+    
     def get_usage_stats(self) -> Dict[str, Any]:
         """Get LLM usage statistics"""
         return self.usage_stats.copy()

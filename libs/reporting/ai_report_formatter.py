@@ -34,9 +34,9 @@ class AIReportFormatter:
         self.llm = llm_analyzer
         logger.info("AI Report Formatter initialized")
     
-    def format_report(self, scan_results: Dict[str, Any], provider: str = None) -> str:
+    async def format_report(self, scan_results: Dict[str, Any], provider: str = None) -> str:
         """
-        Format scan results into professional cybersecurity report
+        Format scan results into professional cybersecurity report (async)
         
         Args:
             scan_results: Raw scan results dictionary
@@ -57,7 +57,7 @@ class AIReportFormatter:
                 original_provider = self.llm.provider
                 self.llm.provider = provider
             
-            ai_response = self.llm.chat(prompt)
+            ai_response = await self.llm.chat(prompt)  # Now properly awaited
             
             # Restore original provider
             if provider and hasattr(self.llm, 'provider'):
@@ -70,6 +70,35 @@ class AIReportFormatter:
             logger.error(f"Error during AI formatting: {e}")
             # Fallback to template-based report
             return self._generate_fallback_report(scan_results)
+    
+    def format_report_sync(self, scan_results: Dict[str, Any], provider: str = None) -> str:
+        """
+        Synchronous wrapper for format_report() - for use in non-async contexts
+        
+        Args:
+            scan_results: Raw scan results dictionary
+            provider: AI provider to use
+            
+        Returns:
+            Markdown-formatted professional report
+        """
+        import asyncio
+        
+        try:
+            # Try to get existing event loop
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is running, create new loop in thread
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    future = pool.submit(asyncio.run, self.format_report(scan_results, provider))
+                    return future.result()
+            else:
+                # Use existing loop
+                return loop.run_until_complete(self.format_report(scan_results, provider))
+        except RuntimeError:
+            # No event loop, create new one
+            return asyncio.run(self.format_report(scan_results, provider))
     
     def _build_standard_report_prompt(self, results: Dict[str, Any]) -> str:
         """

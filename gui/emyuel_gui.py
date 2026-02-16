@@ -873,6 +873,18 @@ class EMYUELGUI:
     
     def _display_scan_results(self, results: Dict[str, Any]):
         """Display scan results in UI"""
+        # Validate results structure (BUG FIX #1)
+        if not isinstance(results, dict):
+            self.log_console("[ERROR] Invalid scan results format")
+            return
+        
+        # Ensure required keys exist
+        if 'total_findings' not in results:
+            self.log_console("[WARNING] Scan results missing total_findings, defaulting to 0")
+            results['total_findings'] = 0
+        if 'findings_by_severity' not in results:
+            results['findings_by_severity'] = {}
+        
         # Update progress
         self.progress_var.set(100)
         self.progress_label.config(text="Scan completed")
@@ -908,6 +920,9 @@ class EMYUELGUI:
             if hasattr(self, 'report_btn'):
                 self.report_btn.config(state='normal')
         
+        # Update Reports tab summary (NEW!)
+        self.update_report_summary()
+        
         # Show summary dialog
         messagebox.showinfo(
             "Scan Complete",
@@ -924,9 +939,9 @@ class EMYUELGUI:
         self.log_console("[SCAN] Pausing scan...")
         # TODO: Implement pause
     
-    def generate_report(self):
-        """Generate scan report"""
-        self.log_console("[REPORT] Generating report...")
+    def generate_raw_report(self):
+        """Generate raw JSON/HTML report"""
+        self.log_console("[REPORT] Generating raw report...")
         
         # Check if we have scan results
         if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
@@ -1105,12 +1120,41 @@ class EMYUELGUI:
             entry.config(show=show_char)
     
     def log_console(self, message):
-        """Log message to console"""
-        self.console_text.config(state='normal')
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        self.console_text.insert('end', f"[{timestamp}] {message}\n")
-        self.console_text.see('end')
-        self.console_text.config(state='disabled')
+        """Log message to console (thread-safe with overflow protection)"""
+        def update():
+            try:
+                if not hasattr(self, 'console_text') or not self.console_text.winfo_exists():
+                    return
+                    
+                self.console_text.config(state='normal')
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                self.console_text.insert('end', f"[{timestamp}] {message}\n")
+                
+                # Overflow protection (BUG FIX): Limit to 1000 lines
+                try:
+                    line_count = int(self.console_text.index('end-1c').split('.')[0])
+                    if line_count > 1000:
+                        # Delete first 100 lines to prevent frequent trimming
+                        self.console_text.delete('1.0', '101.0')
+                except:
+                    pass  # If line count fails, continue anyway
+                
+                self.console_text.see('end')
+                self.console_text.config(state='disabled')
+            except Exception as e:
+                # Fallback: print to stderr if console update fails
+                import sys
+                print(f"[CONSOLE ERROR] {e}: {message}", file=sys.stderr)
+        
+        # Execute on main thread
+        try:
+            if hasattr(self, 'root'):
+                self.root.after(0, update)
+            else:
+                update()
+        except:
+            # If scheduling fails, try direct call
+            update()
     
     # setup_ai_analysis_tab removed - now using modular version from gui/tabs/ai_analysis_tab.py
     
@@ -1259,48 +1303,328 @@ class EMYUELGUI:
     # ============ REPORTS TAB  METHODS ============
     
     def generate_ai_report(self):
-        """Generate AI-enhanced report (stub - full implementation in gui_methods_to_add.py)"""
-        messagebox.showinfo("AI Report", "AI report generation - coming soon!\nCheck gui_methods_to_add.py for full implementation.")
-        self.log_console("[TODO] Generate AI-enhanced report - see gui_methods_to_add.py")
+        """Generate AI-enhanced professional report"""
+        self.log_console("[AI REPORT] Generating AI-enhanced report...")
+        
+        # Check for scan results
+        if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
+            messagebox.showerror("No Results", "No scan results available. Please run a scan first.")
+            self.log_console("[ERROR] No scan results to generate report from")
+            return
+        
+        try:
+            from pathlib import Path
+            
+            parent_dir = Path(__file__).resolve().parent.parent
+            
+            # Import AI report formatter
+            from libs.reporting.ai_report_formatter import AIReportFormatter
+            from api_key_manager import APIKeyManager
+            from services.scanner_core.llm_analyzer import LLMAnalyzer
+            
+            # Get AI provider selection
+            provider = self.ai_report_provider_var.get() if hasattr(self, 'ai_report_provider_var') else 'gemini'
+            self.log_console(f"[AI REPORT] Using {provider.upper()} for report formatting...")
+            
+            # Initialize AI formatter
+            api_mgr = APIKeyManager()
+            llm = LLMAnalyzer(api_mgr, provider)
+            formatter = AIReportFormatter(llm)
+            
+            self.log_console("[AI REPORT] Sending results to AI for formatting...")
+            self.log_console("[AI REPORT] This may take 30-60 seconds...")
+            
+            # Format report with AI (using sync wrapper)
+            ai_report_md = formatter.format_report_sync(self.last_scan_results, provider=provider)
+            
+            # Create reports directory
+            reports_dir = parent_dir / "reports"
+            reports_dir.mkdir(exist_ok=True)
+            
+            # Create timestamped subdirectory
+            target_name = self.last_scan_results.get('target', 'unknown').replace('://', '_').replace('/', '_')[:30]
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            report_dir = reports_dir / f"{timestamp}_{target_name}_AI"
+            report_dir.mkdir(exist_ok=True)
+            
+            # Save Markdown
+            md_path = report_dir / "ai_enhanced_report.md"
+            md_path.write_text(ai_report_md, encoding='utf-8')
+            self.log_console(f"[AI REPORT] Markdown saved: {md_path}")
+            
+            # Convert to HTML
+            html_path = self._convert_markdown_to_html(ai_report_md, report_dir)
+            
+            self.log_console(f"[AI REPORT] ✅ AI-Enhanced report generated!")
+            self.log_console(f"[AI REPORT] HTML: {html_path}")
+            self.log_console(f"[AI REPORT] Markdown: {md_path}")
+            
+            # Show success message
+            message = f"AI-Enhanced Report Generated!\n\n"
+            message += f"Provider: {provider.upper()}\n\n"
+            message += f"Output files:\n"
+            message += f"  • HTML: {html_path}\n"
+            message += f"  • Markdown: {md_path}\n\n"
+            message += f"Report directory: {report_dir}"
+            
+            messagebox.showinfo("AI Report Complete", message)
+            
+            # Open HTML in browser
+            import webbrowser
+            webbrowser.open(f"file://{html_path}")
+            
+            # Refresh report history
+            self.refresh_report_history()
+            
+        except Exception as e:
+            error_msg = f"Error generating AI report: {e}"
+            self.log_console(f"[ERROR] {error_msg}")
+            messagebox.showerror("AI Report Error", error_msg)
+            import traceback
+            traceback.print_exc()
     
     def generate_raw_report(self):
         """Generate raw report (wrapper for existing generate_report)"""
         self.generate_report()
     
     def refresh_report_history(self):
-        """Refresh report history (stub)"""
-        if hasattr(self, 'report_history_text'):
-            self.report_history_text.config(state='normal')
-            self.report_history_text.delete('1.0', tk.END)
-            self.report_history_text.insert('1.0', "No reports yet. Generate a report to see history.")
-            self.report_history_text.config(state='disabled')
-    
-    def update_report_summary(self):
-        """Update report summary after scan"""
-        if not hasattr(self, 'report_summary_label'):
+        """Refresh report history list"""
+        if not hasattr(self, 'report_history_text'):
             return
         
-        if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
-            summary = "No scan completed yet. Run a scan first to generate reports."
-        else:
-            target = self.last_scan_results.get('target', 'Unknown')
-            total = self.last_scan_results.get('total_findings', 0)
-            severity = self.last_scan_results.get('findings_by_severity', {})
+        try:
+            from pathlib import Path
             
-            summary = f"Target: {target}\n"
-            summary += f"Total Findings: {total} vulnerabilities\n"
-            summary += f"Critical: {severity.get('critical', 0)} | "
-            summary += f"High: {severity.get('high', 0)} | "
-            summary += f"Medium: {severity.get('medium', 0)} | "
-            summary += f"Low: {severity.get('low', 0)}"
+            parent_dir = Path(__file__).resolve().parent.parent
+            reports_dir = parent_dir / "reports"
             
-            # Enable report buttons
-            if hasattr(self, 'generate_ai_report_btn'):
-                self.generate_ai_report_btn.config(state='normal')
-            if hasattr(self, 'generate_raw_report_btn'):
-                self.generate_raw_report_btn.config(state='normal')
+            if not reports_dir.exists():
+                self.report_history_text.config(state='normal')
+                self.report_history_text.delete('1.0', tk.END)
+                self.report_history_text.insert('1.0', "No reports generated yet.\n\nGenerate a report to see it listed here.")
+                self.report_history_text.config(state='disabled')
+                return
+            
+            # Get all report directories
+            report_dirs = sorted([d for d in reports_dir.iterdir() if d.is_dir()], 
+                               key=lambda x: x.stat().st_mtime, reverse=True)
+            
+            if not report_dirs:
+                self.report_history_text.config(state='normal')
+                self.report_history_text.delete('1.0', tk.END)
+                self.report_history_text.insert('1.0', "No reports generated yet.")
+                self.report_history_text.config(state='disabled')
+                return
+            
+            # Build history text
+            history_text = "Recent Reports:\n\n"
+            
+            for report_dir in report_dirs[:10]:  # Show last 10
+                dir_name = report_dir.name
+                timestamp_str = dir_name[:15] if len(dir_name) >= 15 else "Unknown"
+                
+                # Try to parse timestamp
+                try:
+                    dt = datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
+                    date_str = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    date_str = timestamp_str
+                
+                # Determine report type
+                report_type = "AI-Enhanced" if "_AI" in dir_name else "Raw"
+                
+                # Find report files
+                html_files = list(report_dir.glob("*.html"))
+                html_path = html_files[0] if html_files else None
+                
+                history_text += f"📄 {date_str} - {report_type}\n"
+                history_text += f"   {report_dir.name}\n"
+                if html_path:
+                    history_text += f"   Path: {html_path}\n"
+                history_text += "\n"
+            
+            self.report_history_text.config(state='normal')
+            self.report_history_text.delete('1.0', tk.END)
+            self.report_history_text.insert('1.0', history_text)
+            self.report_history_text.config(state='disabled')
+            
+        except Exception as e:
+            self.log_console(f"[ERROR] Failed to refresh report history: {e}")
+    
+    def update_report_summary(self):
+        """Update report summary after scan (thread-safe)"""
+        # Thread-safe UI update (BUG FIX #2)
+        def _update():
+            try:
+                if not hasattr(self, 'report_summary_label'):
+                    return
+                
+                # Check if widget still exists
+                if not self.report_summary_label.winfo_exists():
+                    return
+                
+                if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
+                    summary = "No scan completed yet. Run a scan first to generate reports."
+                else:
+                    # Validate results
+                    if not isinstance(self.last_scan_results, dict):
+                        summary = "Error: Invalid scan results"
+                    else:
+                        target = self.last_scan_results.get('target', 'Unknown')
+                        total = self.last_scan_results.get('total_findings', 0)
+                        severity = self.last_scan_results.get('findings_by_severity', {})
+                        
+                        summary = f"Target: {target}\n"
+                        summary += f"Total Findings: {total} vulnerabilities\n"
+                        summary += f"Critical: {severity.get('critical', 0)} | "
+                        summary += f"High: {severity.get('high', 0)} | "
+                        summary += f"Medium: {severity.get('medium', 0)} | "
+                        summary += f"Low: {severity.get('low', 0)}"
+                        
+                        # Enable report buttons only if we have valid results
+                        if total >= 0:  # Even 0 findings is valid
+                            try:
+                                if hasattr(self, 'generate_ai_report_btn') and self.generate_ai_report_btn.winfo_exists():
+                                    self.generate_ai_report_btn.config(state='normal')
+                                if hasattr(self, 'generate_raw_report_btn') and self.generate_raw_report_btn.winfo_exists():
+                                    self.generate_raw_report_btn.config(state='normal')
+                            except Exception as e:
+                                self.log_console(f"[WARNING] Could not enable report buttons: {e}")
+                
+                self.report_summary_label.config(text=summary)
+            except Exception as e:
+                # Graceful degradation
+                self.log_console(f"[ERROR] Failed to update report summary: {e}")
         
-        self.report_summary_label.config(text=summary)
+        # Ensure we're on main thread
+        try:
+            self.root.after(0, _update)
+        except:
+            # If root doesn't exist, call directly
+            _update()
+    
+    def _convert_markdown_to_html(self, markdown_content: str, output_dir) -> str:
+        """Convert Markdown to styled HTML"""
+        from pathlib import Path
+        output_dir = Path(output_dir)
+        html_file = output_dir / "ai_enhanced_report.html"
+        
+        try:
+            # Try using markdown library
+            import markdown
+            
+            html_body = markdown.markdown(
+                markdown_content,
+                extensions=['fenced_code', 'tables', 'toc', 'nl2br']
+            )
+            
+            # Wrap in professional template
+            html_template = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Enhanced Security Report</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }}
+        h1 {{
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }}
+        h2 {{
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 5px;
+        }}
+        h3 {{ color: #7f8c8d; }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #3498db;
+            color: white;
+        }}
+        code {{
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }}
+        pre {{
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }}
+        pre code {{
+            background-color: transparent;
+            color: #ecf0f1;
+        }}
+        .content {{
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+        blockquote {{
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin-left: 0;
+            color: #555;
+            background-color: #ecf0f1;
+            padding: 10px 20px;
+            border-radius: 4px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="content">
+        {html_body}
+    </div>
+</body>
+</html>"""
+            
+            html_file.write_text(html_template, encoding='utf-8')
+            
+        except ImportError:
+            # Fallback: simple HTML without markdown conversion
+            html_template = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI-Enhanced Security Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }}
+        pre {{ background: #f4f4f4; padding: 15px; overflow-x: auto; }}
+    </style>
+</head>
+<body>
+    <pre>{markdown_content}</pre>
+</body>
+</html>"""
+            html_file.write_text(html_template, encoding='utf-8')
+        
+        return html_file
     
     # ==============================================
     
