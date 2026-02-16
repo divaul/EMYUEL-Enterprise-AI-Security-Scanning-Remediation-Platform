@@ -115,8 +115,26 @@ class EMYUELGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("EMYUEL Security Scanner")
-        self.root.geometry("1000x750")
+        
+        # Get screen dimensions
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Set initial size to 80% of screen
+        initial_width = int(screen_width * 0.8)
+        initial_height = int(screen_height * 0.8)
+        
+        # Center window
+        x = (screen_width - initial_width) // 2
+        y = (screen_height - initial_height) // 2
+        
+        self.root.geometry(f"{initial_width}x{initial_height}+{x}+{y}")
         self.root.minsize(900, 650)
+        
+        # Enable fullscreen toggle with F11
+        self.root.bind('<F11>', self.toggle_fullscreen)
+        self.root.bind('<Escape>', self.exit_fullscreen)
+        self.is_fullscreen = False
         
         # Enhanced color scheme - Premium cyber security theme
         self.colors = {
@@ -169,6 +187,47 @@ class EMYUELGUI:
         
         # Load saved API keys if available
         self.load_saved_keys()
+    
+    def toggle_fullscreen(self, event=None):
+        """Toggle fullscreen mode"""
+        self.is_fullscreen = not self.is_fullscreen
+        self.root.attributes('-fullscreen', self.is_fullscreen)
+    
+    def exit_fullscreen(self, event=None):
+        """Exit fullscreen mode"""
+        self.is_fullscreen = False
+        self.root.attributes('-fullscreen', False)
+    
+    def create_scrollable_frame(self, parent):
+        """Create a scrollable frame container"""
+        # Create canvas
+        canvas = tk.Canvas(parent, bg=self.colors['bg_primary'], highlightthickness=0)
+        scrollbar = tk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        
+        # Create scrollable frame
+        scrollable_frame = tk.Frame(canvas, bg=self.colors['bg_primary'])
+        
+        # Configure scroll region
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        # Create window in canvas
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Mouse wheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        return scrollable_frame, canvas
     
     def setup_ui(self):
         """Setup the user interface"""
@@ -300,8 +359,11 @@ class EMYUELGUI:
     def setup_quick_scan_tab(self, parent):
         """Setup quick scan tab with website URL input and natural language query"""
         
+        # Create scrollable container
+        scrollable_frame, canvas = self.create_scrollable_frame(parent)
+        
         # Website URL Section (NEW - Priority #1)
-        url_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        url_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         url_frame.pack(fill='x', padx=20, pady=20)
         
         url_title = tk.Label(
@@ -596,8 +658,11 @@ class EMYUELGUI:
     def setup_advanced_tab(self, parent):
         """Setup advanced scan configuration tab"""
         
+        # Create scrollable container
+        scrollable_frame, canvas = self.create_scrollable_frame(parent)
+        
         # Target selection
-        target_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        target_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         target_frame.pack(fill='x', padx=20, pady=20)
         
         target_label = tk.Label(
@@ -847,8 +912,11 @@ class EMYUELGUI:
     def setup_api_tab(self, parent):
         """Setup API configuration tab"""
         
+        # Create scrollable container
+        scrollable_frame, canvas = self.create_scrollable_frame(parent)
+        
         info_label = tk.Label(
-            parent,
+            scrollable_frame,
             text="Configure your LLM provider API keys below. Keys are stored securely on your local machine.",
             font=('Arial', 10),
             fg=self.colors['text_secondary'],
@@ -966,8 +1034,11 @@ class EMYUELGUI:
     def setup_results_tab(self, parent):
         """Setup scan results tab"""
         
+        # Create scrollable container
+        scrollable_frame, canvas = self.create_scrollable_frame(parent)
+        
         # Progress section
-        progress_frame = tk.Frame(parent, bg=self.colors['bg_secondary'], relief='flat', bd=2)
+        progress_frame = tk.Frame(scrollable_frame, bg=self.colors['bg_secondary'], relief='flat', bd=2)
         progress_frame.pack(fill='x', padx=20, pady=20)
         
         progress_label = tk.Label(
