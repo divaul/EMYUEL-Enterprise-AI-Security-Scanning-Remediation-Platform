@@ -74,5 +74,4 @@ def setup_api_tab(parent, gui_instance):
     )
     save_btn.pack()
     
-    # Load saved keys on setup
-    gui_instance.load_api_keys()
+    # Note: load_api_keys() should be called in main class __init__

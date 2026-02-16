@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 """
-EMYUEL GUI - Enhanced Graphical User Interface
-
-Modern desktop GUI with API key management and natural language query support.
+EMYUEL Security Scanner - GUI Application
+Enterprise AI-powered vulnerability scanner with modern GUI
 """
 
-import sys
-import os
 import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox
+from tkinter import ttk, messagebox, filedialog, scrolledtext
 from pathlib import Path
-from typing import Optional, Dict, Any, List
 from datetime import datetime
-import asyncio
 import threading
+import sys
+from typing import Optional, List, Dict, Any
+import asyncio
+import os
+
+# Import modular GUI components
+from gui.utils.colors import get_color_scheme
+from gui.components.hover_button import HoverButton
+from gui.tabs import (
+    setup_ai_analysis_tab,
+    setup_api_tab,
+    setup_results_tab
+)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -137,25 +145,7 @@ class EMYUELGUI:
         self.is_fullscreen = False
         
         # Enhanced color scheme - Premium cyber security theme
-        self.colors = {
-            'bg_primary': '#0f1117',      # Darker main background
-            'bg_secondary': '#1a1d2e',    # Card backgrounds
-            'bg_tertiary': '#252837',     # Elevated elements
-            'bg_hover': '#2d3142',        # Hover states
-            'accent_cyan': '#00d9ff',     # Primary accent
-            'accent_purple': '#a855f7',   # Secondary accent
-            'accent_pink': '#ec4899',     # Tertiary accent
-            'accent_gold': '#fbbf24',     # Premium/warning
-            'text_primary': '#f9fafb',    # Bright white
-            'text_secondary': '#9ca3af',  # Muted gray
-            'text_tertiary': '#6b7280',   # Very muted
-            'success': '#10b981',         # Green
-            'warning': '#f59e0b',         # Orange
-            'error': '#ef4444',           # Red
-            'critical': '#dc2626',        # Dark red
-            'border': '#374151',          # Subtle borders
-            'shadow': '#000000'           # Shadows
-        }
+        self.colors = get_color_scheme()
         
         # Configure root window
         self.root.configure(bg=self.colors['bg_primary'])
@@ -359,20 +349,20 @@ class EMYUELGUI:
         notebook.add(advanced_frame, text='Advanced Scan')
         self.setup_advanced_tab(advanced_frame)
         
-        # Tab 3: AI Analysis (NEW)
-        ai_analysis_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
-        notebook.add(ai_analysis_frame, text='  🤖  AI Analysis  ')
-        self.setup_ai_analysis_tab(ai_analysis_frame)
+        # Tab 3: AI Analysis (MODULAR)
+        ai_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        notebook.add(ai_frame, text='AI Analysis')
+        setup_ai_analysis_tab(ai_frame, self)  # Using modular setup
         
-        # Tab 4: API Configuration
-        api_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
-        notebook.add(api_frame, text='API Keys')
-        self.setup_api_tab(api_frame)
+        # Tab 4: API Keys (MODULAR)
+        api_keys_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        notebook.add(api_keys_frame, text='API Keys')
+        setup_api_tab(api_keys_frame, self)  # Using modular setup
         
-        # Tab 5: Scan Results
+        # Tab 5: Results (MODULAR)
         results_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
         notebook.add(results_frame, text='Results')
-        self.setup_results_tab(results_frame)
+        setup_results_tab(results_frame, self)  # Using modular setup
         
         # Status bar
         status_frame = tk.Frame(self.root, bg=self.colors['bg_secondary'], height=40)
