@@ -25,7 +25,7 @@ class SecurityToolsManager:
         # Essential security tools
         self.security_tools = {
             'nmap': {
-                'check_cmd': ['nmap', '--version'],
+                'check_cmd': ['nmap', '-V'],  # Use -V instead of --version
                 'description': 'Network scanner and port discovery',
                 'install_windows': 'Download from: https://nmap.org/download.html',
                 'install_linux': 'sudo apt-get install nmap -y',
@@ -35,7 +35,7 @@ class SecurityToolsManager:
                 'category': 'reconnaissance'
             },
             'sqlmap': {
-                'check_cmd': ['sqlmap', '--version'],
+                'check_cmd': ['sqlmap', '-h'],  # Use -h instead of --version
                 'description': 'SQL injection detection and exploitation',
                 'install_windows': 'pip install sqlmap or download from sqlmap.org',
                 'install_linux': 'sudo apt-get install sqlmap -y',
@@ -45,7 +45,7 @@ class SecurityToolsManager:
                 'category': 'exploitation'
             },
             'nikto': {
-                'check_cmd': ['nikto', '-Version'],
+                'check_cmd': ['nikto', '-Version'],  # Already correct
                 'description': 'Web server vulnerability scanner',
                 'install_windows': 'Install via Perl + download from cirt.net/Nikto2',
                 'install_linux': 'sudo apt-get install nikto -y',
