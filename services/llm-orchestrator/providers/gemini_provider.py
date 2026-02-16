@@ -28,7 +28,7 @@ from .base import (
 class GeminiProvider(LLMProvider):
     """Google Gemini Pro provider implementation"""
     
-    def __init__(self, api_key: str, model: str = "gemini-pro", config: Dict[str, Any] = None):
+    def __init__(self, api_key: str, model: str = "gemini-1.5-flash", config: Dict[str, Any] = None):
         config = config or {}
         super().__init__(api_key, model, config)
         

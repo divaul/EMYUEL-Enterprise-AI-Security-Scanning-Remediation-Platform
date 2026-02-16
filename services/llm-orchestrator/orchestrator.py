@@ -100,7 +100,7 @@ class LLMOrchestrator:
                 try:
                     self.providers[ProviderType.GEMINI] = GeminiProvider(
                         api_key=gemini_config['api_key'],
-                        model=gemini_config.get('model', 'gemini-pro'),
+                        model=gemini_config.get('model', 'gemini-1.5-flash'),
                         config=gemini_config
                     )
                     logger.info("Gemini provider initialized")

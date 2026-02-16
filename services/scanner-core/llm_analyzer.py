@@ -248,7 +248,7 @@ If no vulnerabilities: {{"vulnerabilities": []}}
             raise ValueError("Gemini API key not configured")
         
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         response = await asyncio.to_thread(
             model.generate_content,
