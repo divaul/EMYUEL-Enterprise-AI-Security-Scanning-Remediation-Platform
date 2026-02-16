@@ -141,10 +141,9 @@ class SecurityToolsManager:
                 cmd,
                 capture_output=capture,
                 text=True,
-                timeout=10,  # Increased from 5 to 10 seconds
-                stderr=subprocess.STDOUT  # Capture stderr to stdout (help messages often go to stderr)
+                timeout=10,
+                stderr=subprocess.STDOUT
             )
-            # Consider command successful if exit code is 0
             return result.returncode == 0, result.stdout.strip() if result.stdout else ""
         except subprocess.TimeoutExpired:
             return False, "Timeout"
@@ -154,9 +153,17 @@ class SecurityToolsManager:
             return False, str(e)
     
     def check_tool(self, tool_name: str, tool_info: Dict) -> bool:
-        """Check if a security tool is installed"""
-        success, output = self.run_command(tool_info['check_cmd'])
-        return success
+        """Check if a security tool is installed using 'which' command"""
+        # Use 'which' command - more reliable than running the tool itself
+        success, output = self.run_command(['which', tool_name])
+        
+        # If 'which' succeeds and returns a path, tool is installed
+        if success and output and '/' in output:
+            return True
+        
+        # Fallback: try the original check command
+        success2, output2 = self.run_command(tool_info['check_cmd'])
+        return success2
     
     def check_all_tools(self) -> Dict[str, Dict]:
         """Check all security tools"""
