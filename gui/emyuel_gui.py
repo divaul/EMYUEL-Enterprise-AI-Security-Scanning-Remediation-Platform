@@ -191,7 +191,7 @@ class EMYUELGUI:
         self.root.attributes('-fullscreen', False)
     
     def create_scrollable_frame(self, parent):
-        """Create a scrollable frame container"""
+        """Create a scrollable frame container with always-visible scrollbar"""
         # Create main container
         container = tk.Frame(parent, bg=self.colors['bg_primary'])
         container.pack(fill='both', expand=True)
@@ -204,14 +204,17 @@ class EMYUELGUI:
             borderwidth=0
         )
         
-        # Create scrollbar with custom styling
+        # Create scrollbar with custom styling - ALWAYS VISIBLE
         scrollbar = tk.Scrollbar(
             container, 
             orient="vertical", 
             command=canvas.yview,
             bg=self.colors['bg_secondary'],
             troughcolor=self.colors['bg_primary'],
-            activebackground=self.colors['accent_cyan']
+            activebackground=self.colors['accent_cyan'],
+            width=16,  # Ensure minimum width for visibility
+            relief='flat',
+            bd=0
         )
         
         # Create scrollable frame
@@ -220,10 +223,14 @@ class EMYUELGUI:
         # Configure scroll region when frame size changes
         def _configure_scroll_region(event=None):
             canvas.configure(scrollregion=canvas.bbox("all"))
+            # Force scrollbar to always show by ensuring canvas is scrollable
+            canvas.update_idletasks()
         
-        # Configure canvas width to match container
+        # Configure canvas width to match container (minus scrollbar)
         def _configure_canvas_width(event):
-            canvas.itemconfig(canvas_window, width=event.width)
+            # Subtract scrollbar width to prevent horizontal scrollbar
+            canvas_width = max(100, event.width - 20)
+            canvas.itemconfig(canvas_window, width=canvas_width)
         
         scrollable_frame.bind("<Configure>", _configure_scroll_region)
         
@@ -234,23 +241,49 @@ class EMYUELGUI:
         # Bind canvas width
         canvas.bind('<Configure>', _configure_canvas_width)
         
-        # Pack canvas and scrollbar
-        canvas.pack(side="left", fill="both", expand=True)
+        # Pack scrollbar FIRST (right side) then canvas - ensures scrollbar always visible
         scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
         
-        # Mouse wheel scrolling
+        # Mouse wheel scrolling - cross-platform support
         def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+            try:
+                # Windows and macOS
+                delta = int(-1*(event.delta/120))
+                canvas.yview_scroll(delta, "units")
+            except:
+                try:
+                    # Linux - Button 4/5
+                    if event.num == 4:
+                        canvas.yview_scroll(-1, "units")
+                    elif event.num == 5:
+                        canvas.yview_scroll(1, "units")
+                except:
+                    pass
         
         # Bind mousewheel to canvas and all children
         def _bind_to_mousewheel(event):
-            canvas.bind_all("<MouseWheel>", _on_mousewheel)
+            try:
+                canvas.bind_all("<MouseWheel>", _on_mousewheel)
+                # Linux support
+                canvas.bind_all("<Button-4>", _on_mousewheel)
+                canvas.bind_all("<Button-5>", _on_mousewheel)
+            except:
+                pass
         
         def _unbind_from_mousewheel(event):
-            canvas.unbind_all("<MouseWheel>")
+            try:
+                canvas.unbind_all("<MouseWheel>")
+                canvas.unbind_all("<Button-4>")
+                canvas.unbind_all("<Button-5>")
+            except:
+                pass
         
         canvas.bind('<Enter>', _bind_to_mousewheel)
         canvas.bind('<Leave>', _unbind_from_mousewheel)
+        
+        # Ensure scrollbar is visible and raised
+        scrollbar.lift()
         
         return scrollable_frame, canvas
     

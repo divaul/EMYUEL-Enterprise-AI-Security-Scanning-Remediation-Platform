@@ -11,8 +11,24 @@ def setup_quick_scan_tab(parent, gui_instance):
     """Setup quick scan tab with website URL input and natural language query (responsive)"""
     colors = gui_instance.colors
 
-    # Create scrollable container (reuse helper from main GUI)
-    scrollable_frame, canvas = gui_instance.create_scrollable_frame(parent)
+    # Create scrollable container (uses helper from main GUI - same as other tabs)
+    try:
+        scrollable_frame, canvas = gui_instance.create_scrollable_frame(parent)
+    except Exception:
+        # fallback: create simple frame if helper not available
+        scrollable_frame = tk.Frame(parent, bg=colors['bg_primary'])
+        scrollable_frame.pack(fill='both', expand=True)
+        canvas = None
+
+    # Make parent/grid responsive where possible
+    try:
+        scrollable_frame.grid_columnconfigure(0, weight=1)
+    except Exception:
+        pass
+
+    # -------------------------
+    # Build UI inside scrollable_frame
+    # -------------------------
 
     # --- Website URL Section (responsive) ---
     url_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
@@ -54,8 +70,13 @@ def setup_quick_scan_tab(parent, gui_instance):
     gui_instance.url_entry.grid(row=0, column=0, sticky='ew', padx=(0, 10), pady=4)
     gui_instance.url_entry.bind('<Return>', lambda e: gui_instance.quick_scan_url())
 
-    gui_instance.url_entry.insert(0, 'https://example.com')
-    gui_instance.url_entry.config(fg=colors['text_secondary'])
+    # placeholder & focus behavior
+    if not gui_instance.target_var.get():
+        try:
+            gui_instance.url_entry.insert(0, 'https://example.com')
+            gui_instance.url_entry.config(fg=colors['text_secondary'])
+        except Exception:
+            pass
     gui_instance.url_entry.bind('<FocusIn>', gui_instance.on_url_focus_in)
     gui_instance.url_entry.bind('<FocusOut>', gui_instance.on_url_focus_out)
 
@@ -87,7 +108,6 @@ def setup_quick_scan_tab(parent, gui_instance):
 
     url_ex_container = tk.Frame(url_frame, bg=colors['bg_secondary'])
     url_ex_container.pack(fill='x', padx=12, pady=(0, 10))
-    # allow the examples container to reflow
     url_ex_container.grid_columnconfigure(0, weight=1)
 
     url_examples = [
@@ -96,7 +116,6 @@ def setup_quick_scan_tab(parent, gui_instance):
         "http://demo.testfire.net"
     ]
 
-    # place examples as buttons that wrap when needed
     for i, url_example in enumerate(url_examples):
         ex_btn = tk.Button(
             url_ex_container,
@@ -114,9 +133,9 @@ def setup_quick_scan_tab(parent, gui_instance):
     # --- SSL Verification Option (NEW) ---
     ssl_frame = tk.Frame(url_frame, bg=colors['bg_secondary'])
     ssl_frame.pack(fill='x', padx=10, pady=(10, 8))
-    
-    gui_instance.quick_scan_skip_ssl_var = tk.BooleanVar(value=False)
-    
+
+    gui_instance.quick_scan_skip_ssl_var = getattr(gui_instance, 'quick_scan_skip_ssl_var', tk.BooleanVar(value=False))
+
     ssl_checkbox = tk.Checkbutton(
         ssl_frame,
         text="⚠️ Skip SSL Verification (for sites with invalid/self-signed certificates)",
@@ -142,12 +161,11 @@ def setup_quick_scan_tab(parent, gui_instance):
 
     checkbox_container = tk.Frame(url_frame, bg=colors['bg_secondary'])
     checkbox_container.pack(fill='x', padx=12, pady=(0, 10))
-    # use grid within checkbox_container
     checkbox_container.grid_columnconfigure(0, weight=1)
     checkbox_container.grid_columnconfigure(1, weight=1)
 
     # vulnerability list
-    gui_instance.vuln_vars = {}
+    gui_instance.vuln_vars = getattr(gui_instance, 'vuln_vars', {})
     vulnerabilities = [
         ('xss', 'XSS (Cross-Site Scripting)', True),
         ('sqli', 'SQL Injection', True),
@@ -159,7 +177,6 @@ def setup_quick_scan_tab(parent, gui_instance):
         ('all', 'Scan All', False)
     ]
 
-    # Place checkboxes in grid rows, two columns
     for idx, (vuln_id, vuln_label, default) in enumerate(vulnerabilities):
         row = idx // 2
         col = idx % 2
@@ -311,12 +328,3 @@ def setup_quick_scan_tab(parent, gui_instance):
         state='disabled'
     )
     gui_instance.quick_scan_btn.pack(side='right')
-
-    # Ensure the scrollable canvas updates on size changes (helps responsiveness)
-    def _on_parent_resize(event):
-        try:
-            canvas.configure(width=event.width)
-        except Exception:
-            pass
-
-    parent.bind("<Configure>", _on_parent_resize)
