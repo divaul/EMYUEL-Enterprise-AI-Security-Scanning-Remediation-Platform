@@ -327,11 +327,30 @@ create_directories() {
         fi
     done
     
-    # Check if database can be initialized
+    # Initialize database
+    print_header "Initializing Database"
+    
     if [ -f "$HOME/.emyuel/scan_history.db" ]; then
-        print_success "Scan history database exists"
+        print_success "Scan history database already exists"
     else
-        print_info "Database will be created on first scan"
+        print_info "Creating scan history database..."
+        
+        # Activate venv if not already active
+        if [ -z "$VIRTUAL_ENV" ]; then
+            source venv/bin/activate
+        fi
+        
+        # Initialize database by running a simple Python script
+        python3 -c "
+from services.database.db_manager import DatabaseManager
+try:
+    db = DatabaseManager()
+    print('[DB] ✅ Database initialized successfully')
+    print(f'[DB] Location: {db.db_path}')
+except Exception as e:
+    print(f'[DB] ⚠️ Failed to initialize database: {e}')
+    exit(1)
+" && print_success "Database initialized at $HOME/.emyuel/scan_history.db" || print_warning "Database initialization failed (will be created on first run)"
     fi
 }
 
