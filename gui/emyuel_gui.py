@@ -984,32 +984,31 @@ class EMYUELGUI:
                         import google.generativeai as genai
                         genai.configure(api_key=key)
                         
-                        # Try multiple models in order (fallback for different API versions)
-                        models_to_try = [
-                            'gemini-1.5-flash',      # Latest (API v1)
-                            'gemini-1.5-pro',        # Latest pro (API v1)
-                            'gemini-pro',            # Legacy (API v1beta)
-                            'models/gemini-pro',     # Fully qualified (API v1beta)
-                        ]
-                        
-                        last_error = None
-                        for model_name in models_to_try:
+                        # Simpler approach: just list models to verify API key works
+                        # This works across ALL library versions
+                        try:
+                            self.log_console(f"[API] Verifying Gemini API key...")
+                            models = genai.list_models()
+                            # If we can list models, API key is valid
+                            model_count = len(list(models))
+                            self.log_console(f"[API] ✓ Successfully listed {model_count} models")
+                            success = True
+                        except Exception as list_error:
+                            # Fallback: try simple generate_content call with any available model
+                            self.log_console(f"[API] list_models failed, trying direct generation...")
                             try:
-                                self.log_console(f"[API] Trying model: {model_name}")
-                                model = genai.GenerativeModel(model_name)
-                                response = model.generate_content("Test")
-                                if response:
-                                    self.log_console(f"[API] ✓ Success with model: {model_name}")
-                                    success = True
-                                    break
-                            except Exception as model_error:
-                                last_error = str(model_error)
-                                self.log_console(f"[API] Model {model_name} failed: {last_error}")
-                                continue
-                        
-                        if not success:
-                            error_msg = f"All models failed. Last error: {last_error}"
-                            raise Exception(error_msg)
+                                # Get first available model
+                                for m in genai.list_models():
+                                    if 'generateContent' in m.supported_generation_methods:
+                                        self.log_console(f"[API] Using model: {m.name}")
+                                        model = genai.GenerativeModel(m.name)
+                                        response = model.generate_content("Test")
+                                        if response:
+                                            success = True
+                                            break
+                            except:
+                                error_msg = str(list_error)
+                                raise Exception(error_msg)
                     
                     elif provider == 'openai':
                         from openai import OpenAI
