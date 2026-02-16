@@ -983,7 +983,8 @@ class EMYUELGUI:
                     if provider == 'gemini':
                         import google.generativeai as genai
                         genai.configure(api_key=key)
-                        model = genai.GenerativeModel('gemini-pro')
+                        # Use latest model (gemini-pro is deprecated)
+                        model = genai.GenerativeModel('gemini-1.5-flash')
                         # Test with simple prompt
                         response = model.generate_content("Test")
                         if response:
