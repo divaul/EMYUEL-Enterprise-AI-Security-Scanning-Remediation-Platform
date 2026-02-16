@@ -111,6 +111,25 @@ def setup_quick_scan_tab(parent, gui_instance):
         )
         ex_btn.grid(row=0, column=i, padx=(0, 8))
 
+    # --- SSL Verification Option (NEW) ---
+    ssl_frame = tk.Frame(url_frame, bg=colors['bg_secondary'])
+    ssl_frame.pack(fill='x', padx=10, pady=(10, 8))
+    
+    gui_instance.quick_scan_skip_ssl_var = tk.BooleanVar(value=False)
+    
+    ssl_checkbox = tk.Checkbutton(
+        ssl_frame,
+        text="⚠️ Skip SSL Verification (for sites with invalid/self-signed certificates)",
+        variable=gui_instance.quick_scan_skip_ssl_var,
+        font=('Segoe UI', 9, 'bold'),
+        fg=colors['warning'],
+        bg=colors['bg_secondary'],
+        selectcolor=colors['bg_tertiary'],
+        activebackground=colors['bg_secondary'],
+        cursor='hand2'
+    )
+    ssl_checkbox.pack(anchor='w')
+
     # --- Vulnerability Selection Section (responsive two-column grid) ---
     vuln_selection_label = tk.Label(
         url_frame,

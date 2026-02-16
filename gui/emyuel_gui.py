@@ -645,6 +645,11 @@ class EMYUELGUI:
         self.log_console(f"[INFO] Profile: standard")
         self.log_console(f"[INFO] Modules: {modules_str}")
         
+        # Check SSL bypass setting (NEW)
+        skip_ssl = getattr(self, 'quick_scan_skip_ssl_var', tk.BooleanVar(value=False)).get()
+        if skip_ssl:
+            self.log_console("[WARNING] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!")
+        
         # Update header status
         if hasattr(self, 'header_status_label'):
             self.header_status_label.config(text="Scanning...")
@@ -768,8 +773,10 @@ class EMYUELGUI:
                 # Get API keys
                 api_key_manager = APIKeyManager()
                 
-                # Check if SSL verification should be skipped
-                skip_ssl = getattr(self, 'opt_skip_ssl_var', tk.BooleanVar(value=False)).get()
+                # Check if SSL verification should be skipped (from EITHER tab)
+                skip_ssl_advanced = getattr(self, 'opt_skip_ssl_var', tk.BooleanVar(value=False)).get()
+                skip_ssl_quick = getattr(self, 'quick_scan_skip_ssl_var', tk.BooleanVar(value=False)).get()
+                skip_ssl = skip_ssl_advanced or skip_ssl_quick  # Skip if EITHER is checked
                 
                 # Configure scanner
                 config = {
