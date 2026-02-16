@@ -901,8 +901,24 @@ class EMYUELGUI:
                 
                 from api_key_manager import APIKeyManager
                 
-                # Get API keys
+                # CRITICAL FIX: Get API keys from GUI and pass to scanner
                 api_key_manager = APIKeyManager()
+                
+                # Set keys from GUI if they exist
+                for provider in ['openai', 'gemini', 'claude']:
+                    key_var = getattr(self, f'api_key_{provider}', None)
+                    if key_var:
+                        key = key_var.get()
+                        if key:
+                            # Set key in manager
+                            existing_keys = api_key_manager.keys.get(provider, [])
+                            # Update or add key
+                            api_key_manager.keys[provider] = [{
+                                'key': key,
+                                'is_backup': False
+                            }]
+                
+                self.root.after(0, lambda: self.log_console(f"[INFO] API keys loaded: {list(api_key_manager.keys.keys())}"))
                 
                 # Check if SSL verification should be skipped (from EITHER tab)
                 skip_ssl_advanced = getattr(self, 'opt_skip_ssl_var', tk.BooleanVar(value=False)).get()
