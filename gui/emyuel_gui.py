@@ -23,7 +23,7 @@ from gui.tabs.ai_analysis_tab import setup_ai_analysis_tab
 from gui.tabs.api_keys_tab import setup_api_keys_tab
 from gui.tabs.reports_tab import setup_reports_tab
 from gui.tabs.results_tab import setup_results_tab  # Re-enabled for real-time monitoring
-)
+
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
