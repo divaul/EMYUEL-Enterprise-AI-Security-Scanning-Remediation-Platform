@@ -222,12 +222,26 @@ class EMYUELGUI:
         if hasattr(self, 'status_label') and self.status_label:
             self.status_label.config(text=f"⚠️ Paused: {reason}", fg=self.colors['warning'])
         
-        # Show resume buttons
+        # Show popup dialog
+        messagebox.showwarning(
+            "Scan Paused",
+            f"⚠️ Scan has been paused:\n\n{reason}\n\n" +
+            f"Progress: {self.scan_state.get('pages_scanned', 0)}/{self.scan_state.get('total_pages', 0)} pages scanned\n\n" +
+            "Fix the issue (e.g., update API key in API Keys tab)\n" +
+            "then click the 'Resume Scan' button to continue."
+        )
+        
+        # Show resume buttons in ALL tabs
         for btn_attr in ['resume_scan_btn_quick', 'resume_scan_btn_advanced', 'resume_scan_btn_ai']:
             if hasattr(self, btn_attr):
                 btn = getattr(self, btn_attr)
                 if btn and btn.winfo_exists():
                     btn.config(state='normal')
+                    try:
+                        # Use pack with side='left' for button frames
+                        btn.pack(side='left', padx=5)
+                    except:
+                        pass  # May already be packed
     
     def resume_scan(self):
         """Resume paused scan from saved state"""
@@ -244,12 +258,16 @@ class EMYUELGUI:
         self.scan_paused = False
         self.scan_pause_reason = None
         
-        # Hide resume buttons
+        # Hide resume buttons in ALL tabs
         for btn_attr in ['resume_scan_btn_quick', 'resume_scan_btn_advanced', 'resume_scan_btn_ai']:
             if hasattr(self, btn_attr):
                 btn = getattr(self, btn_attr)
                 if btn and btn.winfo_exists():
                     btn.config(state='disabled')
+                    try:
+                        btn.pack_forget()
+                    except:
+                        pass
         
         # Continue scan
         target = self.scan_state.get('target')
