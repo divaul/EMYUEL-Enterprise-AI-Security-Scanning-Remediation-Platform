@@ -2090,7 +2090,7 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
     def generate_raw_report(self):
         """Generate raw JSON/HTML report from scan results"""
         try:
-            if not hasattr(self, 'current_scan_results') or not self.current_scan_results:
+            if not hasattr(self, 'last_scan_results') or not self.last_scan_results:
                 self.log_console("[ERROR] No scan results available to generate report")
                 messagebox.showerror("Error", "No scan results available. Please run a scan first.")
                 return
