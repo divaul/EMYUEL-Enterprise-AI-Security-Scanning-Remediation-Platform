@@ -954,10 +954,7 @@ class EMYUELGUI:
                         key = key_var.get()
                         if key and key.strip():
                             # Set key in manager
-                            api_key_manager.keys[provider] = [{
-                                'key': key.strip(),
-                                'is_backup': False
-                            }]
+                            api_key_manager.add_key(provider, key.strip()) # Changed to add_key
                             keys_set.append(provider)
                 
                 # CRITICAL: Save keys to file so scanner can read them
