@@ -1998,7 +1998,14 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             from libs.reporting.ai_report_formatter import AIReportFormatter
             from libs.api_key_manager import APIKeyManager  # Fixed import path
             from services.ai_planner import AIPlanner
-            from services.scanner_core.llm_analyzer import LLMAnalyzer
+            
+            # Add scanner-core to path and import LLMAnalyzer
+            import sys
+            from pathlib import Path
+            scanner_core_dir = Path(__file__).parent.parent / "services" / "scanner-core"
+            if str(scanner_core_dir) not in sys.path:
+                sys.path.insert(0, str(scanner_core_dir))
+            from llm_analyzer import LLMAnalyzer
             
             # Get AI provider selection
             provider = self.ai_report_provider_var.get() if hasattr(self, 'ai_report_provider_var') else 'gemini'
