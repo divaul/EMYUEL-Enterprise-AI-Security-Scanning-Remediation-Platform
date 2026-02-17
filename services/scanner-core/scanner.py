@@ -35,6 +35,11 @@ class ScannerCore:
         api_key_manager = llm_config.get('api_key_manager')
         provider = llm_config.get('provider', 'openai')
         
+        # DEBUG: Log provider
+        print(f"[Scanner] LLM config keys: {list(llm_config.keys())}")
+        print(f"[Scanner] Provider from config: {provider}")
+        print(f"[Scanner] Has api_key_manager: {api_key_manager is not None}")
+        
         # Create LLMAnalyzer (not orchestrator!)
         if api_key_manager:
             # Import LLMAnalyzer
@@ -47,6 +52,7 @@ class ScannerCore:
             
             self.llm = LLMAnalyzer(api_key_manager, provider)
             logger.info(f"LLMAnalyzer initialized with provider: {provider}")
+            print(f"[Scanner] LLMAnalyzer created with provider: {provider}")
         else:
             logger.warning("No API key manager provided - LLM analysis disabled")
             self.llm = None
