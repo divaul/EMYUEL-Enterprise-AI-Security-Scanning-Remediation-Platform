@@ -1781,6 +1781,99 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             import traceback
             traceback.print_exc()
     
+    def load_scan_history(self):
+        """Load scan history from database"""
+        if not self.db:
+            return
+            
+        try:
+            # Get recent scans from database
+            scans = self.db.get_all_scans(limit=100)
+            self.scan_history = scans
+            
+            count = len(scans)
+            if count > 0:
+                self.log_console(f"[DB] Loaded {count} previous scan(s) from database")
+            
+            # Update UI if scan history widget exists
+            if hasattr(self, 'scan_history_listbox') and self.scan_history_listbox:
+                self.refresh_scan_history_ui()
+                
+        except Exception as e:
+            self.log_console(f"[DB] ⚠️ Failed to load scan history: {e}")
+            self.scan_history = []
+            import traceback
+            traceback.print_exc()
+    
+    def refresh_scan_history_ui(self):
+        """Refresh scan history listbox with database entries"""
+        if not hasattr(self, 'scan_history_listbox') or not self.scan_history_listbox:
+            return
+            
+        try:
+            # Clear current list
+            self.scan_history_listbox.delete(0, tk.END)
+            self.scan_history_ids = []
+            
+            # Add each scan
+            for scan in self.scan_history:
+                scan_id = scan.get('scan_id', 'unknown')
+                target = scan.get('target_url', 'unknown')
+                total = scan.get('total_findings', 0)
+                timestamp = scan.get('timestamp', '')
+                
+                # Format for display
+                display_text = f"{timestamp[:16]} | {target[:40]} | {total} findings"
+                self.scan_history_listbox.insert(tk.END, display_text)
+                self.scan_history_ids.append(scan_id)
+                
+            # Update count label if exists
+            if hasattr(self, 'scan_count_label'):
+                self.scan_count_label.config(text=f"Total scans: {len(self.scan_history)}")
+                
+        except Exception as e:
+            self.log_console(f"[UI] Failed to refresh scan history: {e}")
+    
+    def delete_selected_scan(self):
+        """Delete selected scan from database"""
+        if not hasattr(self, 'scan_history_listbox') or not self.scan_history_listbox:
+            messagebox.showerror("Error", "Scan history not available")
+            return
+            
+        selection = self.scan_history_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a scan to delete")
+            return
+            
+        try:
+            # Get scan ID
+            index = selection[0]
+            scan_id = self.scan_history_ids[index]
+            
+            # Confirm deletion
+            if messagebox.askyesno("Confirm Delete", 
+                                   f"Delete scan {scan_id}?\n\nThis will remove all findings and reports."):
+                # Delete from database
+                if self.db:
+                    success = self.db.delete_scan(scan_id)
+                    if success:
+                        self.log_console(f"[DB] ✅ Deleted scan: {scan_id}")
+                        
+                        # Reload history
+                        self.load_scan_history()
+                        
+                        messagebox.showinfo("Success", "Scan deleted successfully")
+                    else:
+                        messagebox.showerror("Error", "Failed to delete scan from database")
+                else:
+                    messagebox.showerror("Error", "Database not available")
+                    
+        except Exception as e:
+            self.log_console(f"[ERROR] Failed to delete scan: {e}")
+            messagebox.showerror("Error", f"Failed to delete scan: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
     def refresh_report_history(self):
         """Refresh report history list"""
         if not hasattr(self, 'report_history_text'):
