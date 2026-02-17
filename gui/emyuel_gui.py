@@ -973,8 +973,10 @@ class EMYUELGUI:
                 
                 # Configure scanner
                 config = {
-                    'api_key_manager': api_key_manager,
-                    'provider': self.provider_var.get(),
+                    'llm': {
+                        'api_key_manager': api_key_manager,  # Move into llm subconfig!
+                        'provider': self.provider_var.get()
+                    },
                     'profile': self.profile_var.get(),
                     'verify_ssl': not skip_ssl  # Invert: checkbox is "skip", config is "verify"
                 }
@@ -984,8 +986,7 @@ class EMYUELGUI:
                     self.root.after(0, lambda: self.log_console("[WARNING] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!"))
                     self.root.after(0, lambda: self.log_console("[WARNING] Only use this for testing against sites with invalid/self-signed certificates"))
                 
-                # Create scanner with config and API key manager
-                config['api_key_manager'] = api_key_manager
+                # Create scanner with config
                 scanner = ScannerCore(config)
                 
                 # Run scan
