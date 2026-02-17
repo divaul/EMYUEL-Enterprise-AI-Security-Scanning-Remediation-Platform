@@ -970,7 +970,8 @@ class EMYUELGUI:
                     self.root.after(0, lambda: self.log_console("[WARNING] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!"))
                     self.root.after(0, lambda: self.log_console("[WARNING] Only use this for testing against sites with invalid/self-signed certificates"))
                 
-                # Create scanner
+                # Create scanner with config and API key manager
+                config['api_key_manager'] = api_key_manager
                 scanner = ScannerCore(config)
                 
                 # Run scan
