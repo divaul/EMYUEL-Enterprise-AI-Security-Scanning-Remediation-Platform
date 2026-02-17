@@ -141,3 +141,128 @@ def setup_results_tab(parent, gui_instance):
         height=15
     )
     gui_instance.console_text.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+    
+    # ========================================================================
+    # 📊 SCAN HISTORY SECTION (NEW - Database Integration)
+    # ========================================================================
+    
+    history_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    history_frame.pack(fill='both', expand=True, padx=20, pady=(20, 20))
+    
+    # Header
+    header_container = tk.Frame(history_frame, bg=colors['bg_secondary'])
+    header_container.pack(fill='x', padx=15, pady=(15, 10))
+    
+    tk.Label(
+        header_container,
+        text="📊 Scan History",
+        font=('Segoe UI', 14, 'bold'),
+        fg=colors['accent_cyan'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+    
+    # Scan count label
+    scan_count_label = tk.Label(
+        header_container,
+        text="Total scans: 0",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    scan_count_label.pack(side='right', padx=10)
+    gui_instance.scan_count_label = scan_count_label
+    
+    # Description
+    tk.Label(
+        history_frame,
+        text="View and manage your previous security scans. All scans are automatically saved to database.",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary'],
+        wraplength=700,
+        justify='left'
+    ).pack(anchor='w', padx=15, pady=(0, 10))
+    
+    # Listbox container with scrollbar
+    listbox_container = tk.Frame(history_frame, bg=colors['bg_primary'])
+    listbox_container.pack(fill='both', expand=True, padx=15, pady=10)
+    
+    # Scrollbar
+    scrollbar = tk.Scrollbar(listbox_container, orient='vertical')
+    scrollbar.pack(side='right', fill='y')
+    
+    # Listbox for scan history
+    scan_history_listbox = tk.Listbox(
+        listbox_container,
+        height=8,
+        bg=colors['bg_primary'],
+        fg=colors['text_primary'],
+        selectbackground=colors['accent_cyan'],
+        selectforeground=colors['bg_primary'],
+        font=('Consolas', 9),
+        selectmode='single',
+        yscrollcommand=scrollbar.set,
+        relief='flat',
+        bd=0,
+        highlightthickness=1,
+        highlightbackground=colors['border'],
+        highlightcolor=colors['accent_cyan']
+    )
+    scan_history_listbox.pack(side='left', fill='both', expand=True)
+    scrollbar.config(command=scan_history_listbox.yview)
+    
+    # Store reference in gui_instance for database integration
+    gui_instance.scan_history_listbox = scan_history_listbox
+    
+    # Placeholder text when empty
+    if not hasattr(gui_instance, 'scan_history') or not gui_instance.scan_history:
+        scan_history_listbox.insert(tk.END, "No scans in history yet.")
+        scan_history_listbox.insert(tk.END, "Run a scan to see it saved here automatically.")
+    
+    # Button container
+    btn_container = tk.Frame(history_frame, bg=colors['bg_secondary'])
+    btn_container.pack(fill='x', padx=15, pady=(5, 15))
+    
+    # Delete button
+    delete_btn = tk.Button(
+        btn_container,
+        text="🗑️ Delete Selected",
+        command=gui_instance.delete_selected_scan,
+        bg=colors['danger'],
+        fg='white',
+        font=('Segoe UI', 9, 'bold'),
+        relief='flat',
+        cursor='hand2',
+        padx=15,
+        pady=8
+    )
+    delete_btn.pack(side='left', padx=(0, 10))
+    
+    # Refresh button
+    refresh_btn = tk.Button(
+        btn_container,
+        text="🔄 Refresh",
+        command=gui_instance.load_scan_history,
+        bg=colors['accent_cyan'],
+        fg=colors['bg_primary'],
+        font=('Segoe UI', 9, 'bold'),
+        relief='flat',
+        cursor='hand2',
+        padx=15,
+        pady=8
+    )
+    refresh_btn.pack(side='left', padx=(0, 10))
+    
+    # Info label
+    info_label = tk.Label(
+        btn_container,
+        text="💡 Tip: Scans are automatically saved after completion",
+        font=('Segoe UI', 8),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    info_label.pack(side='right', padx=10)
+    
+    # Initial load of scan history if database available
+    if gui_instance.db and hasattr(gui_instance, 'scan_history'):
+        gui_instance.refresh_scan_history_ui()
