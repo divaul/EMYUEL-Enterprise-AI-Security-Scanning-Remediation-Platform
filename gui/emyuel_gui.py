@@ -1728,9 +1728,51 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             import traceback
             traceback.print_exc()
     
+    
     def generate_raw_report(self):
-        """Generate raw report (wrapper for existing generate_report)"""
-        self.generate_report()
+        """Generate raw JSON/HTML report from scan results"""
+        try:
+            if not hasattr(self, 'current_scan_results') or not self.current_scan_results:
+                self.log_console("[ERROR] No scan results available to generate report")
+                messagebox.showerror("Error", "No scan results available. Please run a scan first.")
+                return
+            
+            from libs.reporting.report_generator import ReportGenerator
+            from datetime import datetime
+            import os
+            
+            self.log_console("[REPORT] Generating raw report...")
+            
+            # Create reports directory
+            reports_dir = os.path.join(os.path.expanduser('~'), '.emyuel', 'reports')
+            os.makedirs(reports_dir, exist_ok=True)
+            
+            # Generate timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            
+            # Get target from scan results
+            target = self.current_scan_results.get('target', 'unknown')
+            safe_target = target.replace('://', '_').replace('/', '_').replace(':', '_')
+            
+            # Generate report
+            report_gen = ReportGenerator()
+            report_path = report_gen.generate_html_report(
+                self.current_scan_results,
+                output_path=os.path.join(reports_dir, f"report_{safe_target}_{timestamp}.html")
+            )
+            
+            self.log_console(f"[SUCCESS] Report generated: {report_path}")
+            messagebox.showinfo("Success", f"Report generated successfully!\n\nSaved to: {report_path}")
+            
+            # Refresh report history if tab exists
+            if hasattr(self, 'refresh_report_history'):
+                self.refresh_report_history()
+                
+        except Exception as e:
+            self.log_console(f"[ERROR] Failed to generate report: {e}")
+            messagebox.showerror("Error", f"Failed to generate report: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def refresh_report_history(self):
         """Refresh report history list"""
