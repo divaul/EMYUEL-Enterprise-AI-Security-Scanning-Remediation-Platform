@@ -933,24 +933,31 @@ class EMYUELGUI:
                 
                 from api_key_manager import APIKeyManager
                 
-                # CRITICAL FIX: Get API keys from GUI and pass to scanner
+                # Get API keys from GUI and pass to scanner
                 api_key_manager = APIKeyManager()
                 
-                # Set keys from GUI if they exist
+                # Set keys from GUI if they exist and SAVE to file
+                keys_set = []
                 for provider in ['openai', 'gemini', 'claude']:
                     key_var = getattr(self, f'api_key_{provider}', None)
                     if key_var:
                         key = key_var.get()
-                        if key:
+                        if key and key.strip():
                             # Set key in manager
-                            existing_keys = api_key_manager.keys.get(provider, [])
-                            # Update or add key
                             api_key_manager.keys[provider] = [{
-                                'key': key,
+                                'key': key.strip(),
                                 'is_backup': False
                             }]
+                            keys_set.append(provider)
                 
-                self.root.after(0, lambda: self.log_console(f"[INFO] API keys loaded: {list(api_key_manager.keys.keys())}"))
+                # CRITICAL: Save keys to file so scanner can read them
+                if keys_set:
+                    api_key_manager.save_keys()
+                    self.root.after(0, lambda providers=keys_set: self.log_console(f"[API] Saved keys to file: {providers}"))
+                else:
+                    self.root.after(0, lambda: self.log_console("[API] ⚠️ No API keys found in GUI"))
+                
+                self.root.after(0, lambda: self.log_console(f"[API] Active keys: {list(api_key_manager.keys.keys())}"))
                 
                 # Check if SSL verification should be skipped (from EITHER tab)
                 skip_ssl_advanced = getattr(self, 'opt_skip_ssl_var', tk.BooleanVar(value=False)).get()
