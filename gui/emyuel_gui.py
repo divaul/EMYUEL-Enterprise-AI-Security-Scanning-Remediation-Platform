@@ -2097,33 +2097,77 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             
             from libs.reporting.report_generator import ReportGenerator
             from datetime import datetime
+            from tkinter import filedialog
             import os
             
             self.log_console("[REPORT] Generating raw report...")
             
-            # Create reports directory
-            reports_dir = os.path.join(os.path.expanduser('~'), '.emyuel', 'reports')
-            os.makedirs(reports_dir, exist_ok=True)
-            
-            # Generate timestamp
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            
-            # Get target from scan results
+            # Ask user where to save the report
             target = self.last_scan_results.get('target', 'unknown')
             safe_target = target.replace('://', '_').replace('/', '_').replace(':', '_')
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            default_filename = f"report_{safe_target}_{timestamp}.html"
             
-            # Generate report
-            report_gen = ReportGenerator()
-            output_dir = Path(reports_dir)
-            result_paths = report_gen.generate_all(
-                self.last_scan_results,
-                output_dir=output_dir,
-                formats=['html']
+            # Default directory
+            default_dir = os.path.join(os.path.expanduser('~'), '.emyuel', 'reports')
+            os.makedirs(default_dir, exist_ok=True)
+            
+            # Ask user for save location
+            save_path = filedialog.asksaveasfilename(
+                title="Save Report As",
+                initialdir=default_dir,
+                initialfile=default_filename,
+                defaultextension=".html",
+                filetypes=[("HTML Report", "*.html"), ("All Files", "*.*")]
             )
-            report_path = result_paths.get('html')
             
-            self.log_console(f"[SUCCESS] Report generated: {report_path}")
-            messagebox.showinfo("Success", f"Report generated successfully!\n\nSaved to: {report_path}")
+            if not save_path:
+                self.log_console("[INFO] Report generation cancelled by user")
+                return
+            
+            self.log_console(f"[INFO] Saving report to: {save_path}")
+            
+            # Generate report using ReportGenerator
+            report_gen = ReportGenerator()
+            
+            # Create temp directory for generate_all
+            import tempfile
+            from pathlib import Path
+            temp_dir = Path(tempfile.mkdtemp())
+            
+            try:
+                # Generate HTML report
+                result_paths = report_gen.generate_all(
+                    self.last_scan_results,
+                    output_dir=temp_dir,
+                    formats=['html']
+                )
+                
+                generated_html = result_paths.get('html')
+                
+                if not generated_html or not os.path.exists(generated_html):
+                    raise Exception(f"Report generation failed - no file created at {generated_html}")
+                
+                # Copy to user-selected location
+                import shutil
+                shutil.copy2(generated_html, save_path)
+                
+                # Cleanup temp directory
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                
+                self.log_console(f"[SUCCESS] Report generated: {save_path}")
+                
+                # Ask if user wants to open the report
+                if messagebox.askyesno("Success", f"Report generated successfully!\n\nSaved to:\n{save_path}\n\nOpen report now?"):
+                    # Open in browser
+                    import webbrowser
+                    webbrowser.open(f"file://{save_path}")
+                    
+            except Exception as e:
+                self.log_console(f"[ERROR] Report generation failed: {e}")
+                import traceback
+                self.log_console(f"[ERROR] Traceback: {traceback.format_exc()}")
+                messagebox.showerror("Error", f"Failed to generate report:\n{e}")
             
             # Refresh report history if tab exists
             if hasattr(self, 'refresh_report_history'):
