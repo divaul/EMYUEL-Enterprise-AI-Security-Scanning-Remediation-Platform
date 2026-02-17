@@ -1953,9 +1953,39 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
         """Generate AI-enhanced professional report"""
         self.log_console("[AI REPORT] Generating AI-enhanced report...")
         
-        # Check for scan results
-        if not hasattr(self, 'last_scan_results') or self.last_scan_results is None:
-            messagebox.showerror("No Results", "No scan results available. Please run a scan first.")
+        # Check for scan results - try last_scan_results first, then database
+        scan_results = None
+        
+        if hasattr(self, 'last_scan_results') and self.last_scan_results is not None:
+            scan_results = self.last_scan_results
+            self.log_console("[AI REPORT] Using current scan results")
+        elif self.db:
+            # Try to load most recent scan from database
+            try:
+                scans = self.db.get_all_scans(limit=1)
+                if scans:
+                    scan_id = scans[0]['scan_id']
+                    scan_data = self.db.get_scan_by_id(scan_id)
+                    if scan_data:
+                        # Convert database format to expected format
+                        scan_results = {
+                            'target': scan_data['target_url'],
+                            'scan_type': scan_data['scan_type'],
+                            'timestamp': scan_data['timestamp'],
+                            'total_findings': scan_data['total_findings'],
+                            'findings_by_severity': scan_data['findings_by_severity'],
+                            'findings': scan_data['findings']
+                        }
+                        self.log_console(f"[AI REPORT] Loaded scan from database: {scan_id}")
+            except Exception as e:
+                self.log_console(f"[ERROR] Failed to load scan from database: {e}")
+        
+        if not scan_results:
+            messagebox.showerror(
+                "No Results", 
+                "No scan results available.\n\n"
+                "Please run a scan first or ensure scan history is not empty."
+            )
             self.log_console("[ERROR] No scan results to generate report from")
             return
         
@@ -1966,9 +1996,9 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             
             # Import AI report formatter
             from libs.reporting.ai_report_formatter import AIReportFormatter
-            from api_key_manager import APIKeyManager
+            from libs.api_key_manager import APIKeyManager  # Fixed import path
             from services.ai_planner import AIPlanner
-            from services.scanner_core.llm_analyzer import LLMAnalyzer  # Add missing import
+            from services.scanner_core.llm_analyzer import LLMAnalyzer
             
             # Get AI provider selection
             provider = self.ai_report_provider_var.get() if hasattr(self, 'ai_report_provider_var') else 'gemini'
