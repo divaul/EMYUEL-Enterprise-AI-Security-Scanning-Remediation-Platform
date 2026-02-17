@@ -1021,6 +1021,9 @@ class EMYUELGUI:
 
                 self.root.after(0, lambda: self.log_console(f"[INFO] Scan results stored for report generation"))
                 
+                # CRITICAL: Store results in main thread to ensure it's accessible
+                self.root.after(0, lambda r=results: setattr(self, 'last_scan_results', r))
+                
                 loop.close()
                 
                 # Update UI with results
