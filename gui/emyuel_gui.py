@@ -203,6 +203,16 @@ class EMYUELGUI:
         self.selected_scan_details = None
         self.delete_scan_btn = None
         
+        # Scan state management
+        self.scan_running = False
+        self.scan_paused = False
+        self.last_scan_results = None
+        self.current_scan_thread = None
+        
+        # Scan queue system
+        self.scan_queue = []
+        self.queue_processing = False
+        
         # Progress tracking (initialized here, UI widgets set in setup_ui)
         self.progress_var = tk.IntVar(value=0)
         self.progress_label = None  # Will be set by setup_ui

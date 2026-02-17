@@ -30,6 +30,21 @@ except ImportError:
         def __init__(self, recovery_mode=RecoveryMode.CLI):
             self.recovery_mode = recovery_mode
             self.keys = {}
+            self._load_keys()  # Auto-load saved keys
+        
+        def _load_keys(self):
+            """Load keys from file if exists"""
+            import json
+            from pathlib import Path
+            
+            config_path = Path.home() / ".emyuel" / "api_keys.json"
+            if config_path.exists():
+                try:
+                    with open(config_path, 'r') as f:
+                        self.keys = json.load(f)
+                except Exception as e:
+                    print(f"[API] Warning: Could not load keys: {e}")
+                    self.keys = {}
         
         def add_key(self, provider, key, is_primary=True):
             """Add API key for provider"""
