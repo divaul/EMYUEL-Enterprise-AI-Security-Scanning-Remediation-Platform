@@ -1665,7 +1665,7 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             # Import AI report formatter
             from libs.reporting.ai_report_formatter import AIReportFormatter
             from api_key_manager import APIKeyManager
-            from services.scanner_core.llm_analyzer import LLMAnalyzer
+            from services.ai_planner import AIPlanner
             
             # Get AI provider selection
             provider = self.ai_report_provider_var.get() if hasattr(self, 'ai_report_provider_var') else 'gemini'
