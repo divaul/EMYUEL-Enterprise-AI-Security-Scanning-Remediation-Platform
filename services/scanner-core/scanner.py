@@ -30,16 +30,36 @@ class ScannerCore:
         """
         self.config = config
         
-        # Initialize LLM orchestrator
-        self.llm = create_orchestrator(config.get('llm', {}))
+        # Get LLM config
+        llm_config = config.get('llm', {})
+        api_key_manager = llm_config.get('api_key_manager')
+        provider = llm_config.get('provider', 'openai')
+        
+        # Create LLMAnalyzer (not orchestrator!)
+        if api_key_manager:
+            # Import LLMAnalyzer
+            import sys
+            from pathlib import Path
+            scanner_core_dir = Path(__file__).parent
+            if str(scanner_core_dir) not in sys.path:
+                sys.path.insert(0, str(scanner_core_dir))
+            from llm_analyzer import LLMAnalyzer
+            
+            self.llm = LLMAnalyzer(api_key_manager, provider)
+            logger.info(f"LLMAnalyzer initialized with provider: {provider}")
+        else:
+            logger.warning("No API key manager provided - LLM analysis disabled")
+            self.llm = None
         
         # Initialize detectors
-        self.detectors = {
-            'sqli': SQLInjectionDetector(self.llm),
-            'xss': XSSDetector(self.llm),
-            'ssrf': SSRFDetector(self.llm)
-            # TODO: Add more detectors (RCE, auth, authz, etc.)
-        }
+        detectors_config = {}
+        if self.llm:
+            detectors_config = {
+                'sqli': SQLInjectionDetector(self.llm),
+                'xss': XSSDetector(self.llm),
+                'ssrf': SSRFDetector(self.llm)
+            }
+        self.detectors = detectors_config
         
         logger.info(f"Scanner initialized with {len(self.detectors)} detectors")
     
