@@ -200,7 +200,7 @@ class DatabaseManager:
         cursor.execute("""
             INSERT INTO findings (
                 scan_id, severity, vulnerability_type, title, description,
-                url, parameter, method, evidence, remediation, "references"
+                url, parameter, method, evidence, remediation, refs
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             scan_id,
