@@ -2114,10 +2114,13 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             
             # Generate report
             report_gen = ReportGenerator()
-            report_path = report_gen.generate_report(
+            output_dir = Path(reports_dir)
+            result_paths = report_gen.generate_all(
                 self.last_scan_results,
-                output_path=os.path.join(reports_dir, f"report_{safe_target}_{timestamp}.html")
+                output_dir=output_dir,
+                formats=['html']
             )
+            report_path = result_paths.get('html')
             
             self.log_console(f"[SUCCESS] Report generated: {report_path}")
             messagebox.showinfo("Success", f"Report generated successfully!\n\nSaved to: {report_path}")
