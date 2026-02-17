@@ -80,6 +80,10 @@ class APIKeyManager:
         
         self._save_keys()
     
+    def save_keys(self):
+        """Public method to save keys to file"""
+        self._save_keys()
+    
     def _save_keys(self):
         """Save keys to config file"""
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
