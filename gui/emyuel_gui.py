@@ -2038,7 +2038,7 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
                 if key_var:
                     key_value = key_var.get()
                     if key_value and key_value.strip():
-                        api_mgr.set_key(provider_name, key_value.strip())
+                        api_mgr.set_api_key(provider_name, key_value.strip())
                         self.log_console(f"[DEBUG] Set {provider_name} key for AI report")
             
             llm = LLMAnalyzer(api_mgr, provider)
