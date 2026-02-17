@@ -46,6 +46,10 @@ except ImportError:
                 return self.keys[provider][0]['key']
             return None
         
+        def save_keys(self):
+            """Save keys (stub implementation)"""
+            pass
+        
         async def handle_error(self, provider, error_message):
             """Handle API key error"""
             print(f"API Key Error for {provider}: {error_message}")
