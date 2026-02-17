@@ -228,7 +228,7 @@ def setup_results_tab(parent, gui_instance):
         btn_container,
         text="🗑️ Delete Selected",
         command=gui_instance.delete_selected_scan,
-        bg=colors['danger'],
+        bg=colors['error'],  # Fixed: Use 'error' instead of 'danger'
         fg='white',
         font=('Segoe UI', 9, 'bold'),
         relief='flat',
