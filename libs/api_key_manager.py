@@ -47,8 +47,16 @@ except ImportError:
             return None
         
         def save_keys(self):
-            """Save keys (stub implementation)"""
-            pass
+            """Save keys to file"""
+            import json
+            from pathlib import Path
+            
+            # Save to same location as scanner-core version
+            config_path = Path.home() / ".emyuel" / "api_keys.json"
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            with open(config_path, 'w') as f:
+                json.dump(self.keys, f, indent=2)
         
         async def handle_error(self, provider, error_message):
             """Handle API key error"""
