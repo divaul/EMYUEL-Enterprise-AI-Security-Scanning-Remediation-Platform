@@ -36,13 +36,19 @@ class ScannerCore:
         """
         self.config = config or {}
         
-        # Get API key manager
-        api_key_manager = self.config.get('api_key_manager')
+        # Get LLM config from SUBCONFIG (CRITICAL FIX!)
+        llm_config = self.config.get('llm', {})
+        api_key_manager = llm_config.get('api_key_manager')
+        provider = llm_config.get('provider', 'openai')
+        
+        # DEBUG logging
+        print(f"[Scanner] LLM config keys: {list(llm_config.keys())}")
+        print(f"[Scanner] Initialized with provider: {provider}")
+        print(f"[Scanner] Has API key manager: {api_key_manager is not None}")
+        
+        # Fallback if no API key manager
         if api_key_manager is None:
             api_key_manager = APIKeyManager()
-        
-        # Get LLM provider
-        provider = self.config.get('provider', 'openai')
         
         # Initialize LLM analyzer
         self.llm_analyzer = LLMAnalyzer(api_key_manager, provider)
