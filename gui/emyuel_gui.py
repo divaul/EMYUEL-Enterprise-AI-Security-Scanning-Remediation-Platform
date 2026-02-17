@@ -208,11 +208,18 @@ class EMYUELGUI:
         self.progress_label = None  # Will be set by setup_ui
         self.status_label = None    # Will be set by setup_ui
         
+        # Scan history storage
+        self.scan_history = []
+        
         # Build UI
         self.setup_ui()
         
         # Load saved API keys if available
         self.load_saved_keys()
+        
+        # Load scan history from database
+        if self.db:
+            self.load_scan_history()
     
     def toggle_fullscreen(self, event=None):
         """Toggle fullscreen mode"""
