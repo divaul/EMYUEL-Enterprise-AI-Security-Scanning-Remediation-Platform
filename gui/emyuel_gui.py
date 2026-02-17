@@ -1068,6 +1068,276 @@ class EMYUELGUI:
         if hasattr(self, 'status_label'):
             self.status_label.config(text="Initializing...", fg=self.colors['warning'])
     
+    def start_scan(self):
+        """Start vulnerability scan or add to queue"""
+        # Get scan configuration
+        scan_config = self._get_scan_config()
+        if not scan_config:
+            return  # Validation failed
+        
+        # Check if scan is already running
+        if self.scan_running:
+            # Add to queue
+            self.scan_queue.append(scan_config)
+            queue_pos = len(self.scan_queue)
+            messagebox.showinfo(
+                "Scan Queued",
+                f"A scan is already running.\n\n"
+                f"Your scan has been added to the queue.\n"
+                f"Position in queue: {queue_pos}\n\n"
+                f"It will start automatically when the current scan completes."
+            )
+            self.log_console(f"[QUEUE] Scan added to queue (position {queue_pos})")
+            self._update_queue_ui()
+            return
+        
+        # Start scan immediately
+        self._execute_scan(scan_config)
+    
+    def _get_scan_config(self):
+        """Extract and validate scan configuration from UI"""
+        # Reset scan state
+        self.scan_complete = False
+        self.scan_cancelled = False
+        self.scan_paused = False
+        
+        # Reset progress
+        self.progress_var.set(0)
+        if hasattr(self, 'status_label'):
+            self.status_label.config(text="Preparing scan...", fg=self.colors['text_primary'])
+        
+        # Get target URL from input field
+        target = self.target_var.get()
+        
+        if not target or target == "https://example.com or /path/to/directory":
+            messagebox.showerror("Error", "Please enter a target URL or select a directory")
+            return None
+        
+        # Detect target type
+        is_url = target.startswith(('http://', 'https://'))
+        target_type = "Web" if is_url else "Local"
+        
+        # Get scan mode
+        scan_mode = self.scan_mode_var.get()
+        modules = None if scan_mode == "full" else []  # None = all modules
+        
+        # Check if SSL verification should be skipped
+        skip_ssl = self.opt_skip_ssl_var.get()
+        
+        # Construct scan configuration dictionary
+        scan_config = {
+            'target': target,
+            'modules': modules,
+            'scan_mode': scan_mode,
+            'target_type': target_type,
+            'provider': self.provider_var.get(),
+            'profile': self.profile_var.get(),
+            'skip_ssl': skip_ssl
+        }
+        
+        return scan_config
+    
+    def _execute_scan(self, scan_config: Dict[str, Any], resume_state: Optional[Dict] = None):
+        """Execute a scan based on the provided configuration."""
+        self.scan_running = True
+        self.current_scan_config = scan_config
+        
+        target = scan_config['target']
+        modules = scan_config['modules']
+        scan_mode = scan_config['scan_mode']
+        target_type = scan_config['target_type']
+        provider = scan_config['provider']
+        profile = scan_config['profile']
+        skip_ssl = scan_config['skip_ssl']
+        
+        # Log scan details
+        mode_text = "Full Scan (All Modules)" if scan_mode == "full" else "Targeted Scan"
+        self.log_console(f"[SCAN] Starting {mode_text} on {target_type} target")
+        self.log_console(f"[TARGET] {target}")
+        self.log_console(f"[INFO] Provider: {provider}")
+        self.log_console(f"[INFO] Profile: {profile}")
+        
+        self.status_label.config(
+            text=f"Scanning: {target}",
+            fg=self.colors['accent_cyan']
+        )
+        
+        # Start real scan in a new thread
+        scan_thread = threading.Thread(
+            target=self._run_scan_thread,
+            args=(target, modules, provider, profile, skip_ssl, resume_state),
+            daemon=True
+        )
+        scan_thread.start()
+        
+        # Show initial progress
+        self.progress_var.set(10)
+        if hasattr(self, 'progress_label'):
+            self.progress_label.config(text="Scan in progress...")
+        if hasattr(self, 'status_label'):
+            self.status_label.config(text="Initializing...", fg=self.colors['warning'])
+    
+    def _run_scan_thread(self, target, modules, provider, profile, skip_ssl, resume_state):
+        """Internal method to run the actual scanner in a thread."""
+        try:
+            import asyncio
+            import sys
+            from pathlib import Path
+            
+            # Import scanner exceptions
+            sys.path.insert(0, str(Path(__file__).parent.parent / 'libs'))
+            from scanner_exceptions import ScanPausedException, APIError
+            
+            # Ensure parent directory is in path
+            parent_dir = Path(__file__).parent.parent
+            if str(parent_dir) not in sys.path:
+                sys.path.insert(0, str(parent_dir))
+            
+            # Import scanner
+            try:
+                from services.scanner_core import ScannerCore
+            except ImportError as e:
+                err_msg = str(e)
+                self.root.after(0, lambda msg=err_msg: self.log_console(f"[ERROR] Failed to import ScannerCore: {msg}"))
+                self.root.after(0, lambda: self.log_console("[ERROR] Make sure scanner-core directory exists in services/"))
+                self.root.after(0, lambda msg=err_msg: messagebox.showerror(
+                    "Import Error", 
+                    f"Failed to import scanner:\n{msg}\n\nMake sure services/scanner-core/ directory exists."
+                ))
+                self._scan_finished_callback(success=False, error_msg=err_msg)
+                return
+            
+            # Import API key manager
+            scanner_core_dir = parent_dir / "services" / "scanner-core"
+            if str(scanner_core_dir) not in sys.path:
+                sys.path.insert(0, str(scanner_core_dir))
+            
+            from api_key_manager import APIKeyManager
+            
+            # Get API keys from GUI and pass to scanner
+            api_key_manager = APIKeyManager()
+            
+            # Set keys from GUI if they exist and SAVE to file
+            keys_set = []
+            for p in ['openai', 'gemini', 'claude']:
+                key_var = getattr(self, f'api_key_{p}', None)
+                if key_var:
+                    key = key_var.get()
+                    if key and key.strip():
+                        api_key_manager.keys[p] = [{'key': key.strip(), 'is_backup': False}]
+                        keys_set.append(p)
+            
+            if keys_set:
+                api_key_manager.save_keys()
+                self.root.after(0, lambda providers=keys_set: self.log_console(f"[API] Saved keys to file: {providers}"))
+            else:
+                self.root.after(0, lambda: self.log_console("[API] ⚠️ No API keys found in GUI"))
+            
+            self.root.after(0, lambda: self.log_console(f"[API] Active keys: {list(api_key_manager.keys.keys())}"))
+            
+            # Configure scanner
+            config = {
+                'api_key_manager': api_key_manager,
+                'provider': provider,
+                'profile': profile,
+                'verify_ssl': not skip_ssl
+            }
+            
+            if skip_ssl:
+                self.root.after(0, lambda: self.log_console("[WARNING] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!"))
+                self.root.after(0, lambda: self.log_console("[WARNING] Only use this for testing against sites with invalid/self-signed certificates"))
+            
+            scanner = ScannerCore(config)
+            
+            scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            self.root.after(0, lambda: self.log_console("[SCAN] Initializing scanner..."))
+            self.root.after(0, lambda: self.progress_var.set(5))
+            
+            results = loop.run_until_complete(
+                scanner.scan(
+                    target=target,
+                    modules=modules,
+                    scan_id=scan_id,
+                    resume_state=resume_state
+                )
+            )
+            
+            self.last_scan_results = results
+            
+            if self.db:
+                try:
+                    scan_data = {
+                        'scan_id': scan_id,
+                        'target': target,
+                        'scan_type': 'advanced', # Assuming advanced for now
+                        'modules': modules if modules else ['all'],
+                        'total_pages': results.get('total_pages', 0),
+                        'findings': results.get('findings', [])
+                    }
+                    saved_id = self.db.save_scan(scan_data)
+                    self.root.after(0, lambda: self.log_console(f"[DB] ✅ Scan saved to database: {saved_id}"))
+                except Exception as e:
+                    self.root.after(0, lambda err=str(e): self.log_console(f"[DB] ⚠️ Failed to save scan: {err}"))
+            
+            self.root.after(0, lambda: self.log_console(f"[INFO] Scan results stored for report generation"))
+            self.root.after(0, lambda r=results: setattr(self, 'last_scan_results', r))
+            loop.close()
+            
+            self._scan_finished_callback(success=True, results=results)
+            
+        except ScanPausedException as e:
+            self.scan_state = e.state
+            self.root.after(0, lambda reason=e.reason: self.log_console(f"[ERROR] API Error - Scan paused: {reason}"))
+            self.root.after(0, lambda: self.log_console(f"[INFO] Progress saved: {e.state.get('pages_scanned', 0)}/{e.state.get('total_pages', 0)} pages"))
+            self._scan_finished_callback(success=False, paused=True, reason=e.reason)
+            
+        except Exception as e:
+            import traceback
+            error_msg = str(e)
+            error_trace = traceback.format_exc()
+            self.root.after(0, lambda msg=error_msg: self.log_console(f"[ERROR] Scan failed: {msg}"))
+            self.root.after(0, lambda trace=error_trace: self.log_console(f"[ERROR] Traceback:\n{trace}"))
+            self.root.after(0, lambda msg=error_msg: messagebox.showerror("Scan Error", f"Scan failed:\n\n{msg}"))
+            self._scan_finished_callback(success=False, error_msg=error_msg)
+    
+    def _scan_finished_callback(self, success: bool, results: Optional[Dict] = None, error_msg: Optional[str] = None, paused: bool = False, reason: Optional[str] = None):
+        """Callback executed when a scan thread finishes."""
+        self.scan_running = False
+        self.current_scan_config = None
+        
+        if success:
+            self.scan_complete = True
+            self.root.after(0, lambda: self._display_scan_results(results))
+        elif paused:
+            self.scan_paused = True
+            self.root.after(0, lambda: self.pause_scan(reason))
+        else:
+            self.root.after(0, lambda: self.status_label.config(text="Scan failed", fg=self.colors['error']))
+        
+        self.root.after(0, self._process_scan_queue)
+        self.root.after(0, self._update_queue_ui)
+    
+    def _process_scan_queue(self):
+        """Process the next scan in the queue if no scan is running."""
+        if not self.scan_running and self.scan_queue:
+            next_scan_config = self.scan_queue.pop(0)
+            self.log_console(f"[QUEUE] Starting next scan from queue: {next_scan_config['target']}")
+            self._execute_scan(next_scan_config)
+        elif not self.scan_running and not self.scan_queue:
+            self.log_console("[QUEUE] Scan queue is empty.")
+    
+    def _update_queue_ui(self):
+        """Update the UI to reflect the current queue status."""
+        if hasattr(self, 'queue_status_label'):
+            if self.scan_queue:
+                self.queue_status_label.config(text=f"Queue: {len(self.scan_queue)} scans pending", fg=self.colors['warning'])
+            else:
+                self.queue_status_label.config(text="Queue: Empty", fg=self.colors['text_primary'])
+    
     def _display_scan_results(self, results: Dict[str, Any]):
         """Display scan results in UI"""
         # Validate results structure (BUG FIX #1)
