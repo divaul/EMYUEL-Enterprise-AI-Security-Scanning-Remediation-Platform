@@ -1015,6 +1015,10 @@ class EMYUELGUI:
                 # Save to database for persistent history
                 if self.db:
                     try:
+                        # LOG: Debug scan results structure
+                        self.root.after(0, lambda: self.log_console(f"[DEBUG] Results keys: {list(results.keys())}"))
+                        self.root.after(0, lambda count=len(results.get('findings', [])): self.log_console(f"[DEBUG] Findings count in results: {count}"))
+                        
                         # Use scan_id from scanner (passed as parameter)
                         scan_data = {
                             'scan_id': scan_id,  # Use existing scan_id from scanner
@@ -1024,10 +1028,18 @@ class EMYUELGUI:
                             'total_pages': results.get('total_pages', 0),
                             'findings': results.get('findings', [])
                         }
+                        
+                        # LOG: Debug scan_data being saved
+                        self.root.after(0, lambda count=len(scan_data['findings']): self.log_console(f"[DEBUG] Saving {count} findings to database"))
+                        
                         saved_id = self.db.save_scan(scan_data)
-                        self.root.after(0, lambda: self.log_console(f"[DB] ✅ Scan saved to database: {saved_id}"))
+                        self.root.after(0, lambda sid=saved_id: self.log_console(f"[DB] ✅ Scan saved to database: {sid}"))
                     except Exception as e:
-                        self.root.after(0, lambda err=str(e): self.log_console(f"[DB] ⚠️ Failed to save scan: {err}"))
+                        err_msg = str(e)
+                        import traceback
+                        err_trace = traceback.format_exc()
+                        self.root.after(0, lambda msg=err_msg: self.log_console(f"[DB] ⚠️ Failed to save scan: {msg}"))
+                        self.root.after(0, lambda trace=err_trace: self.log_console(f"[DB] Traceback: {trace}"))
 
                 self.root.after(0, lambda: self.log_console(f"[INFO] Scan results stored for report generation"))
                 
