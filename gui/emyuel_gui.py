@@ -1756,8 +1756,14 @@ class EMYUELGUI:
     
     async def _run_real_ai_analysis(self, target_url: str, nlp_query: str = "", provider: str = "gemini"):
         """Real AI-powered autonomous security analysis"""
-        from api_key_manager import APIKeyManager
-        from services.scanner_core.llm_analyzer import LLMAnalyzer
+        from libs.api_key_manager import APIKeyManager
+        # Import LLMAnalyzer from scanner-core
+        import sys
+        from pathlib import Path
+        scanner_core_dir = Path(__file__).parent.parent / "services" / "scanner-core"
+        if str(scanner_core_dir) not in sys.path:
+            sys.path.insert(0, str(scanner_core_dir))
+        from llm_analyzer import LLMAnalyzer
         
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔧 Initializing AI analyzer...")
         
