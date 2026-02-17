@@ -2114,7 +2114,7 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             
             # Generate report
             report_gen = ReportGenerator()
-            report_path = report_gen.generate_html_report(
+            report_path = report_gen.generate_report(
                 self.last_scan_results,
                 output_path=os.path.join(reports_dir, f"report_{safe_target}_{timestamp}.html")
             )
