@@ -159,7 +159,7 @@ class EMYUELGUI:
         
         # Variables
         self.target_var = tk.StringVar()
-        self.provider_var = tk.StringVar(value="openai")
+        self.provider_var = tk.StringVar(value="gemini")  # Default to gemini since user has gemini key
         self.profile_var = tk.StringVar(value="standard")
         self.scan_mode_var = tk.StringVar(value="full")
         self.query_var = tk.StringVar()
