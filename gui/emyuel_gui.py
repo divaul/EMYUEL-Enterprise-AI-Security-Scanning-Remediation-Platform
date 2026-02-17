@@ -941,7 +941,7 @@ class EMYUELGUI:
                 if str(scanner_core_dir) not in sys.path:
                     sys.path.insert(0, str(scanner_core_dir))
                 
-                from api_key_manager import APIKeyManager
+                from libs.api_key_manager import APIKeyManager
                 
                 # Get API keys from GUI and pass to scanner
                 api_key_manager = APIKeyManager()
@@ -1224,7 +1224,7 @@ class EMYUELGUI:
             if str(scanner_core_dir) not in sys.path:
                 sys.path.insert(0, str(scanner_core_dir))
             
-            from api_key_manager import APIKeyManager
+            from libs.api_key_manager import APIKeyManager
             
             # Get API keys from GUI and pass to scanner
             api_key_manager = APIKeyManager()
