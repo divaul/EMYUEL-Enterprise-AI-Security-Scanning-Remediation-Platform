@@ -1245,10 +1245,12 @@ class EMYUELGUI:
             
             self.root.after(0, lambda: self.log_console(f"[API] Active keys: {list(api_key_manager.keys.keys())}"))
             
-            # Configure scanner
+            # Configure scanner (FIXED: match Advanced Scan config structure)
             config = {
-                'api_key_manager': api_key_manager,
-                'provider': provider,
+                'llm': {
+                    'api_key_manager': api_key_manager,  # Move into llm subconfig!
+                    'provider': provider                  # Move into llm subconfig!
+                },
                 'profile': profile,
                 'verify_ssl': not skip_ssl
             }
