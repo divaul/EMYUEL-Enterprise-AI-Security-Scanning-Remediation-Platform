@@ -1106,16 +1106,20 @@ class EMYUELGUI:
         self.update_report_summary()
         self.update_bug_monitoring_dashboard()
         
-        # Show summary dialog
-        messagebox.showinfo(
-            "Scan Complete",
-            f"Scan finished successfully!\n\n" +
-            f"Total vulnerabilities: {total_findings}\n" +
-            f"Critical: {by_severity.get('critical', 0)}\n" +
-            f"High: {by_severity.get('high', 0)}\n" +
-            f"Medium: {by_severity.get('medium', 0)}\n" +
-            f"Low: {by_severity.get('low', 0)}"
-        )
+        # Show completion dialog (check window exists to prevent TclError)
+        try:
+            if self.root and self.root.winfo_exists():
+                messagebox.showinfo(
+                    "Scan Complete",
+                    "Scan finished successfully!\n\n" +
+                    f"Total vulnerabilities: {total_findings}\n" +
+                    f"Critical: {by_severity.get('critical', 0)}\n" +
+                    f"High: {by_severity.get('high', 0)}\n" +
+                    f"Medium: {by_severity.get('medium', 0)}\n" +
+                    f"Low: {by_severity.get('low', 0)}"
+                )
+        except Exception as e:
+            print(f"[INFO] Couldn't show completion dialog: {e}")
     
     def pause_scan(self):
         """Pause current scan"""
