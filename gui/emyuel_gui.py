@@ -2109,13 +2109,13 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             
             # Get target from scan results
-            target = self.current_scan_results.get('target', 'unknown')
+            target = self.last_scan_results.get('target', 'unknown')
             safe_target = target.replace('://', '_').replace('/', '_').replace(':', '_')
             
             # Generate report
             report_gen = ReportGenerator()
             report_path = report_gen.generate_html_report(
-                self.current_scan_results,
+                self.last_scan_results,
                 output_path=os.path.join(reports_dir, f"report_{safe_target}_{timestamp}.html")
             )
             
