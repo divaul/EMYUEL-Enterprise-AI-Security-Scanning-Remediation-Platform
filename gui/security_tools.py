@@ -3,6 +3,7 @@ security_tools.py — Shared cybersecurity tools registry for EMYUEL
 
 Central registry of all supported security tools with install/detect metadata.
 Used by AI Analysis, Quick Scan, and Advanced Scan tabs.
+Focused on web application security testing — no wireless, forensics, RE, or infra tools.
 """
 
 SECURITY_TOOLS = {
@@ -25,6 +26,13 @@ SECURITY_TOOLS = {
         'check_cmd': 'rustscan', 'install_apt': None, 'install_pip': None,
         'install_custom': 'cargo install rustscan',
         'usable_in': ['advanced', 'ai'],
+    },
+    'naabu': {
+        'name': 'Naabu', 'icon': '🎯', 'category': 'Port Scanner',
+        'desc': 'Fast port scanning tool (ProjectDiscovery)',
+        'check_cmd': 'naabu', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
     },
 
     # ─── Web Scanners ──────────────────────────────
@@ -74,6 +82,22 @@ SECURITY_TOOLS = {
         'desc': 'Advanced XSS detection suite with fuzzing engine',
         'check_cmd': 'xsstrike', 'install_apt': None, 'install_pip': 'xsstrike',
         'usable_in': ['quick', 'advanced', 'ai'],
+    },
+
+    # ─── SSRF / SSTI / Template Injection ──────────
+    'tplmap': {
+        'name': 'Tplmap', 'icon': '🗺️', 'category': 'SSTI Scanner',
+        'desc': 'Server-Side Template Injection detection and exploitation',
+        'check_cmd': 'tplmap', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'pip install tplmap',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'ssrfmap': {
+        'name': 'SSRFmap', 'icon': '🔄', 'category': 'SSRF Scanner',
+        'desc': 'Automatic SSRF fuzzer and exploitation tool',
+        'check_cmd': 'ssrfmap', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'pip install ssrfmap',
+        'usable_in': ['advanced', 'ai'],
     },
 
     # ─── Directory & Content Discovery ─────────────
@@ -178,11 +202,55 @@ SECURITY_TOOLS = {
         'check_cmd': 'amass', 'install_apt': 'amass', 'install_pip': None,
         'usable_in': ['advanced', 'ai'],
     },
+    'findomain': {
+        'name': 'Findomain', 'icon': '🔎', 'category': 'Subdomain',
+        'desc': 'Cross-platform subdomain enumerator (Rust)',
+        'check_cmd': 'findomain', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'cargo install findomain',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'chaos': {
+        'name': 'Chaos', 'icon': '🌀', 'category': 'Subdomain',
+        'desc': 'ProjectDiscovery Chaos client for subdomain data',
+        'check_cmd': 'chaos', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install -v github.com/projectdiscovery/chaos-client/cmd/chaos@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'github_subdomains': {
+        'name': 'github-subdomains', 'icon': '🐙', 'category': 'Subdomain',
+        'desc': 'Find subdomains via GitHub source code search',
+        'check_cmd': 'github-subdomains', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/gwen001/github-subdomains@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'subjack': {
+        'name': 'Subjack', 'icon': '🏴', 'category': 'Subdomain Takeover',
+        'desc': 'Subdomain takeover vulnerability checker',
+        'check_cmd': 'subjack', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/haccer/subjack@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'assetfinder': {
+        'name': 'Assetfinder', 'icon': '🏷️', 'category': 'Subdomain',
+        'desc': 'Find subdomains and related assets',
+        'check_cmd': 'assetfinder', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/tomnomnom/assetfinder@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── HTTP Probing ──────────────────────────────
     'httpx_tool': {
         'name': 'httpx (PD)', 'icon': '🌐', 'category': 'HTTP Probe',
         'desc': 'Fast multi-purpose HTTP toolkit (ProjectDiscovery)',
         'check_cmd': 'httpx', 'install_apt': None, 'install_pip': None,
         'install_custom': 'go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'httprobe': {
+        'name': 'httprobe', 'icon': '📡', 'category': 'HTTP Probe',
+        'desc': 'Probe for working HTTP/HTTPS servers',
+        'check_cmd': 'httprobe', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/tomnomnom/httprobe@latest',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
 
@@ -199,6 +267,13 @@ SECURITY_TOOLS = {
         'desc': 'Open Vulnerability Assessment System (full framework)',
         'check_cmd': 'gvm-cli', 'install_apt': 'openvas', 'install_pip': None,
         'usable_in': ['advanced'],
+    },
+    'interactsh_client': {
+        'name': 'Interactsh', 'icon': '📨', 'category': 'OOB Testing',
+        'desc': 'Out-of-band interaction gathering (ProjectDiscovery)',
+        'check_cmd': 'interactsh-client', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install -v github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest',
+        'usable_in': ['advanced', 'ai'],
     },
 
     # ─── SSL/TLS ───────────────────────────────────
@@ -221,18 +296,204 @@ SECURITY_TOOLS = {
         'usable_in': ['advanced', 'ai'],
     },
 
-    # ─── Exploitation ──────────────────────────────
-    'metasploit': {
-        'name': 'Metasploit', 'icon': '💀', 'category': 'Exploitation',
-        'desc': 'Penetration testing framework with exploit modules',
-        'check_cmd': 'msfconsole', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall && chmod 755 msfinstall && ./msfinstall',
-        'usable_in': ['advanced'],
-    },
+    # ─── Command Injection ─────────────────────────
     'commix': {
         'name': 'Commix', 'icon': '💉', 'category': 'Command Injection',
         'desc': 'Automated OS command injection testing',
         'check_cmd': 'commix', 'install_apt': None, 'install_pip': 'commix',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── Parameter Discovery / URL Manipulation ────
+    'paramspider': {
+        'name': 'ParamSpider', 'icon': '🕷️', 'category': 'Param Discovery',
+        'desc': 'Mining parameters from web archives for bug hunting',
+        'check_cmd': 'paramspider', 'install_apt': None, 'install_pip': 'paramspider',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'arjun': {
+        'name': 'Arjun', 'icon': '🏹', 'category': 'Param Discovery',
+        'desc': 'HTTP parameter discovery suite',
+        'check_cmd': 'arjun', 'install_apt': None, 'install_pip': 'arjun',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'qsreplace': {
+        'name': 'qsreplace', 'icon': '🔁', 'category': 'URL Manipulation',
+        'desc': 'Accept URLs on stdin, replace query string values',
+        'check_cmd': 'qsreplace', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/tomnomnom/qsreplace@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'unfurl': {
+        'name': 'Unfurl', 'icon': '🔗', 'category': 'URL Manipulation',
+        'desc': 'Pull out bits of URLs for analysis (domains, paths, params)',
+        'check_cmd': 'unfurl', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/tomnomnom/unfurl@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'gf': {
+        'name': 'gf', 'icon': '🧲', 'category': 'Pattern Grep',
+        'desc': 'Grep wrapper using pattern files (tomnomnom)',
+        'check_cmd': 'gf', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/tomnomnom/gf@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── Web Proxy / Manual Testing ────────────────
+    'burpsuite': {
+        'name': 'Burp Suite', 'icon': '🔥', 'category': 'Web Proxy',
+        'desc': 'Web vulnerability scanner and proxy (PortSwigger)',
+        'check_cmd': 'burpsuite', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'echo "Download from https://portswigger.net/burp/releases"',
+        'usable_in': ['advanced'],
+    },
+    'owasp_zap': {
+        'name': 'OWASP ZAP', 'icon': '⚡', 'category': 'Web Proxy',
+        'desc': 'Zed Attack Proxy — OWASP web app security scanner',
+        'check_cmd': 'zap-cli', 'install_apt': None, 'install_pip': 'zaproxy',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'mitmproxy': {
+        'name': 'mitmproxy', 'icon': '🔀', 'category': 'Web Proxy',
+        'desc': 'Interactive TLS-capable intercepting HTTP proxy',
+        'check_cmd': 'mitmproxy', 'install_apt': None, 'install_pip': 'mitmproxy',
+        'usable_in': ['advanced'],
+    },
+
+    # ─── API Testing ──────────────────────────────
+    'newman': {
+        'name': 'Newman', 'icon': '📬', 'category': 'API Testing',
+        'desc': 'Postman collection runner (CLI)',
+        'check_cmd': 'newman', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'npm install -g newman',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'kiterunner': {
+        'name': 'Kiterunner', 'icon': '🪁', 'category': 'API Testing',
+        'desc': 'API endpoint discovery and content scanner',
+        'check_cmd': 'kr', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/assetnote/kiterunner/cmd/kr@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── Web Recon / URL Collection ───────────────
+    'waybackurls': {
+        'name': 'Waybackurls', 'icon': '⏪', 'category': 'Web Recon',
+        'desc': 'Fetch all URLs from Wayback Machine',
+        'check_cmd': 'waybackurls', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/tomnomnom/waybackurls@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'gau': {
+        'name': 'gau', 'icon': '🔗', 'category': 'Web Recon',
+        'desc': 'Get All URLs from AlienVault, Wayback, Common Crawl',
+        'check_cmd': 'gau', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/lc/gau/v2/cmd/gau@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'hakrawler': {
+        'name': 'Hakrawler', 'icon': '🕷️', 'category': 'Web Recon',
+        'desc': 'Fast web crawler for gathering URLs and JS file locations',
+        'check_cmd': 'hakrawler', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/hakluke/hakrawler@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'katana': {
+        'name': 'Katana', 'icon': '⚔️', 'category': 'Web Recon',
+        'desc': 'Next-gen crawling and spidering framework (PD)',
+        'check_cmd': 'katana', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/projectdiscovery/katana/cmd/katana@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+
+    # ─── Screenshot / Visual Recon ────────────────
+    'aquatone': {
+        'name': 'Aquatone', 'icon': '📸', 'category': 'Visual Recon',
+        'desc': 'Visual inspection of websites across large attack surfaces',
+        'check_cmd': 'aquatone', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/michenriksen/aquatone@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'gowitness': {
+        'name': 'Gowitness', 'icon': '📷', 'category': 'Visual Recon',
+        'desc': 'Website screenshot tool using Chrome headless',
+        'check_cmd': 'gowitness', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/sensepost/gowitness@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── DNS Recon ────────────────────────────────
+    'dnsx': {
+        'name': 'dnsx', 'icon': '🌐', 'category': 'DNS Recon',
+        'desc': 'Fast multi-purpose DNS toolkit (ProjectDiscovery)',
+        'check_cmd': 'dnsx', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'shuffledns': {
+        'name': 'ShuffleDNS', 'icon': '🔀', 'category': 'DNS Recon',
+        'desc': 'Wrapper around massdns for active DNS brute-forcing',
+        'check_cmd': 'shuffledns', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install -v github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── Static Analysis / SAST ───────────────────
+    'semgrep': {
+        'name': 'Semgrep', 'icon': '🔎', 'category': 'SAST',
+        'desc': 'Lightweight static analysis for many languages',
+        'check_cmd': 'semgrep', 'install_apt': None, 'install_pip': 'semgrep',
+        'usable_in': ['advanced', 'ai'],
+    },
+    'bandit': {
+        'name': 'Bandit', 'icon': '🐍', 'category': 'SAST',
+        'desc': 'Python source code security analyzer',
+        'check_cmd': 'bandit', 'install_apt': None, 'install_pip': 'bandit',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'brakeman': {
+        'name': 'Brakeman', 'icon': '💎', 'category': 'SAST',
+        'desc': 'Static analysis security scanner for Ruby on Rails',
+        'check_cmd': 'brakeman', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'gem install brakeman',
+        'usable_in': ['advanced'],
+    },
+
+    # ─── Secret Scanning ─────────────────────────
+    'gitleaks': {
+        'name': 'Gitleaks', 'icon': '🔐', 'category': 'Secret Scanner',
+        'desc': 'Scan git repos for secrets and sensitive data',
+        'check_cmd': 'gitleaks', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'go install github.com/gitleaks/gitleaks/v8@latest',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'trufflehog': {
+        'name': 'TruffleHog', 'icon': '🐷', 'category': 'Secret Scanner',
+        'desc': 'Find credentials in git repositories',
+        'check_cmd': 'trufflehog', 'install_apt': None, 'install_pip': 'trufflehog',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+    'detect_secrets': {
+        'name': 'detect-secrets', 'icon': '🕵️', 'category': 'Secret Scanner',
+        'desc': 'Enterprise-friendly secret detection in code',
+        'check_cmd': 'detect-secrets', 'install_apt': None, 'install_pip': 'detect-secrets',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+
+    # ─── Wordlists ────────────────────────────────
+    'seclists': {
+        'name': 'SecLists', 'icon': '📚', 'category': 'Wordlists',
+        'desc': 'Collection of wordlists for fuzzing and discovery',
+        'check_cmd': None, 'install_apt': 'seclists', 'install_pip': None,
+        'install_custom': 'git clone --depth 1 https://github.com/danielmiessler/SecLists.git /usr/share/seclists',
+        'usable_in': ['advanced', 'ai'],
+    },
+
+    # ─── Exploitation ──────────────────────────────
+    'searchsploit': {
+        'name': 'SearchSploit', 'icon': '🔍', 'category': 'Exploit DB',
+        'desc': 'CLI search tool for Exploit Database',
+        'check_cmd': 'searchsploit', 'install_apt': 'exploitdb', 'install_pip': None,
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -286,453 +547,6 @@ SECURITY_TOOLS = {
         'desc': 'Anthropic Claude API client library',
         'check_cmd': None, 'install_apt': None, 'install_pip': 'anthropic',
         'usable_in': ['ai'],
-    },
-
-    # ─── Web Proxy / Manual Testing ────────────────
-    'burpsuite': {
-        'name': 'Burp Suite', 'icon': '🔥', 'category': 'Web Proxy',
-        'desc': 'Web vulnerability scanner and proxy (PortSwigger)',
-        'check_cmd': 'burpsuite', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Download from https://portswigger.net/burp/releases"',
-        'usable_in': ['advanced'],
-    },
-    'owasp_zap': {
-        'name': 'OWASP ZAP', 'icon': '⚡', 'category': 'Web Proxy',
-        'desc': 'Zed Attack Proxy — OWASP web app security scanner',
-        'check_cmd': 'zap-cli', 'install_apt': None, 'install_pip': 'zaproxy',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'mitmproxy': {
-        'name': 'mitmproxy', 'icon': '🔀', 'category': 'Web Proxy',
-        'desc': 'Interactive TLS-capable intercepting HTTP proxy',
-        'check_cmd': 'mitmproxy', 'install_apt': None, 'install_pip': 'mitmproxy',
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Network Sniffing / Traffic Analysis ───────
-    'wireshark': {
-        'name': 'Wireshark', 'icon': '🦈', 'category': 'Traffic Analysis',
-        'desc': 'Network protocol analyzer with GUI',
-        'check_cmd': 'wireshark', 'install_apt': 'wireshark', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'tcpdump': {
-        'name': 'tcpdump', 'icon': '📡', 'category': 'Traffic Analysis',
-        'desc': 'Command-line packet analyzer',
-        'check_cmd': 'tcpdump', 'install_apt': 'tcpdump', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'tshark': {
-        'name': 'TShark', 'icon': '🦈', 'category': 'Traffic Analysis',
-        'desc': 'Terminal-based Wireshark (CLI packet analyzer)',
-        'check_cmd': 'tshark', 'install_apt': 'tshark', 'install_pip': None,
-        'usable_in': ['advanced', 'ai'],
-    },
-    'ettercap': {
-        'name': 'Ettercap', 'icon': '🕵️', 'category': 'MITM',
-        'desc': 'Comprehensive suite for man-in-the-middle attacks',
-        'check_cmd': 'ettercap', 'install_apt': 'ettercap-text-only', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'bettercap': {
-        'name': 'Bettercap', 'icon': '🎩', 'category': 'MITM',
-        'desc': 'Swiss army knife for WiFi, BLE, and network attacks',
-        'check_cmd': 'bettercap', 'install_apt': 'bettercap', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-
-    # ─── API Testing ──────────────────────────────
-    'newman': {
-        'name': 'Newman', 'icon': '📬', 'category': 'API Testing',
-        'desc': 'Postman collection runner (CLI)',
-        'check_cmd': 'newman', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'npm install -g newman',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'kiterunner': {
-        'name': 'Kiterunner', 'icon': '🪁', 'category': 'API Testing',
-        'desc': 'API endpoint discovery and content scanner',
-        'check_cmd': 'kr', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/assetnote/kiterunner/cmd/kr@latest',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'arjun': {
-        'name': 'Arjun', 'icon': '🏹', 'category': 'API Testing',
-        'desc': 'HTTP parameter discovery suite',
-        'check_cmd': 'arjun', 'install_apt': None, 'install_pip': 'arjun',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-
-    # ─── Cloud Security ───────────────────────────
-    'prowler': {
-        'name': 'Prowler', 'icon': '🦁', 'category': 'Cloud Security',
-        'desc': 'AWS/Azure/GCP security best practices assessment',
-        'check_cmd': 'prowler', 'install_apt': None, 'install_pip': 'prowler',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'scoutsuite': {
-        'name': 'ScoutSuite', 'icon': '🔭', 'category': 'Cloud Security',
-        'desc': 'Multi-cloud security auditing tool',
-        'check_cmd': 'scout', 'install_apt': None, 'install_pip': 'scoutsuite',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'cloudmapper': {
-        'name': 'CloudMapper', 'icon': '☁️', 'category': 'Cloud Security',
-        'desc': 'AWS environment analysis and visualization',
-        'check_cmd': None, 'install_apt': None, 'install_pip': 'cloudmapper',
-        'usable_in': ['advanced'],
-    },
-    'pacu': {
-        'name': 'Pacu', 'icon': '🐟', 'category': 'Cloud Security',
-        'desc': 'AWS exploitation framework (Rhino Security)',
-        'check_cmd': 'pacu', 'install_apt': None, 'install_pip': 'pacu',
-        'usable_in': ['advanced'],
-    },
-    'kube_hunter': {
-        'name': 'kube-hunter', 'icon': '🎯', 'category': 'K8s Security',
-        'desc': 'Kubernetes penetration testing tool',
-        'check_cmd': 'kube-hunter', 'install_apt': None, 'install_pip': 'kube-hunter',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'kube_bench': {
-        'name': 'kube-bench', 'icon': '📋', 'category': 'K8s Security',
-        'desc': 'CIS Kubernetes Benchmark checker',
-        'check_cmd': 'kube-bench', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/aquasecurity/kube-bench@latest',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'trivy': {
-        'name': 'Trivy', 'icon': '🔺', 'category': 'Container Security',
-        'desc': 'Comprehensive vulnerability scanner for containers/IaC',
-        'check_cmd': 'trivy', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'grype': {
-        'name': 'Grype', 'icon': '🦅', 'category': 'Container Security',
-        'desc': 'Vulnerability scanner for container images and filesystems',
-        'check_cmd': 'grype', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin',
-        'usable_in': ['advanced', 'ai'],
-    },
-
-    # ─── Container / DevSecOps ────────────────────
-    'dockle': {
-        'name': 'Dockle', 'icon': '🐳', 'category': 'Container Security',
-        'desc': 'Container image linter for security best practices',
-        'check_cmd': 'dockle', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/goodwithtech/dockle/cmd/dockle@latest',
-        'usable_in': ['advanced'],
-    },
-    'clair': {
-        'name': 'Clair', 'icon': '🔬', 'category': 'Container Security',
-        'desc': 'Static analysis of vulnerabilities in container images',
-        'check_cmd': 'clair', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/quay/clair/v4/cmd/clair@latest',
-        'usable_in': ['advanced'],
-    },
-    'anchore_cli': {
-        'name': 'Anchore CLI', 'icon': '⚓', 'category': 'Container Security',
-        'desc': 'Anchore Engine CLI for container image analysis',
-        'check_cmd': 'anchore-cli', 'install_apt': None, 'install_pip': 'anchorecli',
-        'usable_in': ['advanced'],
-    },
-    'checkov': {
-        'name': 'Checkov', 'icon': '✅', 'category': 'IaC Security',
-        'desc': 'Static analysis for infrastructure-as-code (Terraform, K8s, etc.)',
-        'check_cmd': 'checkov', 'install_apt': None, 'install_pip': 'checkov',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'tfsec': {
-        'name': 'tfsec', 'icon': '🏗️', 'category': 'IaC Security',
-        'desc': 'Security scanner for Terraform code',
-        'check_cmd': 'tfsec', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/aquasecurity/tfsec/cmd/tfsec@latest',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'terrascan': {
-        'name': 'Terrascan', 'icon': '🌍', 'category': 'IaC Security',
-        'desc': 'Detect compliance and security violations in IaC',
-        'check_cmd': 'terrascan', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/tenable/terrascan/cmd/terrascan@latest',
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Static Analysis / SAST ───────────────────
-    'semgrep': {
-        'name': 'Semgrep', 'icon': '🔎', 'category': 'SAST',
-        'desc': 'Lightweight static analysis for many languages',
-        'check_cmd': 'semgrep', 'install_apt': None, 'install_pip': 'semgrep',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'bandit': {
-        'name': 'Bandit', 'icon': '🐍', 'category': 'SAST',
-        'desc': 'Python source code security analyzer',
-        'check_cmd': 'bandit', 'install_apt': None, 'install_pip': 'bandit',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'brakeman': {
-        'name': 'Brakeman', 'icon': '💎', 'category': 'SAST',
-        'desc': 'Static analysis security scanner for Ruby on Rails',
-        'check_cmd': 'brakeman', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'gem install brakeman',
-        'usable_in': ['advanced'],
-    },
-    'spotbugs': {
-        'name': 'SpotBugs', 'icon': '🐛', 'category': 'SAST',
-        'desc': 'Static analysis tool for finding Java bugs',
-        'check_cmd': 'spotbugs', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Download from https://spotbugs.github.io/"',
-        'usable_in': ['advanced'],
-    },
-    'sonarscanner': {
-        'name': 'SonarScanner', 'icon': '📊', 'category': 'SAST',
-        'desc': 'SonarQube scanner for continuous code quality',
-        'check_cmd': 'sonar-scanner', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Download from https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/"',
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Secret Scanning ─────────────────────────
-    'gitleaks': {
-        'name': 'Gitleaks', 'icon': '🔐', 'category': 'Secret Scanner',
-        'desc': 'Scan git repos for secrets and sensitive data',
-        'check_cmd': 'gitleaks', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/gitleaks/gitleaks/v8@latest',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'trufflehog': {
-        'name': 'TruffleHog', 'icon': '🐷', 'category': 'Secret Scanner',
-        'desc': 'Find credentials in git repositories',
-        'check_cmd': 'trufflehog', 'install_apt': None, 'install_pip': 'trufflehog',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'detect_secrets': {
-        'name': 'detect-secrets', 'icon': '🕵️', 'category': 'Secret Scanner',
-        'desc': 'Enterprise-friendly secret detection in code',
-        'check_cmd': 'detect-secrets', 'install_apt': None, 'install_pip': 'detect-secrets',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-
-    # ─── Binary / Reverse Engineering ─────────────
-    'ghidra': {
-        'name': 'Ghidra', 'icon': '🐉', 'category': 'Reverse Engineering',
-        'desc': 'NSA software reverse engineering framework',
-        'check_cmd': 'ghidra', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Download from https://ghidra-sre.org/"',
-        'usable_in': ['advanced'],
-    },
-    'radare2': {
-        'name': 'Radare2', 'icon': '🔧', 'category': 'Reverse Engineering',
-        'desc': 'Open-source RE framework with disassembler',
-        'check_cmd': 'r2', 'install_apt': 'radare2', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'cutter': {
-        'name': 'Cutter', 'icon': '✂️', 'category': 'Reverse Engineering',
-        'desc': 'GUI for Radare2 reverse engineering',
-        'check_cmd': 'cutter', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Download from https://cutter.re/"',
-        'usable_in': ['advanced'],
-    },
-    'apktool': {
-        'name': 'APKTool', 'icon': '📱', 'category': 'Mobile Security',
-        'desc': 'Reverse engineering tool for Android APKs',
-        'check_cmd': 'apktool', 'install_apt': 'apktool', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'jadx': {
-        'name': 'JADX', 'icon': '☕', 'category': 'Mobile Security',
-        'desc': 'DEX to Java decompiler for Android',
-        'check_cmd': 'jadx', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Download from https://github.com/skylot/jadx/releases"',
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Forensics ────────────────────────────────
-    'volatility3': {
-        'name': 'Volatility 3', 'icon': '🧪', 'category': 'Forensics',
-        'desc': 'Advanced memory forensics framework',
-        'check_cmd': 'vol', 'install_apt': None, 'install_pip': 'volatility3',
-        'usable_in': ['advanced'],
-    },
-    'autopsy': {
-        'name': 'Autopsy', 'icon': '🔍', 'category': 'Forensics',
-        'desc': 'Digital forensics platform (GUI)',
-        'check_cmd': 'autopsy', 'install_apt': 'autopsy', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'binwalk': {
-        'name': 'Binwalk', 'icon': '📦', 'category': 'Forensics',
-        'desc': 'Firmware analysis and extraction tool',
-        'check_cmd': 'binwalk', 'install_apt': 'binwalk', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'foremost': {
-        'name': 'Foremost', 'icon': '🗃️', 'category': 'Forensics',
-        'desc': 'File carving tool for data recovery',
-        'check_cmd': 'foremost', 'install_apt': 'foremost', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Wireless / WiFi ─────────────────────────
-    'aircrack_ng': {
-        'name': 'Aircrack-ng', 'icon': '📶', 'category': 'Wireless',
-        'desc': 'WiFi network security assessment suite',
-        'check_cmd': 'aircrack-ng', 'install_apt': 'aircrack-ng', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'kismet': {
-        'name': 'Kismet', 'icon': '📡', 'category': 'Wireless',
-        'desc': 'Wireless network and device detector/sniffer',
-        'check_cmd': 'kismet', 'install_apt': 'kismet', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'reaver': {
-        'name': 'Reaver', 'icon': '🔓', 'category': 'Wireless',
-        'desc': 'WPS brute-force attack tool',
-        'check_cmd': 'reaver', 'install_apt': 'reaver', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'wifite': {
-        'name': 'Wifite', 'icon': '📻', 'category': 'Wireless',
-        'desc': 'Automated wireless network auditing',
-        'check_cmd': 'wifite', 'install_apt': 'wifite', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Social Engineering ──────────────────────
-    'gophish': {
-        'name': 'GoPhish', 'icon': '🎣', 'category': 'Social Engineering',
-        'desc': 'Open-source phishing framework',
-        'check_cmd': 'gophish', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/gophish/gophish@latest',
-        'usable_in': ['advanced'],
-    },
-    'setoolkit': {
-        'name': 'SET', 'icon': '🎭', 'category': 'Social Engineering',
-        'desc': 'Social-Engineer Toolkit by TrustedSec',
-        'check_cmd': 'setoolkit', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'git clone https://github.com/trustedsec/social-engineer-toolkit.git /opt/set && cd /opt/set && pip install -r requirements.txt',
-        'usable_in': ['advanced'],
-    },
-    'king_phisher': {
-        'name': 'King Phisher', 'icon': '👑', 'category': 'Social Engineering',
-        'desc': 'Phishing campaign toolkit with server/client',
-        'check_cmd': 'king-phisher', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'echo "Visit https://github.com/rsmusllp/king-phisher"',
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Additional Web Recon ────────────────────
-    'waybackurls': {
-        'name': 'Waybackurls', 'icon': '⏪', 'category': 'Web Recon',
-        'desc': 'Fetch all URLs from Wayback Machine',
-        'check_cmd': 'waybackurls', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/tomnomnom/waybackurls@latest',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'gau': {
-        'name': 'gau', 'icon': '🔗', 'category': 'Web Recon',
-        'desc': 'Get All URLs from AlienVault, Wayback, Common Crawl',
-        'check_cmd': 'gau', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/lc/gau/v2/cmd/gau@latest',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'hakrawler': {
-        'name': 'Hakrawler', 'icon': '🕷️', 'category': 'Web Recon',
-        'desc': 'Fast web crawler for gathering URLs and JS file locations',
-        'check_cmd': 'hakrawler', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/hakluke/hakrawler@latest',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'katana': {
-        'name': 'Katana', 'icon': '⚔️', 'category': 'Web Recon',
-        'desc': 'Next-gen crawling and spidering framework (PD)',
-        'check_cmd': 'katana', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/projectdiscovery/katana/cmd/katana@latest',
-        'usable_in': ['quick', 'advanced', 'ai'],
-    },
-    'dnsx': {
-        'name': 'dnsx', 'icon': '🌐', 'category': 'DNS Recon',
-        'desc': 'Fast multi-purpose DNS toolkit (ProjectDiscovery)',
-        'check_cmd': 'dnsx', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'assetfinder': {
-        'name': 'Assetfinder', 'icon': '🏷️', 'category': 'Subdomain',
-        'desc': 'Find subdomains and related assets',
-        'check_cmd': 'assetfinder', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/tomnomnom/assetfinder@latest',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'shuffledns': {
-        'name': 'ShuffleDNS', 'icon': '🔀', 'category': 'DNS Recon',
-        'desc': 'Wrapper around massdns for active DNS brute-forcing',
-        'check_cmd': 'shuffledns', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install -v github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest',
-        'usable_in': ['advanced', 'ai'],
-    },
-
-    # ─── Infrastructure / Service Enumeration ─────
-    'enum4linux_ng': {
-        'name': 'enum4linux-ng', 'icon': '🐧', 'category': 'Enumeration',
-        'desc': 'Next-gen Linux/Samba enumeration tool',
-        'check_cmd': 'enum4linux-ng', 'install_apt': None, 'install_pip': 'enum4linux-ng',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'smbclient': {
-        'name': 'smbclient', 'icon': '📁', 'category': 'Enumeration',
-        'desc': 'SMB/CIFS client for accessing Windows shares',
-        'check_cmd': 'smbclient', 'install_apt': 'smbclient', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'crackmapexec': {
-        'name': 'CrackMapExec', 'icon': '💀', 'category': 'Enumeration',
-        'desc': 'Swiss army knife for pentesting Windows/AD environments',
-        'check_cmd': 'crackmapexec', 'install_apt': None, 'install_pip': 'crackmapexec',
-        'usable_in': ['advanced', 'ai'],
-    },
-    'ldapsearch': {
-        'name': 'ldapsearch', 'icon': '📒', 'category': 'Enumeration',
-        'desc': 'LDAP directory search and enumeration tool',
-        'check_cmd': 'ldapsearch', 'install_apt': 'ldap-utils', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'snmpwalk': {
-        'name': 'snmpwalk', 'icon': '🚶', 'category': 'Enumeration',
-        'desc': 'SNMP MIB tree walker for network device enumeration',
-        'check_cmd': 'snmpwalk', 'install_apt': 'snmp', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-
-    # ─── Exploitation / Post-Exploitation ─────────
-    'empire': {
-        'name': 'Empire', 'icon': '👑', 'category': 'Post-Exploitation',
-        'desc': 'PowerShell and Python post-exploitation framework',
-        'check_cmd': 'empire', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'pip install powershell-empire',
-        'usable_in': ['advanced'],
-    },
-    'sliver': {
-        'name': 'Sliver', 'icon': '🐍', 'category': 'C2 Framework',
-        'desc': 'Open-source cross-platform adversary emulation/C2',
-        'check_cmd': 'sliver', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'curl https://sliver.sh/install | sudo bash',
-        'usable_in': ['advanced'],
-    },
-    'beef': {
-        'name': 'BeEF', 'icon': '🥩', 'category': 'Browser Exploit',
-        'desc': 'Browser Exploitation Framework for XSS testing',
-        'check_cmd': 'beef-xss', 'install_apt': 'beef-xss', 'install_pip': None,
-        'usable_in': ['advanced'],
-    },
-    'searchsploit': {
-        'name': 'SearchSploit', 'icon': '🔍', 'category': 'Exploit DB',
-        'desc': 'CLI search tool for Exploit Database',
-        'check_cmd': 'searchsploit', 'install_apt': 'exploitdb', 'install_pip': None,
-        'usable_in': ['advanced', 'ai'],
     },
 
     # ─── Reporting / Management ──────────────────

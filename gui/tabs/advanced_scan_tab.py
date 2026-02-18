@@ -466,9 +466,10 @@ def setup_advanced_tab(parent, gui_instance):
         """Enable recon-focused tools"""
         recon_cats = {
             'Network Scanner', 'Port Scanner', 'Fingerprinting', 'Web Scanner',
-            'Subdomain', 'OSINT/Recon', 'HTTP Probe', 'SSL/TLS',
-            'Web Recon', 'DNS Recon', 'Traffic Analysis', 'API Testing',
-            'MITM', 'Web Proxy', 'Enumeration', 'Web Crawler',
+            'Subdomain', 'Subdomain Takeover', 'OSINT/Recon', 'HTTP Probe',
+            'SSL/TLS', 'Web Recon', 'DNS Recon', 'API Testing',
+            'Web Proxy', 'Web Crawler', 'Visual Recon',
+            'Param Discovery', 'URL Manipulation', 'Pattern Grep',
         }
         for tid, v in gui_instance.adv_ext_tool_vars.items():
             info = adv_tools.get(tid, {})
@@ -479,8 +480,8 @@ def setup_advanced_tab(parent, gui_instance):
         vuln_cats = {
             'SQL Injection', 'XSS Scanner', 'Vuln Scanner', 'Command Injection',
             'CMS Scanner', 'WordPress', 'Joomla', 'Web Fuzzer', 'Fuzzer',
-            'SAST', 'Secret Scanner', 'Container Security', 'IaC Security',
-            'K8s Security', 'Cloud Security', 'Browser Exploit', 'Exploit DB',
+            'SAST', 'Secret Scanner', 'SSTI Scanner', 'SSRF Scanner',
+            'OOB Testing', 'Exploit DB', 'Brute Force',
         }
         for tid, v in gui_instance.adv_ext_tool_vars.items():
             info = adv_tools.get(tid, {})
