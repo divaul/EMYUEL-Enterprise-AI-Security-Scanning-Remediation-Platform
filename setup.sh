@@ -540,8 +540,10 @@ print_completion() {
     
     echo -e "${BCYAN}┌─${NC} ${WHITE}GUI Features${NC}"
     echo -e "${BCYAN}│${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Quick Scan${NC}         ${GRAY}URL input + vulnerability selection${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Advanced Scan${NC}      ${GRAY}Directory scanning with custom profiles${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Quick Scan${NC}         ${GRAY}URL input + 79 external security tools${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Advanced Scan${NC}      ${GRAY}Comprehensive scanning with tool presets${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}External Tools${NC}     ${GRAY}Nmap, Nuclei, SQLMap, Subfinder, etc.${NC}"
+    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Pipeline Chains${NC}    ${GRAY}Auto-chain tools (subfinder→httprobe)${NC}"
     echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}AI Analysis${NC}        ${GRAY}Autonomous AI-driven security testing${NC}"
     echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Results Monitor${NC}    ${GRAY}Real-time scan progress tracking${NC}"
     echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Reports Hub${NC}        ${GRAY}Browse history, search, export reports${NC}"

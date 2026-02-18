@@ -95,10 +95,13 @@ echo   4. Configure API keys in GUI or CLI:
 echo      python -m cli.emyuel_cli config --provider openai
 echo.
 echo Features:
-echo   * Quick Scan - URL-based scanning with vulnerability selection
+echo   * Quick Scan - URL-based scanning + 79 external tools
+echo   * Advanced Scan - Comprehensive scanning with tool presets
+echo   * External Tools - Nmap, Nuclei, SQLMap, Subfinder, etc.
+echo   * Pipeline Chains - Auto-chain tools (subfinder-httprobe)
 echo   * AI Analysis - Natural language security testing
-echo   * Advanced Scan - Directory/code scanning
-echo   * Brute Force - Authentication testing
+echo   * Reports - PDF/HTML with severity breakdown
+echo   * Database - Scan history with persistent storage
 echo.
 echo ================================================
 
