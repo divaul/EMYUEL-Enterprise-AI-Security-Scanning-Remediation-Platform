@@ -1712,8 +1712,14 @@ class EMYUELGUI:
             }
             provider = provider_map.get(provider_ui, 'gemini')
             
-            # Validate API key for selected provider
-            api_key = self.key_manager.get_key(provider)
+            # Validate API key for selected provider using GUI key variables
+            key_var_map = {
+                'openai': getattr(self, 'api_key_openai', None),
+                'gemini': getattr(self, 'api_key_gemini', None),
+                'claude': getattr(self, 'api_key_claude', None),
+            }
+            key_var = key_var_map.get(provider)
+            api_key = key_var.get().strip() if key_var and hasattr(key_var, 'get') else ''
             if not api_key:
                 messagebox.showerror("API Key Required", 
                                    f"Please configure your {provider.upper()} API key in the API Keys tab first")
@@ -1779,8 +1785,19 @@ class EMYUELGUI:
         
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔧 Initializing AI analyzer...")
         
-        # Initialize LLM
+        # Initialize LLM with GUI's saved API keys (FIXED: was creating empty APIKeyManager)
         api_mgr = APIKeyManager()
+        key_map = {
+            'openai': getattr(self, 'api_key_openai', None),
+            'gemini': getattr(self, 'api_key_gemini', None),
+            'claude': getattr(self, 'api_key_claude', None),
+        }
+        for provider_name, key_var in key_map.items():
+            if key_var is not None:
+                key_value = key_var.get().strip() if hasattr(key_var, 'get') else str(key_var).strip()
+                if key_value:
+                    api_mgr.add_key(provider_name, key_value)
+        
         llm = LLMAnalyzer(api_mgr, provider)
         
         # ==========================================

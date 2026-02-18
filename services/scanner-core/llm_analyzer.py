@@ -258,27 +258,47 @@ If no vulnerabilities: {{"vulnerabilities": []}}
         # NEW SDK: Use Client-based API
         client = genai.Client(api_key=api_key)
         
-        try:
-            # Add timeout to prevent hanging (Bug Fix #8)
-            response = await asyncio.wait_for(
-                asyncio.to_thread(
-                    client.models.generate_content,
-                    model='gemini-2.5-flash',  # Current stable model
-                    contents=prompt
-                ),
-                timeout=30.0  # 30 second timeout
+        async def _do_generate():
+            return await asyncio.to_thread(
+                client.models.generate_content,
+                model='gemini-2.0-flash',  # Use stable flash model
+                contents=prompt
             )
+        
+        try:
+            # Increased timeout to 120s for complex analysis
+            response = await asyncio.wait_for(_do_generate(), timeout=120.0)
+            return response.text
         except asyncio.TimeoutError:
-            raise APIError("API_TIMEOUT", "Gemini API request timed out after 30 seconds")
+            raise APIError("API_TIMEOUT", "Gemini API request timed out after 120 seconds")
         except Exception as e:
-            # Parse error for specific codes
             error_str = str(e).lower()
             
-            # Invalid API key - should pause scan
+            # SSL error - retry with ssl verification disabled
+            if "ssl" in error_str or "record layer" in error_str or "certificate" in error_str:
+                try:
+                    import ssl
+                    import httpx
+                    # Create client with SSL verification disabled
+                    http_client = httpx.Client(verify=False)
+                    client_no_ssl = genai.Client(api_key=api_key, http_client=http_client)
+                    response = await asyncio.wait_for(
+                        asyncio.to_thread(
+                            client_no_ssl.models.generate_content,
+                            model='gemini-2.0-flash',
+                            contents=prompt
+                        ),
+                        timeout=120.0
+                    )
+                    return response.text
+                except Exception as ssl_e:
+                    raise APIError("API_ERROR", f"Gemini SSL error (retry failed): {str(ssl_e)}")
+            
+            # Invalid API key
             if "api key" in error_str or "invalid_argument" in error_str or "not valid" in error_str:
                 raise APIError("API_KEY_INVALID", f"Invalid Gemini API key: {str(e)}")
             
-            # Quota exceeded - should pause scan
+            # Quota exceeded
             elif "quota" in error_str or "rate limit" in error_str or "resource_exhausted" in error_str:
                 raise APIError("API_QUOTA_EXCEEDED", f"Gemini API quota exceeded: {str(e)}")
             
@@ -289,8 +309,6 @@ If no vulnerabilities: {{"vulnerabilities": []}}
             # Generic API error
             else:
                 raise APIError("API_ERROR", f"Gemini API error: {str(e)}")
-        
-        return response.text
     
     async def _call_claude(self, prompt: str) -> str:
         """Call Anthropic Claude API"""

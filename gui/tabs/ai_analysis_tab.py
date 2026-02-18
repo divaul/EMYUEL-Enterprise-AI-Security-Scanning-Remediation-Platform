@@ -198,7 +198,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
     gui_instance.ai_target_var = getattr(gui_instance, 'ai_target_var', tk.StringVar(value='https://testphp.vulnweb.com'))
     gui_instance.ai_nlp_query_var = getattr(gui_instance, 'ai_nlp_query_var', tk.StringVar())
     gui_instance.ai_depth_var = getattr(gui_instance, 'ai_depth_var', tk.StringVar(value='Standard'))
-    gui_instance.ai_provider_var = getattr(gui_instance, 'ai_provider_var', tk.StringVar(value='OpenAI GPT-4'))
+    gui_instance.ai_provider_var = getattr(gui_instance, 'ai_provider_var', tk.StringVar(value='Google Gemini'))
 
     url_entry = tk.Entry(
         url_input_container,
