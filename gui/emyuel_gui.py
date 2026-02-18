@@ -2356,6 +2356,446 @@ Example:
                 self.ai_exec_step_widgets[index]['status'].config(text=text, fg=color)
         self.root.after(0, update)
     
+    # ─── Security Tools Manager ─────────────────────────────────
+    
+    SECURITY_TOOLS = {
+        'nmap': {
+            'name': 'Nmap', 'icon': '🌐', 'category': 'Network Scanner',
+            'desc': 'Network exploration and security auditing',
+            'check_cmd': 'nmap', 'install_apt': 'nmap', 'install_pip': None
+        },
+        'sqlmap': {
+            'name': 'SQLMap', 'icon': '🗄️', 'category': 'SQL Injection',
+            'desc': 'Automatic SQL injection and database takeover',
+            'check_cmd': 'sqlmap', 'install_apt': 'sqlmap', 'install_pip': 'sqlmap'
+        },
+        'nikto': {
+            'name': 'Nikto', 'icon': '🔍', 'category': 'Web Scanner',
+            'desc': 'Web server scanner for dangerous files/CGIs',
+            'check_cmd': 'nikto', 'install_apt': 'nikto', 'install_pip': None
+        },
+        'gobuster': {
+            'name': 'GoBuster', 'icon': '📁', 'category': 'Directory Brute',
+            'desc': 'URI/DNS/VHost brute-forcing tool',
+            'check_cmd': 'gobuster', 'install_apt': 'gobuster', 'install_pip': None
+        },
+        'hydra': {
+            'name': 'Hydra', 'icon': '🔐', 'category': 'Brute Force',
+            'desc': 'Fast network logon cracker for various protocols',
+            'check_cmd': 'hydra', 'install_apt': 'hydra', 'install_pip': None
+        },
+        'wpscan': {
+            'name': 'WPScan', 'icon': '📝', 'category': 'WordPress',
+            'desc': 'WordPress security scanner',
+            'check_cmd': 'wpscan', 'install_apt': None, 'install_pip': None,
+            'install_custom': 'gem install wpscan'
+        },
+        'whatweb': {
+            'name': 'WhatWeb', 'icon': '🔎', 'category': 'Fingerprint',
+            'desc': 'Web technology fingerprinting tool',
+            'check_cmd': 'whatweb', 'install_apt': 'whatweb', 'install_pip': None
+        },
+        'dirb': {
+            'name': 'DIRB', 'icon': '📂', 'category': 'Directory Scanner',
+            'desc': 'Web content scanner (dictionary based)',
+            'check_cmd': 'dirb', 'install_apt': 'dirb', 'install_pip': None
+        },
+        'subfinder': {
+            'name': 'Subfinder', 'icon': '🌍', 'category': 'Subdomain',
+            'desc': 'Subdomain discovery tool',
+            'check_cmd': 'subfinder', 'install_apt': None, 'install_pip': None,
+            'install_custom': 'go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest'
+        },
+        'nuclei': {
+            'name': 'Nuclei', 'icon': '☢️', 'category': 'Vuln Scanner',
+            'desc': 'Fast template-based vulnerability scanner',
+            'check_cmd': 'nuclei', 'install_apt': None, 'install_pip': None,
+            'install_custom': 'go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
+        },
+        'ffuf': {
+            'name': 'FFUF', 'icon': '⚡', 'category': 'Fuzzer',
+            'desc': 'Fast web fuzzer written in Go',
+            'check_cmd': 'ffuf', 'install_apt': 'ffuf', 'install_pip': None
+        },
+        'wfuzz': {
+            'name': 'Wfuzz', 'icon': '🎯', 'category': 'Web Fuzzer',
+            'desc': 'Web application bruteforcer',
+            'check_cmd': 'wfuzz', 'install_apt': None, 'install_pip': 'wfuzz'
+        },
+        'aiohttp': {
+            'name': 'aiohttp', 'icon': '📡', 'category': 'Python HTTP',
+            'desc': 'Async HTTP client/server for Python',
+            'check_cmd': None, 'install_apt': None, 'install_pip': 'aiohttp'
+        },
+        'httpx_pkg': {
+            'name': 'httpx', 'icon': '🔗', 'category': 'Python HTTP',
+            'desc': 'Modern HTTP client with HTTP/2 support',
+            'check_cmd': None, 'install_apt': None, 'install_pip': 'httpx'
+        },
+        'google_genai': {
+            'name': 'Google GenAI', 'icon': '🤖', 'category': 'AI/LLM SDK',
+            'desc': 'Google Gemini AI SDK for Python',
+            'check_cmd': None, 'install_apt': None, 'install_pip': 'google-genai'
+        },
+    }
+    
+    def scan_installed_tools(self):
+        """Scan system for installed cybersecurity tools (runs in thread)"""
+        import threading
+        def _scan():
+            import shutil
+            import subprocess
+            from datetime import datetime
+            
+            self.ai_log_console(f"\n[{datetime.now().strftime('%H:%M:%S')}] 🔍 Scanning installed security tools...")
+            
+            tool_status = {}
+            installed_count = 0
+            
+            for tool_id, info in self.SECURITY_TOOLS.items():
+                is_installed = False
+                version = ""
+                
+                # Check command-line tools
+                if info.get('check_cmd'):
+                    path = shutil.which(info['check_cmd'])
+                    if path:
+                        is_installed = True
+                        try:
+                            result = subprocess.run(
+                                [info['check_cmd'], '--version'],
+                                capture_output=True, text=True, timeout=5
+                            )
+                            ver_out = result.stdout.strip() or result.stderr.strip()
+                            version = ver_out.split('\n')[0][:60] if ver_out else "installed"
+                        except Exception:
+                            version = "installed"
+                
+                # Check pip packages
+                elif info.get('install_pip'):
+                    try:
+                        pkg_name = info['install_pip'].replace('-', '_')
+                        __import__(pkg_name)
+                        is_installed = True
+                        version = "installed (pip)"
+                    except ImportError:
+                        try:
+                            result = subprocess.run(
+                                ['pip', 'show', info['install_pip']],
+                                capture_output=True, text=True, timeout=5
+                            )
+                            if result.returncode == 0:
+                                is_installed = True
+                                for line in result.stdout.split('\n'):
+                                    if line.startswith('Version:'):
+                                        version = line.strip()
+                                        break
+                        except Exception:
+                            pass
+                
+                if is_installed:
+                    installed_count += 1
+                
+                tool_status[tool_id] = {
+                    'installed': is_installed,
+                    'version': version
+                }
+            
+            total = len(self.SECURITY_TOOLS)
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Scan complete: {installed_count}/{total} tools installed\n")
+            
+            # Update UI on main thread
+            self.root.after(0, lambda: self._populate_tools_ui(tool_status))
+        
+        thread = threading.Thread(target=_scan, daemon=True)
+        thread.start()
+    
+    def _populate_tools_ui(self, tool_status):
+        """Populate the tool manager UI with tool cards"""
+        if not hasattr(self, 'tools_list_frame'):
+            return
+        
+        colors = self.colors
+        for w in self.tools_list_frame.winfo_children():
+            w.destroy()
+        self.tool_widgets = {}
+        
+        installed = sum(1 for s in tool_status.values() if s['installed'])
+        total = len(tool_status)
+        
+        if hasattr(self, 'tools_status_label'):
+            self.tools_status_label.config(
+                text=f"✅ {installed}/{total} tools installed  |  ❌ {total - installed} missing",
+                fg=colors.get('success', '#10b981') if installed == total else colors.get('warning', '#f59e0b')
+            )
+        
+        severity_map = {'installed': '#10b981', 'missing': '#ef4444'}
+        
+        for tool_id, info in self.SECURITY_TOOLS.items():
+            status = tool_status.get(tool_id, {'installed': False, 'version': ''})
+            is_installed = status['installed']
+            version = status['version']
+            
+            card = tk.Frame(self.tools_list_frame, bg='#1a2332',
+                           highlightbackground='#243244', highlightthickness=1)
+            card.pack(fill='x', padx=8, pady=3)
+            
+            # Top row
+            top = tk.Frame(card, bg='#1a2332')
+            top.pack(fill='x', padx=10, pady=(6, 2))
+            
+            tk.Label(top, text=f"{info['icon']}  {info['name']}",
+                     font=('Segoe UI', 10, 'bold'), fg='#e6eef8', bg='#1a2332').pack(side='left')
+            
+            tk.Label(top, text=f"[{info['category']}]",
+                     font=('Segoe UI', 8), fg='#6b7fa0', bg='#1a2332').pack(side='left', padx=(8, 0))
+            
+            status_text = f"✅ {version}" if is_installed else "❌ Not installed"
+            status_color = severity_map['installed'] if is_installed else severity_map['missing']
+            
+            status_lbl = tk.Label(top, text=status_text, font=('Segoe UI', 9),
+                                   fg=status_color, bg='#1a2332')
+            status_lbl.pack(side='right')
+            
+            # Bottom row: description + button
+            bottom = tk.Frame(card, bg='#1a2332')
+            bottom.pack(fill='x', padx=10, pady=(0, 6))
+            
+            tk.Label(bottom, text=info['desc'], font=('Segoe UI', 8),
+                     fg='#9fb0c9', bg='#1a2332', anchor='w').pack(side='left')
+            
+            if is_installed:
+                btn = tk.Button(bottom, text="🔄 Update", font=('Segoe UI', 8, 'bold'),
+                                bg='#3b82f6', fg='#ffffff', relief='flat', cursor='hand2',
+                                padx=8, pady=2,
+                                command=lambda tid=tool_id: self._update_tool(tid))
+            else:
+                btn = tk.Button(bottom, text="📦 Install", font=('Segoe UI', 8, 'bold'),
+                                bg='#10b981', fg='#000000', relief='flat', cursor='hand2',
+                                padx=8, pady=2,
+                                command=lambda tid=tool_id: self._install_tool(tid))
+            btn.pack(side='right')
+            
+            self.tool_widgets[tool_id] = {
+                'card': card, 'status_lbl': status_lbl, 'btn': btn,
+                'installed': is_installed
+            }
+    
+    def _install_tool(self, tool_id):
+        """Install a single tool in a background thread"""
+        import threading
+        def _do_install():
+            import subprocess
+            from datetime import datetime
+            
+            info = self.SECURITY_TOOLS.get(tool_id)
+            if not info:
+                return
+            
+            name = info['name']
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 📦 Installing {name}...")
+            self._update_tool_status_ui(tool_id, "⏳ Installing...", '#f59e0b')
+            
+            success = False
+            
+            # Try pip first
+            if info.get('install_pip'):
+                try:
+                    result = subprocess.run(
+                        ['pip', 'install', '--upgrade', info['install_pip']],
+                        capture_output=True, text=True, timeout=120
+                    )
+                    if result.returncode == 0:
+                        success = True
+                        self.ai_log_console(f"  ✅ {name} installed via pip")
+                    else:
+                        self.ai_log_console(f"  ⚠️ pip install failed: {result.stderr[:100]}")
+                except Exception as e:
+                    self.ai_log_console(f"  ⚠️ pip error: {e}")
+            
+            # Try apt
+            if not success and info.get('install_apt'):
+                try:
+                    result = subprocess.run(
+                        ['sudo', 'apt-get', 'install', '-y', info['install_apt']],
+                        capture_output=True, text=True, timeout=180
+                    )
+                    if result.returncode == 0:
+                        success = True
+                        self.ai_log_console(f"  ✅ {name} installed via apt")
+                    else:
+                        self.ai_log_console(f"  ⚠️ apt install failed: {result.stderr[:100]}")
+                except Exception as e:
+                    self.ai_log_console(f"  ⚠️ apt error: {e}")
+            
+            # Try custom command
+            if not success and info.get('install_custom'):
+                try:
+                    result = subprocess.run(
+                        info['install_custom'], shell=True,
+                        capture_output=True, text=True, timeout=180
+                    )
+                    if result.returncode == 0:
+                        success = True
+                        self.ai_log_console(f"  ✅ {name} installed via custom command")
+                    else:
+                        self.ai_log_console(f"  ⚠️ Custom install failed: {result.stderr[:100]}")
+                except Exception as e:
+                    self.ai_log_console(f"  ⚠️ Custom install error: {e}")
+            
+            if success:
+                self._update_tool_status_ui(tool_id, "✅ Installed", '#10b981')
+            else:
+                self._update_tool_status_ui(tool_id, "❌ Install failed", '#ef4444')
+                self.ai_log_console(f"  ❌ Failed to install {name}")
+        
+        thread = threading.Thread(target=_do_install, daemon=True)
+        thread.start()
+    
+    def _update_tool(self, tool_id):
+        """Update an existing tool"""
+        import threading
+        def _do_update():
+            import subprocess
+            from datetime import datetime
+            
+            info = self.SECURITY_TOOLS.get(tool_id)
+            if not info:
+                return
+            
+            name = info['name']
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔄 Updating {name}...")
+            self._update_tool_status_ui(tool_id, "⏳ Updating...", '#f59e0b')
+            
+            success = False
+            
+            if info.get('install_pip'):
+                try:
+                    result = subprocess.run(
+                        ['pip', 'install', '--upgrade', info['install_pip']],
+                        capture_output=True, text=True, timeout=120
+                    )
+                    if result.returncode == 0:
+                        success = True
+                except Exception:
+                    pass
+            
+            if not success and info.get('install_apt'):
+                try:
+                    result = subprocess.run(
+                        ['sudo', 'apt-get', 'install', '--only-upgrade', '-y', info['install_apt']],
+                        capture_output=True, text=True, timeout=180
+                    )
+                    if result.returncode == 0:
+                        success = True
+                except Exception:
+                    pass
+            
+            if success:
+                self._update_tool_status_ui(tool_id, "✅ Updated", '#10b981')
+                self.ai_log_console(f"  ✅ {name} updated successfully")
+            else:
+                self._update_tool_status_ui(tool_id, "⚠️ Update failed", '#f59e0b')
+                self.ai_log_console(f"  ⚠️ {name} update failed")
+        
+        thread = threading.Thread(target=_do_update, daemon=True)
+        thread.start()
+    
+    def _update_tool_status_ui(self, tool_id, text, color):
+        """Update tool status label (thread-safe)"""
+        def update():
+            if hasattr(self, 'tool_widgets') and tool_id in self.tool_widgets:
+                self.tool_widgets[tool_id]['status_lbl'].config(text=text, fg=color)
+        self.root.after(0, update)
+    
+    def install_all_missing_tools(self):
+        """Install all missing tools"""
+        if not hasattr(self, 'tool_widgets') or not self.tool_widgets:
+            from tkinter import messagebox
+            messagebox.showinfo("Detect First", "Click 'Detect Tools' first to scan installed tools.")
+            return
+        
+        missing = [tid for tid, tw in self.tool_widgets.items() if not tw.get('installed', False)]
+        if not missing:
+            from tkinter import messagebox
+            messagebox.showinfo("All Installed", "All security tools are already installed! ✅")
+            return
+        
+        from tkinter import messagebox
+        if not messagebox.askyesno("Install Missing Tools",
+                                    f"Install {len(missing)} missing tools?\n\n" +
+                                    "\n".join(f"• {self.SECURITY_TOOLS[t]['name']}" for t in missing) +
+                                    "\n\nThis may require sudo password."):
+            return
+        
+        import threading
+        def _install_all():
+            from datetime import datetime
+            self.ai_log_console(f"\n[{datetime.now().strftime('%H:%M:%S')}] 📦 INSTALLING {len(missing)} MISSING TOOLS...")
+            self.ai_log_console(f"{'─'*50}")
+            for tid in missing:
+                self._install_tool_sync(tid)
+            self.ai_log_console(f"{'─'*50}")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Batch install complete!\n")
+        
+        thread = threading.Thread(target=_install_all, daemon=True)
+        thread.start()
+    
+    def _install_tool_sync(self, tool_id):
+        """Synchronous install (called from batch install thread)"""
+        import subprocess
+        from datetime import datetime
+        
+        info = self.SECURITY_TOOLS.get(tool_id)
+        if not info:
+            return
+        
+        name = info['name']
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 📦 Installing {name}...")
+        self._update_tool_status_ui(tool_id, "⏳ Installing...", '#f59e0b')
+        
+        success = False
+        
+        if info.get('install_pip'):
+            try:
+                result = subprocess.run(
+                    ['pip', 'install', '--upgrade', info['install_pip']],
+                    capture_output=True, text=True, timeout=120
+                )
+                if result.returncode == 0:
+                    success = True
+            except Exception:
+                pass
+        
+        if not success and info.get('install_apt'):
+            try:
+                result = subprocess.run(
+                    ['sudo', 'apt-get', 'install', '-y', info['install_apt']],
+                    capture_output=True, text=True, timeout=180
+                )
+                if result.returncode == 0:
+                    success = True
+            except Exception:
+                pass
+        
+        if not success and info.get('install_custom'):
+            try:
+                result = subprocess.run(
+                    info['install_custom'], shell=True,
+                    capture_output=True, text=True, timeout=180
+                )
+                if result.returncode == 0:
+                    success = True
+            except Exception:
+                pass
+        
+        if success:
+            self._update_tool_status_ui(tool_id, "✅ Installed", '#10b981')
+            self.ai_log_console(f"  ✅ {name} installed")
+        else:
+            self._update_tool_status_ui(tool_id, "❌ Failed", '#ef4444')
+            self.ai_log_console(f"  ❌ {name} failed")
+    
     def download_ai_results(self):
         """Download AI analysis results as a report file"""
         from tkinter import filedialog, messagebox
@@ -2368,7 +2808,6 @@ Example:
             reasoning_text = self.ai_reasoning_text.get('1.0', 'end').strip()
             self.ai_reasoning_text.config(state='disabled')
         
-        # Get console content
         console_text = ""
         if hasattr(self, 'ai_console_text'):
             self.ai_console_text.config(state='normal')

@@ -640,6 +640,95 @@ def setup_ai_analysis_tab(parent, gui_instance):
     )
     gui_instance.ai_console_text.pack(fill='both', expand=True, padx=20, pady=(0, 20))
 
-    # Initialize AI analysis state
+    # ─── Tool Manager Section ───────────────────────────────────
+    tools_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    tools_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+
+    tools_header = tk.Frame(tools_frame, bg=colors['bg_secondary'])
+    tools_header.pack(fill='x', padx=20, pady=(15, 10))
+
+    tk.Label(
+        tools_header,
+        text="🔧 Security Tools Manager",
+        font=('Segoe UI', 11, 'bold'),
+        fg=colors['accent_cyan'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+
+    # Scan tools button
+    scan_tools_btn = tk.Button(
+        tools_header,
+        text="🔍 Detect Tools",
+        font=('Segoe UI', 9, 'bold'),
+        bg=colors['accent_cyan'],
+        fg='#000000',
+        activebackground=colors['accent_purple'],
+        relief='flat',
+        cursor='hand2',
+        command=getattr(gui_instance, 'scan_installed_tools', lambda: None),
+        padx=10,
+        pady=3
+    )
+    scan_tools_btn.pack(side='right', padx=(5, 0))
+
+    # Install All Missing button
+    install_all_btn = tk.Button(
+        tools_header,
+        text="📦 Install All Missing",
+        font=('Segoe UI', 9, 'bold'),
+        bg=colors['success'],
+        fg='#000000',
+        activebackground=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=getattr(gui_instance, 'install_all_missing_tools', lambda: None),
+        padx=10,
+        pady=3
+    )
+    install_all_btn.pack(side='right', padx=(5, 0))
+
+    gui_instance.tools_status_label = tk.Label(
+        tools_frame,
+        text="Click 'Detect Tools' to scan installed security tools",
+        font=('Segoe UI', 9, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    gui_instance.tools_status_label.pack(anchor='w', padx=20, pady=(0, 5))
+
+    # Tools grid canvas
+    tools_canvas = tk.Canvas(tools_frame, bg=colors['bg_tertiary'], highlightthickness=0,
+                              borderwidth=0, height=200)
+    tools_scrollbar = tk.Scrollbar(tools_frame, orient="vertical", command=tools_canvas.yview,
+                                    bg=colors['bg_secondary'], troughcolor=colors['bg_primary'],
+                                    activebackground=colors['accent_cyan'])
+    gui_instance.tools_list_frame = tk.Frame(tools_canvas, bg=colors['bg_tertiary'])
+
+    gui_instance.tools_list_frame.bind(
+        "<Configure>",
+        lambda e: tools_canvas.configure(scrollregion=tools_canvas.bbox("all"))
+    )
+
+    tools_canvas_window = tools_canvas.create_window((0, 0), window=gui_instance.tools_list_frame, anchor="nw")
+
+    def _configure_tools_canvas(event):
+        try:
+            tools_canvas.itemconfig(tools_canvas_window, width=max(100, event.width - 8))
+        except Exception:
+            pass
+
+    tools_canvas.bind('<Configure>', _configure_tools_canvas)
+    tools_canvas.configure(yscrollcommand=tools_scrollbar.set)
+
+    tools_canvas.pack(side="left", fill="both", expand=True, padx=20, pady=(0, 15))
+    tools_scrollbar.pack(side="right", fill="y", pady=(0, 15), padx=(0, 20))
+
+    try:
+        _bind_mousewheel(tools_canvas)
+    except Exception:
+        pass
+
+    # Initialize states
     gui_instance.ai_analysis_running = False
     gui_instance.ai_step_widgets = []
+    gui_instance.tool_widgets = {}
