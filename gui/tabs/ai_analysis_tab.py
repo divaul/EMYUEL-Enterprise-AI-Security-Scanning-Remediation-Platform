@@ -639,7 +639,9 @@ def setup_ai_analysis_tab(parent, gui_instance):
         activeforeground='#ffffff',
         relief='flat',
         cursor='hand2',
-        command=lambda: gui_instance.ai_console_text.delete('1.0', tk.END),
+        command=lambda: (gui_instance.ai_console_text.config(state='normal'),
+                         gui_instance.ai_console_text.delete('1.0', tk.END),
+                         gui_instance.ai_console_text.config(state='disabled')),
         padx=12,
         pady=4
     )
