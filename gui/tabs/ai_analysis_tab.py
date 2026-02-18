@@ -520,6 +520,82 @@ def setup_ai_analysis_tab(parent, gui_instance):
     )
     gui_instance.ai_reasoning_text.pack(fill='x', padx=20, pady=(0, 15))
 
+    # ─── Protocol Execution Panel ───────────────────────────────
+    exec_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    exec_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+
+    exec_header = tk.Frame(exec_frame, bg=colors['bg_secondary'])
+    exec_header.pack(fill='x', padx=20, pady=(15, 10))
+
+    tk.Label(
+        exec_header,
+        text="⚡ Protocol Execution",
+        font=('Segoe UI', 11, 'bold'),
+        fg=colors['accent_cyan'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+
+    # Execute All button
+    exec_all_btn = tk.Button(
+        exec_header,
+        text="▶ Execute All Steps",
+        font=('Segoe UI', 9, 'bold'),
+        bg=colors['success'],
+        fg='#000000',
+        activebackground=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=getattr(gui_instance, 'ai_run_all_exec_steps', lambda: None),
+        padx=12,
+        pady=4
+    )
+    exec_all_btn.pack(side='right', padx=(5, 0))
+
+    # Status label
+    gui_instance.ai_exec_status_label = tk.Label(
+        exec_frame,
+        text="Run AI Analysis first to generate executable test steps",
+        font=('Segoe UI', 9, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    gui_instance.ai_exec_status_label.pack(anchor='w', padx=20, pady=(0, 5))
+
+    # Scrollable exec steps container
+    exec_canvas = tk.Canvas(exec_frame, bg=colors['bg_tertiary'], highlightthickness=0, borderwidth=0, height=250)
+    exec_scrollbar = tk.Scrollbar(exec_frame, orient="vertical", command=exec_canvas.yview,
+                                   bg=colors['bg_secondary'], troughcolor=colors['bg_primary'],
+                                   activebackground=colors['accent_cyan'])
+    gui_instance.ai_exec_steps_frame = tk.Frame(exec_canvas, bg=colors['bg_tertiary'])
+
+    gui_instance.ai_exec_steps_frame.bind(
+        "<Configure>",
+        lambda e: exec_canvas.configure(scrollregion=exec_canvas.bbox("all"))
+    )
+
+    exec_canvas_window = exec_canvas.create_window((0, 0), window=gui_instance.ai_exec_steps_frame, anchor="nw")
+
+    def _configure_exec_canvas(event):
+        try:
+            exec_canvas.itemconfig(exec_canvas_window, width=max(100, event.width - 8))
+        except Exception:
+            pass
+
+    exec_canvas.bind('<Configure>', _configure_exec_canvas)
+    exec_canvas.configure(yscrollcommand=exec_scrollbar.set)
+
+    exec_canvas.pack(side="left", fill="both", expand=True, padx=20, pady=(0, 15))
+    exec_scrollbar.pack(side="right", fill="y", pady=(0, 15), padx=(0, 20))
+
+    try:
+        _bind_mousewheel(exec_canvas)
+    except Exception:
+        pass
+
+    # Initialize exec state
+    gui_instance.ai_exec_step_data = []
+    gui_instance.ai_exec_step_widgets = []
+
     # Live Console
     console_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
     console_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))

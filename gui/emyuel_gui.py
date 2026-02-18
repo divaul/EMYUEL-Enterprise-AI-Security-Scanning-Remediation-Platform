@@ -1983,6 +1983,67 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
         except Exception as e:
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Recommendation generation failed: {e}")
             self._ai_update_step(2, "💡", "Phase 3: Recommendations", f"Failed: {e}", 'error')
+        
+        # ==========================================
+        # PHASE 4: GENERATE EXECUTABLE PROTOCOLS
+        # ==========================================
+        self._ai_add_step("⚡", "Phase 4: Protocol Generation", "Running...", 'warning')
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚡ Phase 4: Generating executable test protocols...")
+        
+        protocol_prompt = f"""Based on the vulnerability analysis, generate EXECUTABLE test protocols as a JSON array.
+
+Target: {target_url}
+Reconnaissance: {recon_response[:300]}
+Vulnerability Strategy: {vuln_response[:300]}
+
+Generate exactly 5-8 test protocols. Each protocol is a JSON object with these fields:
+- "id": step number (1, 2, 3...)
+- "name": short descriptive name (e.g., "SQL Injection Test on Login")
+- "category": one of ["SQLi", "XSS", "CSRF", "Headers", "Auth", "InfoLeak", "SSL", "DirectoryTraversal"]
+- "severity": one of ["Critical", "High", "Medium", "Low"]
+- "method": HTTP method ("GET" or "POST")
+- "path": URL path to test (e.g., "/login", "/search?q=test")
+- "payload": test payload string (e.g., "' OR 1=1 --", "<script>alert(1)</script>")
+- "check_type": what to check in response - one of ["status_code", "body_contains", "header_missing", "redirect"]
+- "check_value": expected value that indicates vulnerability (e.g., "error", "sql", "syntax")
+- "description": 1-2 sentence description of what this test does
+
+RESPOND WITH ONLY THE JSON ARRAY, no markdown, no backticks, just the raw JSON.
+Example:
+[{{"id":1,"name":"SQL Injection on Search","category":"SQLi","severity":"High","method":"GET","path":"/search?q=' OR 1=1 --","payload":"' OR 1=1 --","check_type":"body_contains","check_value":"error","description":"Tests for SQL injection vulnerability in search parameter."}}]
+"""
+
+        try:
+            protocol_response = await llm.chat(protocol_prompt)
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Protocols generated")
+            
+            # Parse JSON
+            import json
+            import re
+            # Clean response - remove markdown backticks if present
+            cleaned = protocol_response.strip()
+            cleaned = re.sub(r'^```(?:json)?\s*', '', cleaned)
+            cleaned = re.sub(r'\s*```$', '', cleaned)
+            cleaned = cleaned.strip()
+            
+            try:
+                protocols = json.loads(cleaned)
+                if isinstance(protocols, list) and len(protocols) > 0:
+                    self.ai_exec_step_data = protocols
+                    self._ai_populate_exec_panel(protocols, target_url)
+                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚡ {len(protocols)} executable test steps ready!")
+                    self._ai_update_step(3, "⚡", "Phase 4: Protocol Generation", f"{len(protocols)} steps ready ✅", 'success')
+                else:
+                    self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ No valid protocols parsed")
+                    self._ai_update_step(3, "⚡", "Phase 4: Protocol Generation", "No steps parsed", 'warning')
+            except json.JSONDecodeError as je:
+                self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Failed to parse protocols: {je}")
+                self.ai_log_console(f"[Response]: {cleaned[:200]}")
+                self._ai_update_step(3, "⚡", "Phase 4: Protocol Generation", "Parse failed", 'error')
+                
+        except Exception as e:
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️ Protocol generation failed: {e}")
+            self._ai_update_step(3, "⚡", "Phase 4: Protocol Generation", f"Failed: {e}", 'error')
             self.ai_update_reasoning(f"Analysis incomplete due to error: {e}")
     
     def ai_log_console(self, message: str):
@@ -2061,6 +2122,238 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
             if hasattr(self, 'ai_step_widgets') and index < len(self.ai_step_widgets):
                 step = self.ai_step_widgets[index]
                 step['status'].config(text=status, fg=colors.get(color_key, '#10b981'))
+        self.root.after(0, update)
+    
+    def _ai_populate_exec_panel(self, protocols, target_url):
+        """Populate the execution panel with step cards (thread-safe)"""
+        colors = self.colors
+        def populate():
+            if not hasattr(self, 'ai_exec_steps_frame'):
+                return
+            # Clear existing
+            for w in self.ai_exec_steps_frame.winfo_children():
+                w.destroy()
+            self.ai_exec_step_widgets = []
+            
+            if hasattr(self, 'ai_exec_status_label'):
+                self.ai_exec_status_label.config(
+                    text=f"✅ {len(protocols)} test protocols ready. Click ▶ to execute.",
+                    fg=colors.get('success', '#10b981')
+                )
+            
+            severity_colors = {
+                'Critical': '#ef4444', 'High': '#f59e0b',
+                'Medium': '#3b82f6', 'Low': '#10b981'
+            }
+            category_icons = {
+                'SQLi': '🗄️', 'XSS': '⚡', 'CSRF': '🔄', 'Headers': '📋',
+                'Auth': '🔐', 'InfoLeak': '🔍', 'SSL': '🔒', 'DirectoryTraversal': '📁'
+            }
+            
+            for i, step in enumerate(protocols):
+                sev = step.get('severity', 'Medium')
+                cat = step.get('category', '')
+                icon = category_icons.get(cat, '🔧')
+                sev_color = severity_colors.get(sev, '#3b82f6')
+                
+                # Step card
+                card = tk.Frame(self.ai_exec_steps_frame, bg='#1a2332', relief='flat', bd=1,
+                                highlightbackground='#243244', highlightthickness=1)
+                card.pack(fill='x', padx=8, pady=4)
+                
+                # Top row: icon + name + severity
+                top = tk.Frame(card, bg='#1a2332')
+                top.pack(fill='x', padx=10, pady=(8, 2))
+                
+                tk.Label(top, text=f"{icon} [{cat}] {step.get('name', 'Test')}",
+                         font=('Segoe UI', 10, 'bold'), fg='#e6eef8', bg='#1a2332',
+                         anchor='w').pack(side='left')
+                
+                tk.Label(top, text=sev, font=('Segoe UI', 9, 'bold'),
+                         fg=sev_color, bg='#1a2332').pack(side='right', padx=(0, 5))
+                
+                # Description row
+                tk.Label(card, text=step.get('description', ''),
+                         font=('Segoe UI', 8), fg='#9fb0c9', bg='#1a2332',
+                         anchor='w', wraplength=500).pack(fill='x', padx=12, pady=(0, 2))
+                
+                # Detail row: method + path
+                detail = tk.Frame(card, bg='#1a2332')
+                detail.pack(fill='x', padx=10, pady=(0, 2))
+                
+                method = step.get('method', 'GET')
+                method_color = '#10b981' if method == 'GET' else '#f59e0b'
+                tk.Label(detail, text=f"{method}", font=('Consolas', 9, 'bold'),
+                         fg=method_color, bg='#1a2332').pack(side='left')
+                tk.Label(detail, text=f" {step.get('path', '/')}",
+                         font=('Consolas', 8), fg='#6b7fa0', bg='#1a2332').pack(side='left')
+                
+                # Bottom row: run button + status
+                bottom = tk.Frame(card, bg='#1a2332')
+                bottom.pack(fill='x', padx=10, pady=(2, 8))
+                
+                run_btn = tk.Button(bottom, text="▶ Run",
+                                    font=('Segoe UI', 9, 'bold'),
+                                    bg='#00d4ff', fg='#000000',
+                                    activebackground='#7c3aed',
+                                    relief='flat', cursor='hand2',
+                                    padx=10, pady=3,
+                                    command=lambda idx=i: self._ai_run_single_exec_step(idx, target_url))
+                run_btn.pack(side='left')
+                
+                status_lbl = tk.Label(bottom, text="⏳ Pending",
+                                       font=('Segoe UI', 9),
+                                       fg='#9fb0c9', bg='#1a2332')
+                status_lbl.pack(side='right')
+                
+                self.ai_exec_step_widgets.append({
+                    'card': card, 'run_btn': run_btn,
+                    'status': status_lbl, 'data': step
+                })
+        
+        self.root.after(0, populate)
+    
+    def ai_run_all_exec_steps(self):
+        """Run all executable test steps sequentially in a thread"""
+        if not hasattr(self, 'ai_exec_step_data') or not self.ai_exec_step_data:
+            from tkinter import messagebox
+            messagebox.showwarning("No Protocols", "No test protocols available.\nRun AI Analysis first.")
+            return
+        
+        target = getattr(self, 'ai_target_var', None)
+        target_url = target.get() if target else ""
+        if not target_url:
+            return
+        
+        import threading
+        def run_all():
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            from datetime import datetime
+            self.ai_log_console(f"\n[{datetime.now().strftime('%H:%M:%S')}] ⚡ EXECUTING ALL TEST PROTOCOLS...")
+            self.ai_log_console(f"{'─'*50}")
+            
+            for i in range(len(self.ai_exec_step_data)):
+                loop.run_until_complete(self._ai_execute_step(i, target_url))
+            
+            self.ai_log_console(f"{'─'*50}")
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ All protocols executed!\n")
+        
+        thread = threading.Thread(target=run_all, daemon=True)
+        thread.start()
+    
+    def _ai_run_single_exec_step(self, index, target_url):
+        """Run a single exec step in a thread"""
+        import threading
+        def run():
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self._ai_execute_step(index, target_url))
+        thread = threading.Thread(target=run, daemon=True)
+        thread.start()
+    
+    async def _ai_execute_step(self, index, target_url):
+        """Execute a single test step via HTTP"""
+        from datetime import datetime
+        import urllib.parse
+        
+        if index >= len(self.ai_exec_step_data):
+            return
+        
+        step = self.ai_exec_step_data[index]
+        name = step.get('name', f'Step {index+1}')
+        method = step.get('method', 'GET').upper()
+        path = step.get('path', '/')
+        payload = step.get('payload', '')
+        check_type = step.get('check_type', 'body_contains')
+        check_value = step.get('check_value', '')
+        category = step.get('category', '')
+        
+        # Update UI - running
+        self._ai_exec_update_status(index, "🔄 Running...", '#f59e0b')
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ▶ [{category}] {name}")
+        
+        try:
+            import aiohttp
+            import ssl
+            
+            # Build full URL
+            base = target_url.rstrip('/')
+            if path.startswith('http'):
+                full_url = path
+            else:
+                full_url = f"{base}{path}"
+            
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            
+            connector = aiohttp.TCPConnector(ssl=ssl_ctx)
+            timeout = aiohttp.ClientTimeout(total=30)
+            
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                headers = {
+                    'User-Agent': 'EMYUEL-SecurityScanner/1.0',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+                
+                if method == 'POST':
+                    data = {'input': payload, 'q': payload, 'search': payload, 'username': payload}
+                    async with session.post(full_url, data=data, headers=headers, allow_redirects=False) as resp:
+                        status_code = resp.status
+                        body = await resp.text(errors='replace')
+                        resp_headers = dict(resp.headers)
+                else:
+                    async with session.get(full_url, headers=headers, allow_redirects=False) as resp:
+                        status_code = resp.status
+                        body = await resp.text(errors='replace')
+                        resp_headers = dict(resp.headers)
+            
+            # Check for vulnerability
+            vulnerable = False
+            finding = ""
+            
+            if check_type == 'status_code':
+                if str(status_code) == str(check_value):
+                    vulnerable = True
+                    finding = f"Status code {status_code} matches expected vuln indicator"
+            elif check_type == 'body_contains':
+                if check_value.lower() in body.lower():
+                    vulnerable = True
+                    finding = f"Response body contains '{check_value}'"
+            elif check_type == 'header_missing':
+                if check_value.lower() not in [h.lower() for h in resp_headers.keys()]:
+                    vulnerable = True
+                    finding = f"Security header '{check_value}' is missing"
+            elif check_type == 'redirect':
+                if 300 <= status_code < 400:
+                    vulnerable = True
+                    finding = f"Redirect detected (HTTP {status_code})"
+            
+            if vulnerable:
+                result_text = f"🔴 VULNERABLE - {finding}"
+                result_color = '#ef4444'
+                self.ai_log_console(f"  🔴 VULNERABLE: {finding} (HTTP {status_code})")
+            else:
+                result_text = f"🟢 Secure (HTTP {status_code})"
+                result_color = '#10b981'
+                self.ai_log_console(f"  🟢 Secure: No vulnerability detected (HTTP {status_code})")
+            
+            self._ai_exec_update_status(index, result_text, result_color)
+            
+        except Exception as e:
+            error_msg = str(e)[:80]
+            self._ai_exec_update_status(index, f"⚠️ Error: {error_msg}", '#f59e0b')
+            self.ai_log_console(f"  ⚠️ Error: {error_msg}")
+    
+    def _ai_exec_update_status(self, index, text, color):
+        """Update execution step status (thread-safe)"""
+        def update():
+            if hasattr(self, 'ai_exec_step_widgets') and index < len(self.ai_exec_step_widgets):
+                self.ai_exec_step_widgets[index]['status'].config(text=text, fg=color)
         self.root.after(0, update)
     
     def download_ai_results(self):
