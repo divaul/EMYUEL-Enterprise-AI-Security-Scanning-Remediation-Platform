@@ -346,3 +346,111 @@ def setup_quick_scan_tab(parent, gui_instance):
         state='disabled'
     )
     gui_instance.quick_scan_btn.pack(side='right')
+
+    # ─── External Tools Section ─────────────────────────────────
+    from gui.security_tools import get_tools_for_tab, get_categories
+    
+    ext_tools_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    ext_tools_frame.pack(fill='x', padx=20, pady=(10, 20))
+
+    ext_header = tk.Frame(ext_tools_frame, bg=colors['bg_secondary'])
+    ext_header.pack(fill='x', padx=10, pady=(10, 5))
+
+    tk.Label(
+        ext_header,
+        text="🔧 External Security Tools",
+        font=('Segoe UI', 11, 'bold'),
+        fg=colors['accent_cyan'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+
+    tk.Label(
+        ext_header,
+        text="(enable tools to run alongside built-in scanner)",
+        font=('Segoe UI', 9, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).pack(side='left', padx=(8, 0))
+
+    # Status indicator
+    gui_instance.quick_tool_status = tk.Label(
+        ext_tools_frame,
+        text="Select tools to use during scan — unavailable tools will be skipped",
+        font=('Segoe UI', 8, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    gui_instance.quick_tool_status.pack(anchor='w', padx=10, pady=(0, 5))
+
+    # Tool checkboxes grid — organized by category
+    tools_grid = tk.Frame(ext_tools_frame, bg=colors['bg_secondary'])
+    tools_grid.pack(fill='x', padx=10, pady=(0, 10))
+    tools_grid.grid_columnconfigure(0, weight=1, uniform='qtool')
+    tools_grid.grid_columnconfigure(1, weight=1, uniform='qtool')
+    tools_grid.grid_columnconfigure(2, weight=1, uniform='qtool')
+
+    quick_tools = get_tools_for_tab('quick')
+    gui_instance.quick_ext_tool_vars = {}
+    
+    row_idx = 0
+    col_idx = 0
+    for tool_id, info in quick_tools.items():
+        var = tk.BooleanVar(value=False)
+        gui_instance.quick_ext_tool_vars[tool_id] = var
+
+        cb = tk.Checkbutton(
+            tools_grid,
+            text=f"{info['icon']} {info['name']}",
+            variable=var,
+            font=('Segoe UI', 9),
+            fg=colors['text_primary'],
+            bg=colors['bg_secondary'],
+            selectcolor=colors['bg_tertiary'],
+            activebackground=colors['bg_secondary'],
+            activeforeground=colors['accent_cyan'],
+            cursor='hand2'
+        )
+        cb.grid(row=row_idx, column=col_idx, sticky='w', padx=4, pady=2)
+
+        col_idx += 1
+        if col_idx >= 3:
+            col_idx = 0
+            row_idx += 1
+
+    # Select All / None buttons
+    quick_tool_btns = tk.Frame(ext_tools_frame, bg=colors['bg_secondary'])
+    quick_tool_btns.pack(fill='x', padx=10, pady=(0, 10))
+
+    def _select_all_quick():
+        for v in gui_instance.quick_ext_tool_vars.values():
+            v.set(True)
+
+    def _select_none_quick():
+        for v in gui_instance.quick_ext_tool_vars.values():
+            v.set(False)
+
+    tk.Button(
+        quick_tool_btns,
+        text="✅ Select All",
+        font=('Segoe UI', 9),
+        bg=colors['bg_tertiary'],
+        fg=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=_select_all_quick,
+        padx=10,
+        pady=4
+    ).pack(side='left', padx=(0, 5))
+
+    tk.Button(
+        quick_tool_btns,
+        text="❌ Clear All",
+        font=('Segoe UI', 9),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_secondary'],
+        relief='flat',
+        cursor='hand2',
+        command=_select_none_quick,
+        padx=10,
+        pady=4
+    ).pack(side='left')

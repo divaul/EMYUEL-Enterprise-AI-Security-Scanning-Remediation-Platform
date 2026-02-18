@@ -2358,86 +2358,8 @@ Example:
     
     # ─── Security Tools Manager ─────────────────────────────────
     
-    SECURITY_TOOLS = {
-        'nmap': {
-            'name': 'Nmap', 'icon': '🌐', 'category': 'Network Scanner',
-            'desc': 'Network exploration and security auditing',
-            'check_cmd': 'nmap', 'install_apt': 'nmap', 'install_pip': None
-        },
-        'sqlmap': {
-            'name': 'SQLMap', 'icon': '🗄️', 'category': 'SQL Injection',
-            'desc': 'Automatic SQL injection and database takeover',
-            'check_cmd': 'sqlmap', 'install_apt': 'sqlmap', 'install_pip': 'sqlmap'
-        },
-        'nikto': {
-            'name': 'Nikto', 'icon': '🔍', 'category': 'Web Scanner',
-            'desc': 'Web server scanner for dangerous files/CGIs',
-            'check_cmd': 'nikto', 'install_apt': 'nikto', 'install_pip': None
-        },
-        'gobuster': {
-            'name': 'GoBuster', 'icon': '📁', 'category': 'Directory Brute',
-            'desc': 'URI/DNS/VHost brute-forcing tool',
-            'check_cmd': 'gobuster', 'install_apt': 'gobuster', 'install_pip': None
-        },
-        'hydra': {
-            'name': 'Hydra', 'icon': '🔐', 'category': 'Brute Force',
-            'desc': 'Fast network logon cracker for various protocols',
-            'check_cmd': 'hydra', 'install_apt': 'hydra', 'install_pip': None
-        },
-        'wpscan': {
-            'name': 'WPScan', 'icon': '📝', 'category': 'WordPress',
-            'desc': 'WordPress security scanner',
-            'check_cmd': 'wpscan', 'install_apt': None, 'install_pip': None,
-            'install_custom': 'gem install wpscan'
-        },
-        'whatweb': {
-            'name': 'WhatWeb', 'icon': '🔎', 'category': 'Fingerprint',
-            'desc': 'Web technology fingerprinting tool',
-            'check_cmd': 'whatweb', 'install_apt': 'whatweb', 'install_pip': None
-        },
-        'dirb': {
-            'name': 'DIRB', 'icon': '📂', 'category': 'Directory Scanner',
-            'desc': 'Web content scanner (dictionary based)',
-            'check_cmd': 'dirb', 'install_apt': 'dirb', 'install_pip': None
-        },
-        'subfinder': {
-            'name': 'Subfinder', 'icon': '🌍', 'category': 'Subdomain',
-            'desc': 'Subdomain discovery tool',
-            'check_cmd': 'subfinder', 'install_apt': None, 'install_pip': None,
-            'install_custom': 'go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest'
-        },
-        'nuclei': {
-            'name': 'Nuclei', 'icon': '☢️', 'category': 'Vuln Scanner',
-            'desc': 'Fast template-based vulnerability scanner',
-            'check_cmd': 'nuclei', 'install_apt': None, 'install_pip': None,
-            'install_custom': 'go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest'
-        },
-        'ffuf': {
-            'name': 'FFUF', 'icon': '⚡', 'category': 'Fuzzer',
-            'desc': 'Fast web fuzzer written in Go',
-            'check_cmd': 'ffuf', 'install_apt': 'ffuf', 'install_pip': None
-        },
-        'wfuzz': {
-            'name': 'Wfuzz', 'icon': '🎯', 'category': 'Web Fuzzer',
-            'desc': 'Web application bruteforcer',
-            'check_cmd': 'wfuzz', 'install_apt': None, 'install_pip': 'wfuzz'
-        },
-        'aiohttp': {
-            'name': 'aiohttp', 'icon': '📡', 'category': 'Python HTTP',
-            'desc': 'Async HTTP client/server for Python',
-            'check_cmd': None, 'install_apt': None, 'install_pip': 'aiohttp'
-        },
-        'httpx_pkg': {
-            'name': 'httpx', 'icon': '🔗', 'category': 'Python HTTP',
-            'desc': 'Modern HTTP client with HTTP/2 support',
-            'check_cmd': None, 'install_apt': None, 'install_pip': 'httpx'
-        },
-        'google_genai': {
-            'name': 'Google GenAI', 'icon': '🤖', 'category': 'AI/LLM SDK',
-            'desc': 'Google Gemini AI SDK for Python',
-            'check_cmd': None, 'install_apt': None, 'install_pip': 'google-genai'
-        },
-    }
+    # Import from shared tools registry
+    from gui.security_tools import SECURITY_TOOLS
     
     def _find_cmd_in_extra_paths(self, cmd_name):
         """Search for a command in common extra paths (GOPATH, cargo, etc.)"""

@@ -381,6 +381,122 @@ def setup_advanced_tab(parent, gui_instance):
     )
     gui_instance.report_btn.pack(side='right')
 
+    # ─── External Tools Section ─────────────────────────────────
+    from gui.security_tools import get_tools_for_tab
+
+    ext_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    ext_frame.pack(fill='x', padx=20, pady=(0, 10))
+
+    ext_header = tk.Frame(ext_frame, bg=colors['bg_secondary'])
+    ext_header.pack(fill='x', padx=10, pady=(10, 5))
+
+    tk.Label(
+        ext_header,
+        text="🔧 External Security Tools",
+        font=('Segoe UI', 12, 'bold'),
+        fg=colors['accent_cyan'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+
+    tk.Label(
+        ext_header,
+        text="(enable for advanced scan integration)",
+        font=('Segoe UI', 9, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).pack(side='left', padx=(8, 0))
+
+    gui_instance.adv_tool_status = tk.Label(
+        ext_frame,
+        text="Select external tools to use — unavailable tools will be skipped automatically",
+        font=('Segoe UI', 8, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    gui_instance.adv_tool_status.pack(anchor='w', padx=10, pady=(0, 5))
+
+    # Tool checkboxes — 3 column grid
+    adv_tools_grid = tk.Frame(ext_frame, bg=colors['bg_secondary'])
+    adv_tools_grid.pack(fill='x', padx=10, pady=(0, 8))
+    adv_tools_grid.grid_columnconfigure(0, weight=1, uniform='atool')
+    adv_tools_grid.grid_columnconfigure(1, weight=1, uniform='atool')
+    adv_tools_grid.grid_columnconfigure(2, weight=1, uniform='atool')
+
+    adv_tools = get_tools_for_tab('advanced')
+    gui_instance.adv_ext_tool_vars = {}
+
+    row_i = 0
+    col_i = 0
+    for tool_id, info in adv_tools.items():
+        var = tk.BooleanVar(value=False)
+        gui_instance.adv_ext_tool_vars[tool_id] = var
+
+        cb = tk.Checkbutton(
+            adv_tools_grid,
+            text=f"{info['icon']} {info['name']}",
+            variable=var,
+            font=('Segoe UI', 9),
+            fg=colors['text_primary'],
+            bg=colors['bg_secondary'],
+            selectcolor=colors['bg_tertiary'],
+            activebackground=colors['bg_secondary'],
+            activeforeground=colors['accent_cyan'],
+            cursor='hand2'
+        )
+        cb.grid(row=row_i, column=col_i, sticky='w', padx=4, pady=2)
+
+        col_i += 1
+        if col_i >= 3:
+            col_i = 0
+            row_i += 1
+
+    # Action buttons row
+    adv_tool_btn_row = tk.Frame(ext_frame, bg=colors['bg_secondary'])
+    adv_tool_btn_row.pack(fill='x', padx=10, pady=(0, 10))
+
+    def _sel_all_adv():
+        for v in gui_instance.adv_ext_tool_vars.values():
+            v.set(True)
+
+    def _sel_none_adv():
+        for v in gui_instance.adv_ext_tool_vars.values():
+            v.set(False)
+
+    def _sel_preset_recon():
+        """Enable recon-focused tools"""
+        recon_cats = {'Network Scanner', 'Port Scanner', 'Fingerprinting', 'Web Scanner',
+                      'Subdomain', 'OSINT/Recon', 'HTTP Probe', 'SSL/TLS'}
+        for tid, v in gui_instance.adv_ext_tool_vars.items():
+            info = adv_tools.get(tid, {})
+            v.set(info.get('category', '') in recon_cats)
+
+    def _sel_preset_vuln():
+        """Enable vuln-testing tools"""
+        vuln_cats = {'SQL Injection', 'XSS Scanner', 'Vuln Scanner', 'Command Injection',
+                     'CMS Scanner', 'WordPress', 'Joomla', 'Web Fuzzer', 'Fuzzer'}
+        for tid, v in gui_instance.adv_ext_tool_vars.items():
+            info = adv_tools.get(tid, {})
+            v.set(info.get('category', '') in vuln_cats)
+
+    for label, cmd in [
+        ("✅ All", _sel_all_adv),
+        ("❌ None", _sel_none_adv),
+        ("🔍 Recon", _sel_preset_recon),
+        ("💥 Vuln Test", _sel_preset_vuln),
+    ]:
+        tk.Button(
+            adv_tool_btn_row,
+            text=label,
+            font=('Segoe UI', 9),
+            bg=colors['bg_tertiary'],
+            fg=colors['accent_cyan'],
+            relief='flat',
+            cursor='hand2',
+            command=cmd,
+            padx=10,
+            pady=3
+        ).pack(side='left', padx=(0, 5))
+
     # Ensure scrollable canvas updates on size changes (helps responsiveness)
     if canvas is not None:
         def _on_parent_resize(event):
