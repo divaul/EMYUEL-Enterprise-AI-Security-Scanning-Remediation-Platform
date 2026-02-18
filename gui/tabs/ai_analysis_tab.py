@@ -560,6 +560,22 @@ def setup_ai_analysis_tab(parent, gui_instance):
     )
     exec_all_btn.pack(side='right', padx=(5, 0))
 
+    # Download Execution Report button
+    exec_report_btn = tk.Button(
+        exec_header,
+        text="📥 Laporan Eksekusi",
+        font=('Segoe UI', 9, 'bold'),
+        bg=colors['accent_purple'],
+        fg='#ffffff',
+        activebackground=colors['accent_cyan'],
+        relief='flat',
+        cursor='hand2',
+        command=getattr(gui_instance, 'download_exec_report', lambda: None),
+        padx=12,
+        pady=4
+    )
+    exec_report_btn.pack(side='right', padx=(5, 0))
+
     exec_desc = tk.Label(
         exec_frame,
         text="Test protokol yang di-generate AI — dapat dijalankan langsung ke target",

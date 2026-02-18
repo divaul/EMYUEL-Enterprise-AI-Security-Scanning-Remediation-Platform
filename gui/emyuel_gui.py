@@ -2439,6 +2439,35 @@ Example:
         },
     }
     
+    def _find_cmd_in_extra_paths(self, cmd_name):
+        """Search for a command in common extra paths (GOPATH, cargo, etc.)"""
+        import os
+        import pathlib
+        
+        home = pathlib.Path.home()
+        extra_dirs = [
+            home / 'go' / 'bin',
+            home / '.local' / 'bin',
+            home / '.cargo' / 'bin',
+            pathlib.Path(os.environ.get('GOPATH', '')) / 'bin',
+            pathlib.Path(os.environ.get('GOBIN', '')),
+            pathlib.Path('/usr/local/go/bin'),
+            pathlib.Path('/usr/local/bin'),
+            pathlib.Path('/snap/bin'),
+        ]
+        
+        for d in extra_dirs:
+            if not d or not d.is_dir():
+                continue
+            candidate = d / cmd_name
+            if candidate.is_file():
+                return str(candidate)
+            # Windows .exe
+            candidate_exe = d / f"{cmd_name}.exe"
+            if candidate_exe.is_file():
+                return str(candidate_exe)
+        return None
+    
     def scan_installed_tools(self):
         """Scan system for installed cybersecurity tools (runs in thread)"""
         import threading
@@ -2458,18 +2487,19 @@ Example:
                 
                 # Check command-line tools
                 if info.get('check_cmd'):
-                    path = shutil.which(info['check_cmd'])
-                    if path:
+                    cmd = info['check_cmd']
+                    found_path = shutil.which(cmd) or self._find_cmd_in_extra_paths(cmd)
+                    if found_path:
                         is_installed = True
                         try:
                             result = subprocess.run(
-                                [info['check_cmd'], '--version'],
+                                [found_path, '--version'],
                                 capture_output=True, text=True, timeout=5
                             )
                             ver_out = result.stdout.strip() or result.stderr.strip()
-                            version = ver_out.split('\n')[0][:60] if ver_out else "installed"
+                            version = ver_out.split('\n')[0][:60] if ver_out else f"installed ({found_path})"
                         except Exception:
-                            version = "installed"
+                            version = f"installed ({found_path})"
                 
                 # Check pip packages
                 elif info.get('install_pip'):
@@ -2795,6 +2825,215 @@ Example:
         else:
             self._update_tool_status_ui(tool_id, "❌ Failed", '#ef4444')
             self.ai_log_console(f"  ❌ {name} failed")
+    
+    def download_exec_report(self):
+        """Download execution report for protocol test results"""
+        from tkinter import filedialog, messagebox
+        from datetime import datetime
+        
+        if not hasattr(self, 'ai_exec_step_widgets') or not self.ai_exec_step_widgets:
+            messagebox.showwarning("No Results", "No execution results available.\nRun test protocols first.")
+            return
+        
+        target = getattr(self, 'ai_target_var', None)
+        target_url = target.get() if target else "unknown"
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Collect results from widgets
+        results = []
+        vuln_count = 0
+        secure_count = 0
+        error_count = 0
+        
+        for i, widget in enumerate(self.ai_exec_step_widgets):
+            data = widget.get('data', {})
+            status_text = widget['status'].cget('text') if widget.get('status') else 'Pending'
+            
+            is_vuln = '🔴' in status_text or 'VULNERABLE' in status_text.upper()
+            is_secure = '🟢' in status_text or 'Secure' in status_text
+            is_error = '⚠️' in status_text or 'Error' in status_text
+            
+            if is_vuln:
+                vuln_count += 1
+                result_tag = 'VULNERABLE'
+            elif is_secure:
+                secure_count += 1
+                result_tag = 'SECURE'
+            elif is_error:
+                error_count += 1
+                result_tag = 'ERROR'
+            else:
+                result_tag = 'PENDING'
+            
+            results.append({
+                'id': data.get('id', i + 1),
+                'name': data.get('name', f'Step {i+1}'),
+                'category': data.get('category', 'N/A'),
+                'severity': data.get('severity', 'N/A'),
+                'method': data.get('method', 'GET'),
+                'path': data.get('path', '/'),
+                'payload': data.get('payload', ''),
+                'description': data.get('description', ''),
+                'status_text': status_text,
+                'result': result_tag
+            })
+        
+        total = len(results)
+        
+        filepath = filedialog.asksaveasfilename(
+            defaultextension='.html',
+            filetypes=[
+                ('HTML Report', '*.html'),
+                ('Markdown', '*.md'),
+                ('Text', '*.txt')
+            ],
+            initialfile=f'EMYUEL_Execution_Report_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+            title='Save Execution Report'
+        )
+        
+        if not filepath:
+            return
+        
+        try:
+            if filepath.endswith('.html'):
+                content = self._gen_exec_html(target_url, timestamp, results,
+                                              vuln_count, secure_count, error_count, total)
+            elif filepath.endswith('.md'):
+                content = self._gen_exec_md(target_url, timestamp, results,
+                                            vuln_count, secure_count, error_count, total)
+            else:
+                content = self._gen_exec_txt(target_url, timestamp, results,
+                                             vuln_count, secure_count, error_count, total)
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(content)
+            messagebox.showinfo("Saved", f"Execution report saved to:\n{filepath}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save report: {e}")
+    
+    def _gen_exec_txt(self, target, ts, results, vuln, secure, err, total):
+        lines = []
+        lines.append("EMYUEL - Security Protocol Execution Report")
+        lines.append("=" * 55)
+        lines.append(f"Target: {target}")
+        lines.append(f"Date:   {ts}")
+        lines.append(f"")
+        lines.append(f"SUMMARY: {total} tests | {vuln} VULNERABLE | {secure} Secure | {err} Errors")
+        lines.append("=" * 55)
+        for r in results:
+            lines.append(f"")
+            lines.append(f"[{r['result']}] #{r['id']} - {r['name']}")
+            lines.append(f"  Category: {r['category']} | Severity: {r['severity']}")
+            lines.append(f"  {r['method']} {r['path']}")
+            if r['payload']:
+                lines.append(f"  Payload: {r['payload']}")
+            lines.append(f"  Status: {r['status_text']}")
+            if r['description']:
+                lines.append(f"  Description: {r['description']}")
+        lines.append(f"")
+        lines.append("=" * 55)
+        lines.append("Generated by EMYUEL Enterprise Scanner")
+        return "\n".join(lines)
+    
+    def _gen_exec_md(self, target, ts, results, vuln, secure, err, total):
+        lines = []
+        lines.append("# 🛡️ EMYUEL Execution Report")
+        lines.append(f"")
+        lines.append(f"**Target:** `{target}`  ")
+        lines.append(f"**Date:** {ts}  ")
+        lines.append(f"")
+        lines.append(f"## Summary")
+        lines.append(f"")
+        lines.append(f"| Metric | Count |")
+        lines.append(f"|--------|-------|")
+        lines.append(f"| Total Tests | {total} |")
+        lines.append(f"| 🔴 Vulnerable | {vuln} |")
+        lines.append(f"| 🟢 Secure | {secure} |")
+        lines.append(f"| ⚠️ Errors | {err} |")
+        lines.append(f"")
+        lines.append(f"## Test Results")
+        for r in results:
+            icon = '🔴' if r['result'] == 'VULNERABLE' else ('🟢' if r['result'] == 'SECURE' else '⚠️')
+            lines.append(f"")
+            lines.append(f"### {icon} #{r['id']} {r['name']}")
+            lines.append(f"")
+            lines.append(f"- **Category:** {r['category']}")
+            lines.append(f"- **Severity:** {r['severity']}")
+            lines.append(f"- **Request:** `{r['method']} {r['path']}`")
+            if r['payload']:
+                lines.append(f"- **Payload:** `{r['payload']}`")
+            lines.append(f"- **Result:** {r['status_text']}")
+            if r['description']:
+                lines.append(f"- **Description:** {r['description']}")
+        lines.append(f"")
+        lines.append(f"---")
+        lines.append(f"*Generated by EMYUEL Enterprise Scanner*")
+        return "\n".join(lines)
+    
+    def _gen_exec_html(self, target, ts, results, vuln, secure, err, total):
+        import html as html_mod
+        rows = ""
+        for r in results:
+            color = '#ef4444' if r['result'] == 'VULNERABLE' else ('#10b981' if r['result'] == 'SECURE' else '#f59e0b')
+            badge = r['result']
+            payload_html = f"<code>{html_mod.escape(r['payload'])}</code>" if r['payload'] else '-'
+            rows += f"""<tr>
+            <td>{r['id']}</td>
+            <td><strong>{html_mod.escape(r['name'])}</strong><br><small>{html_mod.escape(r['description'])}</small></td>
+            <td><span class="badge">{html_mod.escape(r['category'])}</span></td>
+            <td>{r['severity']}</td>
+            <td><code>{r['method']}</code> <code>{html_mod.escape(r['path'])}</code></td>
+            <td>{payload_html}</td>
+            <td style="color:{color};font-weight:bold">{badge}</td>
+            </tr>\n"""
+        
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EMYUEL Execution Report</title>
+<style>
+  body {{ background:#0b1220; color:#e6eef8; font-family:'Segoe UI',sans-serif; margin:0; padding:20px }}
+  .container {{ max-width:1100px; margin:0 auto }}
+  h1 {{ color:#00d4ff; border-bottom:2px solid #243244; padding-bottom:10px }}
+  .meta {{ background:#0f1724; padding:15px; border-radius:8px; margin:15px 0 }}
+  .summary {{ display:flex; gap:15px; margin:20px 0 }}
+  .stat {{ flex:1; background:#0f1724; padding:18px; border-radius:8px; text-align:center; border:1px solid #243244 }}
+  .stat .num {{ font-size:28px; font-weight:bold }}
+  .stat.vuln .num {{ color:#ef4444 }}
+  .stat.secure .num {{ color:#10b981 }}
+  .stat.err .num {{ color:#f59e0b }}
+  .stat.total .num {{ color:#00d4ff }}
+  table {{ width:100%; border-collapse:collapse; margin-top:20px }}
+  th {{ background:#0f1724; color:#00d4ff; padding:12px; text-align:left; border-bottom:2px solid #243244 }}
+  td {{ padding:10px 12px; border-bottom:1px solid #1a2332 }}
+  tr:hover {{ background:#0f1724 }}
+  code {{ background:#1a2332; padding:2px 6px; border-radius:4px; font-size:0.85em }}
+  .badge {{ background:#1a2332; color:#00d4ff; padding:3px 8px; border-radius:4px; font-size:0.8em }}
+  .footer {{ text-align:center; margin-top:30px; color:#6b7fa0; font-size:0.85em; border-top:1px solid #243244; padding-top:15px }}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🛡️ EMYUEL Protocol Execution Report</h1>
+  <div class="meta">
+    <strong>Target:</strong> <code>{html_mod.escape(target)}</code><br>
+    <strong>Date:</strong> {ts}
+  </div>
+  <div class="summary">
+    <div class="stat total"><div class="num">{total}</div>Total Tests</div>
+    <div class="stat vuln"><div class="num">{vuln}</div>🔴 Vulnerable</div>
+    <div class="stat secure"><div class="num">{secure}</div>🟢 Secure</div>
+    <div class="stat err"><div class="num">{err}</div>⚠️ Errors</div>
+  </div>
+  <table>
+    <tr><th>#</th><th>Test</th><th>Category</th><th>Severity</th><th>Request</th><th>Payload</th><th>Result</th></tr>
+    {rows}
+  </table>
+  <div class="footer">Generated by <strong>EMYUEL</strong> Enterprise AI Security Scanner</div>
+</div>
+</body>
+</html>"""
     
     def download_ai_results(self):
         """Download AI analysis results as a report file"""
