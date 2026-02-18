@@ -1803,6 +1803,10 @@ class EMYUELGUI:
         # ==========================================
         # PHASE 1: TARGET RECONNAISSANCE (15-30s)
         # ==========================================
+        # Clear steps frame
+        self._ai_clear_steps()
+        self._ai_add_step("🔍", "Phase 1: Target Reconnaissance", "Running...", 'warning')
+        
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 Phase 1: Target Reconnaissance")
         self.ai_update_reasoning("🔍 PHASE 1: TARGET RECONNAISSANCE\n\nAnalyzing target architecture and attack surface...")
         
@@ -1836,13 +1840,22 @@ Analyze this target and provide:
             recon_response = await llm.chat(recon_prompt)
             self.ai_update_reasoning(f"🔍 PHASE 1: TARGET RECONNAISSANCE\n\n{recon_response}")
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Reconnaissance complete")
+            # Show results in console
+            self.ai_log_console(f"\n{'─'*50}")
+            self.ai_log_console(f"📋 RECONNAISSANCE RESULTS:")
+            self.ai_log_console(f"{'─'*50}")
+            self.ai_log_console(recon_response)
+            self.ai_log_console(f"{'─'*50}\n")
+            self._ai_update_step(0, "🔍", "Phase 1: Reconnaissance", "Complete ✅", 'success')
         except Exception as e:
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Reconnaissance failed: {e}")
             recon_response = "Unable to perform AI reconnaissance"
+            self._ai_update_step(0, "🔍", "Phase 1: Reconnaissance", f"Failed: {e}", 'error')
         
         # ==========================================
         # PHASE 2: VULNERABILITY DETECTION (30-60s)
         # ==========================================
+        self._ai_add_step("🔬", "Phase 2: Vulnerability Detection", "Running...", 'warning')
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔬 Phase 2: Vulnerability Detection")
         
         # Determine focus areas
@@ -1883,9 +1896,16 @@ Generate a detailed vulnerability testing strategy:
             vuln_response = await llm.chat(vuln_prompt)
             self.ai_update_reasoning(f"🔬 PHASE 2: VULNERABILITY DETECTION\n\n{vuln_response}")
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Vulnerability analysis complete")
+            self.ai_log_console(f"\n{'─'*50}")
+            self.ai_log_console(f"🔬 VULNERABILITY DETECTION RESULTS:")
+            self.ai_log_console(f"{'─'*50}")
+            self.ai_log_console(vuln_response)
+            self.ai_log_console(f"{'─'*50}\n")
+            self._ai_update_step(1, "🔬", "Phase 2: Vulnerability Detection", "Complete ✅", 'success')
         except Exception as e:
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Vulnerability analysis failed: {e}")
             vuln_response = "Unable to perform AI vulnerability analysis"
+            self._ai_update_step(1, "🔬", "Phase 2: Vulnerability Detection", f"Failed: {e}", 'error')
         
         # ==========================================
         # PHASE 3: RECOMMENDATIONS (10-20s)
@@ -1952,10 +1972,17 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
 """
             self.ai_update_reasoning(final_reasoning)
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Recommendations generated")
+            self.ai_log_console(f"\n{'─'*50}")
+            self.ai_log_console(f"💡 RECOMMENDATIONS:")
+            self.ai_log_console(f"{'─'*50}")
+            self.ai_log_console(rec_response)
+            self.ai_log_console(f"{'─'*50}\n")
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🎉 Full AI analysis complete!")
+            self._ai_update_step(2, "💡", "Phase 3: Recommendations", "Complete ✅", 'success')
             
         except Exception as e:
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚠️  Recommendation generation failed: {e}")
+            self._ai_update_step(2, "💡", "Phase 3: Recommendations", f"Failed: {e}", 'error')
             self.ai_update_reasoning(f"Analysis incomplete due to error: {e}")
     
     def ai_log_console(self, message: str):
@@ -1977,10 +2004,64 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
                 self.ai_reasoning_text.config(state='normal')
                 self.ai_reasoning_text.delete('1.0', 'end')
                 self.ai_reasoning_text.insert('1.0', reasoning)
+                self.ai_reasoning_text.see('1.0')
                 self.ai_reasoning_text.config(state='disabled')
             
             # Execute on main thread
             self.root.after(0, update)
+    
+    def _ai_clear_steps(self):
+        """Clear all step widgets from the AI steps frame (thread-safe)"""
+        def clear():
+            if hasattr(self, 'ai_steps_frame'):
+                for widget in self.ai_steps_frame.winfo_children():
+                    widget.destroy()
+                if hasattr(self, 'ai_step_widgets'):
+                    self.ai_step_widgets.clear()
+        self.root.after(0, clear)
+    
+    def _ai_add_step(self, icon, title, status, color_key='text_secondary'):
+        """Add a step card to the AI steps frame (thread-safe)"""
+        colors = self.colors
+        def add():
+            if not hasattr(self, 'ai_steps_frame'):
+                return
+            step_frame = tk.Frame(self.ai_steps_frame, bg=colors.get('bg_tertiary', '#0b1222'))
+            step_frame.pack(fill='x', padx=10, pady=4)
+            
+            label = tk.Label(
+                step_frame,
+                text=f"  {icon}  {title}",
+                font=('Segoe UI', 10, 'bold'),
+                fg=colors.get('text_primary', '#e6eef8'),
+                bg=colors.get('bg_tertiary', '#0b1222'),
+                anchor='w'
+            )
+            label.pack(side='left', padx=5, pady=5)
+            
+            status_label = tk.Label(
+                step_frame,
+                text=status,
+                font=('Segoe UI', 9),
+                fg=colors.get(color_key, '#9fb0c9'),
+                bg=colors.get('bg_tertiary', '#0b1222'),
+                anchor='e'
+            )
+            status_label.pack(side='right', padx=10, pady=5)
+            
+            if not hasattr(self, 'ai_step_widgets'):
+                self.ai_step_widgets = []
+            self.ai_step_widgets.append({'frame': step_frame, 'label': label, 'status': status_label})
+        self.root.after(0, add)
+    
+    def _ai_update_step(self, index, icon, title, status, color_key='success'):
+        """Update an existing step card's status (thread-safe)"""
+        colors = self.colors
+        def update():
+            if hasattr(self, 'ai_step_widgets') and index < len(self.ai_step_widgets):
+                step = self.ai_step_widgets[index]
+                step['status'].config(text=status, fg=colors.get(color_key, '#10b981'))
+        self.root.after(0, update)
     
     # ============ REPORTS TAB  METHODS ============
     

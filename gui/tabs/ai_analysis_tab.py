@@ -490,7 +490,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
 
     gui_instance.ai_reasoning_text = tk.Text(
         reasoning_frame,
-        height=5,
+        height=15,
         font=('Segoe UI', 9),
         bg=colors['bg_tertiary'],
         fg=colors['text_primary'],
@@ -536,7 +536,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
 
     gui_instance.ai_console_text = scrolledtext.ScrolledText(
         console_frame,
-        height=10,
+        height=15,
         font=('Consolas', 9),
         bg=colors['bg_tertiary'],
         fg=colors['text_primary'],
