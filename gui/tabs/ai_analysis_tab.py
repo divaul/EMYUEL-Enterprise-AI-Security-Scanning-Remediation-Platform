@@ -437,22 +437,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         bg=colors['bg_tertiary']
     ).pack(padx=15, pady=30)
 
-    # AI Reasoning Section
-    reasoning_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
-    reasoning_frame.pack(fill='x', padx=20, pady=(0, 20))
-
-    reasoning_header = tk.Frame(reasoning_frame, bg=colors['bg_secondary'])
-    reasoning_header.pack(fill='x', padx=20, pady=(15, 10))
-
-    tk.Label(
-        reasoning_header,
-        text="🧠 AI Reasoning",
-        font=('Segoe UI', 11, 'bold'),
-        fg=colors['text_primary'],
-        bg=colors['bg_secondary']
-    ).pack(side='left', padx=(10, 0))
-
-    # Analyze button (in its own dedicated frame with padding)
+    # Action buttons row
     analyze_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'])
     analyze_frame.pack(fill='x', padx=10, pady=12)
 
@@ -470,8 +455,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         pady=10
     )
     analyze_btn.pack(side='left', padx=5)
-    
-    # Download Results button
+
     download_btn = tk.Button(
         analyze_frame,
         text="📥 Download Report",
@@ -487,8 +471,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
         pady=10
     )
     download_btn.pack(side='left', padx=5)
-    
-    # Resume Scan button (hidden by default)
+
     gui_instance.resume_scan_btn_ai = tk.Button(
         analyze_frame,
         text="▶️ Resume Scan",
@@ -503,11 +486,35 @@ def setup_ai_analysis_tab(parent, gui_instance):
         pady=10,
         state='disabled'
     )
-    # Don't pack initially - shown by pause_scan() method
+    # Don't pack initially - shown by pause_scan()
+
+    # RESULT SECTION 1: AI Text Analysis
+    # ═══════════════════════════════════════════════════════════
+    result1_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
+    result1_frame.pack(fill='x', padx=20, pady=(0, 10))
+
+    result1_header = tk.Frame(result1_frame, bg=colors['bg_secondary'])
+    result1_header.pack(fill='x', padx=20, pady=(15, 5))
+
+    tk.Label(
+        result1_header,
+        text="① 📋 Hasil Analisis AI",
+        font=('Segoe UI', 12, 'bold'),
+        fg=colors['accent_cyan'],
+        bg=colors['bg_secondary']
+    ).pack(side='left')
+
+    tk.Label(
+        result1_header,
+        text="Recon • Vulnerability • Recommendations",
+        font=('Segoe UI', 9, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).pack(side='right')
 
     gui_instance.ai_reasoning_text = tk.Text(
-        reasoning_frame,
-        height=15,
+        result1_frame,
+        height=18,
         font=('Segoe UI', 9),
         bg=colors['bg_tertiary'],
         fg=colors['text_primary'],
@@ -518,20 +525,22 @@ def setup_ai_analysis_tab(parent, gui_instance):
         padx=10,
         pady=10
     )
-    gui_instance.ai_reasoning_text.pack(fill='x', padx=20, pady=(0, 15))
+    gui_instance.ai_reasoning_text.pack(fill='x', padx=20, pady=(5, 15))
 
-    # ─── Protocol Execution Panel ───────────────────────────────
+    # ═══════════════════════════════════════════════════════════
+    # RESULT SECTION 2: Executable Protocols
+    # ═══════════════════════════════════════════════════════════
     exec_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
-    exec_frame.pack(fill='both', expand=True, padx=20, pady=(0, 20))
+    exec_frame.pack(fill='both', expand=True, padx=20, pady=(0, 10))
 
     exec_header = tk.Frame(exec_frame, bg=colors['bg_secondary'])
-    exec_header.pack(fill='x', padx=20, pady=(15, 10))
+    exec_header.pack(fill='x', padx=20, pady=(15, 5))
 
     tk.Label(
         exec_header,
-        text="⚡ Protocol Execution",
-        font=('Segoe UI', 11, 'bold'),
-        fg=colors['accent_cyan'],
+        text="② ⚡ Protokol Eksekusi Sistem",
+        font=('Segoe UI', 12, 'bold'),
+        fg='#f59e0b',
         bg=colors['bg_secondary']
     ).pack(side='left')
 
@@ -551,10 +560,19 @@ def setup_ai_analysis_tab(parent, gui_instance):
     )
     exec_all_btn.pack(side='right', padx=(5, 0))
 
+    exec_desc = tk.Label(
+        exec_frame,
+        text="Test protokol yang di-generate AI — dapat dijalankan langsung ke target",
+        font=('Segoe UI', 9, 'italic'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    exec_desc.pack(anchor='w', padx=20, pady=(0, 2))
+
     # Status label
     gui_instance.ai_exec_status_label = tk.Label(
         exec_frame,
-        text="Run AI Analysis first to generate executable test steps",
+        text="Jalankan AI Analysis terlebih dahulu untuk generate test steps",
         font=('Segoe UI', 9, 'italic'),
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
@@ -562,7 +580,7 @@ def setup_ai_analysis_tab(parent, gui_instance):
     gui_instance.ai_exec_status_label.pack(anchor='w', padx=20, pady=(0, 5))
 
     # Scrollable exec steps container
-    exec_canvas = tk.Canvas(exec_frame, bg=colors['bg_tertiary'], highlightthickness=0, borderwidth=0, height=250)
+    exec_canvas = tk.Canvas(exec_frame, bg=colors['bg_tertiary'], highlightthickness=0, borderwidth=0, height=280)
     exec_scrollbar = tk.Scrollbar(exec_frame, orient="vertical", command=exec_canvas.yview,
                                    bg=colors['bg_secondary'], troughcolor=colors['bg_primary'],
                                    activebackground=colors['accent_cyan'])
