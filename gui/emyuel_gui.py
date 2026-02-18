@@ -1115,22 +1115,69 @@ class EMYUELGUI:
                 findings = executor.run_all()
                 
                 if findings:
-                    # Append to existing scan results
+                    # Append to existing scan results and update UI stats
                     def _merge():
                         if hasattr(self, 'last_scan_results') and self.last_scan_results:
                             existing = self.last_scan_results.get('findings', [])
                             existing.extend(findings)
                             self.last_scan_results['findings'] = existing
-                            self.log_console(f"[TOOLS] ✅ Merged {len(findings)} external tool findings")
                         else:
                             # No built-in results yet, store standalone
                             self.last_scan_results = {
                                 'target': target,
                                 'findings': findings,
                                 'total_pages': 0,
-                                'external_tools_only': True,
+                                'total_findings': 0,
+                                'findings_by_severity': {},
                             }
-                            self.log_console(f"[TOOLS] ✅ Stored {len(findings)} external tool findings")
+                        
+                        # Recalculate severity stats from ALL findings
+                        all_findings = self.last_scan_results.get('findings', [])
+                        by_sev = {}
+                        for f in all_findings:
+                            sev = f.get('severity', 'info').lower()
+                            by_sev[sev] = by_sev.get(sev, 0) + 1
+                        
+                        self.last_scan_results['total_findings'] = len(all_findings)
+                        self.last_scan_results['findings_by_severity'] = by_sev
+                        
+                        # Update UI stat labels
+                        if hasattr(self, 'stat_critical_label'):
+                            self.stat_critical_label.config(text=str(by_sev.get('critical', 0)))
+                        if hasattr(self, 'stat_high_label'):
+                            self.stat_high_label.config(text=str(by_sev.get('high', 0)))
+                        if hasattr(self, 'stat_medium_label'):
+                            self.stat_medium_label.config(text=str(by_sev.get('medium', 0)))
+                        if hasattr(self, 'stat_low_label'):
+                            self.stat_low_label.config(text=str(by_sev.get('low', 0)))
+                        
+                        # Update status bar
+                        ext_count = len(findings)
+                        total = len(all_findings)
+                        if hasattr(self, 'status_label'):
+                            self.status_label.config(
+                                text=f"Scan complete: {total} findings ({ext_count} from external tools)",
+                                fg=self.colors['success'] if total == 0 else self.colors['warning']
+                            )
+                        
+                        # Enable report button
+                        if total > 0 and hasattr(self, 'report_btn'):
+                            self.report_btn.config(state='normal')
+                        
+                        # Refresh report summary
+                        if hasattr(self, 'update_report_summary'):
+                            self.update_report_summary()
+                        
+                        self.log_console(f"[TOOLS] ✅ Merged {ext_count} external tool findings (total: {total})")
+                        
+                        # Log severity breakdown
+                        sev_parts = []
+                        for s in ['critical', 'high', 'medium', 'low', 'info']:
+                            if by_sev.get(s, 0) > 0:
+                                sev_parts.append(f"{s}: {by_sev[s]}")
+                        if sev_parts:
+                            self.log_console(f"[TOOLS] 📊 Severity: {' | '.join(sev_parts)}")
+                    
                     self.root.after(0, _merge)
             except Exception as e:
                 err = str(e)

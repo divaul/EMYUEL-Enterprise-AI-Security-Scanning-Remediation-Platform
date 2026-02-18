@@ -406,6 +406,16 @@ def setup_advanced_tab(parent, gui_instance):
         bg=colors['bg_secondary']
     ).pack(side='left', padx=(8, 0))
 
+    # Live count of selected tools
+    adv_count_label = tk.Label(
+        ext_header,
+        text="0 selected",
+        font=('Segoe UI', 9, 'bold'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    )
+    adv_count_label.pack(side='right', padx=(0, 10))
+
     gui_instance.adv_tool_status = tk.Label(
         ext_frame,
         text="Select external tools to use — unavailable tools will be skipped automatically",
@@ -449,6 +459,17 @@ def setup_advanced_tab(parent, gui_instance):
         if col_i >= 3:
             col_i = 0
             row_i += 1
+
+    # Live count updater
+    def _update_adv_count(*args):
+        count = sum(1 for v in gui_instance.adv_ext_tool_vars.values() if v.get())
+        adv_count_label.config(
+            text=f"{count} selected",
+            fg=colors['accent_cyan'] if count > 0 else colors['text_secondary']
+        )
+
+    for var in gui_instance.adv_ext_tool_vars.values():
+        var.trace_add('write', _update_adv_count)
 
     # Action buttons row
     adv_tool_btn_row = tk.Frame(ext_frame, bg=colors['bg_secondary'])
