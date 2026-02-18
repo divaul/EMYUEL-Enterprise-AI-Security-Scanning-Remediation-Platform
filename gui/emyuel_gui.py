@@ -1115,6 +1115,13 @@ class EMYUELGUI:
                 findings = executor.run_all()
                 
                 if findings:
+                    # Normalize finding format for DB compatibility
+                    for f in findings:
+                        if 'type' not in f:
+                            f['type'] = f.get('source', f.get('tool', 'External Tool'))
+                        if 'url' not in f:
+                            f['url'] = f.get('target', target)
+                    
                     # Append to existing scan results and update UI stats
                     def _merge():
                         if hasattr(self, 'last_scan_results') and self.last_scan_results:
@@ -1163,6 +1170,55 @@ class EMYUELGUI:
                         # Enable report button
                         if total > 0 and hasattr(self, 'report_btn'):
                             self.report_btn.config(state='normal')
+                        
+                        # Save external tool findings to database
+                        scan_id = self.last_scan_results.get('scan_id')
+                        if self.db and scan_id:
+                            try:
+                                import json
+                                with self.db._get_connection() as conn:
+                                    cursor = conn.cursor()
+                                    for f in findings:
+                                        cursor.execute("""
+                                            INSERT INTO findings (
+                                                scan_id, severity, vulnerability_type, title, description,
+                                                url, parameter, method, evidence, remediation, refs
+                                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        """, (
+                                            scan_id,
+                                            f.get('severity', 'info'),
+                                            f.get('type', 'External Tool'),
+                                            f.get('title', 'External finding'),
+                                            f.get('description', ''),
+                                            f.get('url', ''),
+                                            f.get('parameter', ''),
+                                            f.get('method', 'GET'),
+                                            f.get('evidence', ''),
+                                            f.get('remediation', ''),
+                                            json.dumps(f.get('references', []))
+                                        ))
+                                    # Update scan severity counts
+                                    cursor.execute("""
+                                        UPDATE scans SET
+                                            total_findings = ?,
+                                            critical_count = ?,
+                                            high_count = ?,
+                                            medium_count = ?,
+                                            low_count = ?,
+                                            info_count = ?
+                                        WHERE scan_id = ?
+                                    """, (
+                                        total,
+                                        by_sev.get('critical', 0),
+                                        by_sev.get('high', 0),
+                                        by_sev.get('medium', 0),
+                                        by_sev.get('low', 0),
+                                        by_sev.get('info', 0),
+                                        scan_id
+                                    ))
+                                self.log_console(f"[DB] ✅ Saved {ext_count} external findings to database")
+                            except Exception as db_err:
+                                self.log_console(f"[DB] ⚠️ Could not save external findings: {db_err}")
                         
                         # Refresh report summary
                         if hasattr(self, 'update_report_summary'):
