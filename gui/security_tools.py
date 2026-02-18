@@ -31,7 +31,7 @@ SECURITY_TOOLS = {
         'name': 'Naabu', 'icon': '🎯', 'category': 'Port Scanner',
         'desc': 'Fast port scanning tool (ProjectDiscovery)',
         'check_cmd': 'naabu', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest',
+        'install_custom': 'sudo apt install -y libpcap-dev && go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
 
@@ -89,14 +89,14 @@ SECURITY_TOOLS = {
         'name': 'Tplmap', 'icon': '🗺️', 'category': 'SSTI Scanner',
         'desc': 'Server-Side Template Injection detection and exploitation',
         'check_cmd': 'tplmap', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'pip install tplmap',
+        'install_custom': 'pip install git+https://github.com/epinna/tplmap.git',
         'usable_in': ['advanced', 'ai'],
     },
     'ssrfmap': {
         'name': 'SSRFmap', 'icon': '🔄', 'category': 'SSRF Scanner',
         'desc': 'Automatic SSRF fuzzer and exploitation tool',
         'check_cmd': 'ssrfmap', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'pip install ssrfmap',
+        'install_custom': 'pip install git+https://github.com/swisskyrepo/SSRFmap.git',
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -308,7 +308,8 @@ SECURITY_TOOLS = {
     'paramspider': {
         'name': 'ParamSpider', 'icon': '🕷️', 'category': 'Param Discovery',
         'desc': 'Mining parameters from web archives for bug hunting',
-        'check_cmd': 'paramspider', 'install_apt': None, 'install_pip': 'paramspider',
+        'check_cmd': 'paramspider', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'pip install git+https://github.com/devanshbatham/ParamSpider.git',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
     'arjun': {
@@ -350,7 +351,7 @@ SECURITY_TOOLS = {
     'owasp_zap': {
         'name': 'OWASP ZAP', 'icon': '⚡', 'category': 'Web Proxy',
         'desc': 'Zed Attack Proxy — OWASP web app security scanner',
-        'check_cmd': 'zap-cli', 'install_apt': None, 'install_pip': 'zaproxy',
+        'check_cmd': 'zap.sh', 'install_apt': 'zaproxy', 'install_pip': 'zaproxy',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
     'mitmproxy': {
@@ -372,7 +373,7 @@ SECURITY_TOOLS = {
         'name': 'Kiterunner', 'icon': '🪁', 'category': 'API Testing',
         'desc': 'API endpoint discovery and content scanner',
         'check_cmd': 'kr', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/assetnote/kiterunner/cmd/kr@latest',
+        'install_custom': 'go install github.com/assetnote/kiterunner/cmd/kr@v1.0.2',
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -411,7 +412,7 @@ SECURITY_TOOLS = {
         'name': 'Aquatone', 'icon': '📸', 'category': 'Visual Recon',
         'desc': 'Visual inspection of websites across large attack surfaces',
         'check_cmd': 'aquatone', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/michenriksen/aquatone@latest',
+        'install_custom': 'wget -qO /tmp/aquatone.zip https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip && unzip -o /tmp/aquatone.zip -d /usr/local/bin/ aquatone && chmod +x /usr/local/bin/aquatone',
         'usable_in': ['advanced', 'ai'],
     },
     'gowitness': {
@@ -464,7 +465,7 @@ SECURITY_TOOLS = {
         'name': 'Gitleaks', 'icon': '🔐', 'category': 'Secret Scanner',
         'desc': 'Scan git repos for secrets and sensitive data',
         'check_cmd': 'gitleaks', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/gitleaks/gitleaks/v8@latest',
+        'install_custom': 'go install github.com/zricethezav/gitleaks/v8@latest',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
     'trufflehog': {

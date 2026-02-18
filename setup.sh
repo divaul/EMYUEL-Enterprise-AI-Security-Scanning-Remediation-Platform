@@ -276,6 +276,9 @@ install_security_tools() {
         "testssl.sh"
         "exploitdb"
         "openvas"
+        "libpcap-dev"
+        "zaproxy"
+        "unzip"
     )
 
     for tool in "${APT_TOOLS[@]}"; do
@@ -323,12 +326,11 @@ install_security_tools() {
             ["gau"]="github.com/lc/gau/v2/cmd/gau@latest"
             ["hakrawler"]="github.com/hakluke/hakrawler@latest"
             ["katana"]="github.com/projectdiscovery/katana/cmd/katana@latest"
-            ["aquatone"]="github.com/michenriksen/aquatone@latest"
             ["gowitness"]="github.com/sensepost/gowitness@latest"
             ["dnsx"]="github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
             ["shuffledns"]="github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest"
-            ["gitleaks"]="github.com/gitleaks/gitleaks/v8@latest"
-            ["kr"]="github.com/assetnote/kiterunner/cmd/kr@latest"
+            ["gitleaks"]="github.com/zricethezav/gitleaks/v8@latest"
+            ["kr"]="github.com/assetnote/kiterunner/cmd/kr@v1.0.2"
         )
 
         local go_total=${#GO_TOOLS[@]}
@@ -364,12 +366,9 @@ install_security_tools() {
     PIP_TOOLS=(
         "wapiti3"
         "xsstrike"
-        "tplmap"
-        "ssrfmap"
         "dirsearch"
         "wfuzz"
         "commix"
-        "paramspider"
         "arjun"
         "sslyze"
         "semgrep"
@@ -377,16 +376,16 @@ install_security_tools() {
         "trufflehog"
         "detect-secrets"
         "droopescan"
-        "zaproxy"
         "scrapy"
+        "mitmproxy"
+        "faraday-cli"
     )
 
     for pkg in "${PIP_TOOLS[@]}"; do
         local bin_name="$pkg"
         [[ "$pkg" == "wapiti3" ]] && bin_name="wapiti"
-        [[ "$pkg" == "beautifulsoup4" ]] && bin_name=""
-        [[ "$pkg" == "zaproxy" ]] && bin_name="zap-cli"
         [[ "$pkg" == "detect-secrets" ]] && bin_name="detect-secrets"
+        [[ "$pkg" == "faraday-cli" ]] && bin_name="faraday-cli"
 
         if [ -n "$bin_name" ] && command -v "$bin_name" &> /dev/null; then
             print_success "$pkg ${GRAY}(already installed)${NC}"
@@ -404,7 +403,53 @@ install_security_tools() {
     done
     echo ""
 
-    # ── 5. Ruby gems ─────────────────────────────────────────────────────
+    # ── 4b. Git-only pip tools (not on PyPI) ─────────────────────────────
+    print_header "🐍 Git-based pip Tools"
+
+    declare -A GIT_PIP_TOOLS=(
+        ["paramspider"]="git+https://github.com/devanshbatham/ParamSpider.git"
+        ["tplmap"]="git+https://github.com/epinna/tplmap.git"
+        ["ssrfmap"]="git+https://github.com/swisskyrepo/SSRFmap.git"
+    )
+
+    for tool_bin in "${!GIT_PIP_TOOLS[@]}"; do
+        if command -v "$tool_bin" &> /dev/null; then
+            print_success "$tool_bin ${GRAY}(already installed)${NC}"
+            installed=$((installed + 1))
+        else
+            echo -ne "${BLUE}[→]${NC} pip install $tool_bin (from git)... "
+            if pip install "${GIT_PIP_TOOLS[$tool_bin]}" --quiet > /dev/null 2>&1; then
+                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool_bin installed${NC}                     "
+                installed=$((installed + 1))
+            else
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin — pip install failed${NC}                     "
+                failed=$((failed + 1))
+            fi
+        fi
+    done
+    echo ""
+
+    # ── 4c. Aquatone (pre-built binary) ──────────────────────────────────
+    if ! command -v aquatone &> /dev/null; then
+        print_header "📸 Aquatone (pre-built binary)"
+        echo -ne "${BLUE}[→]${NC} Downloading Aquatone v1.7.0... "
+        if wget -qO /tmp/aquatone.zip https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip 2>/dev/null && \
+           sudo unzip -o /tmp/aquatone.zip -d /usr/local/bin/ aquatone > /dev/null 2>&1 && \
+           sudo chmod +x /usr/local/bin/aquatone; then
+            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}aquatone installed${NC}                     "
+            installed=$((installed + 1))
+            rm -f /tmp/aquatone.zip
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}aquatone — download failed${NC}                     "
+            failed=$((failed + 1))
+        fi
+        echo ""
+    else
+        print_success "aquatone ${GRAY}(already installed)${NC}"
+        installed=$((installed + 1))
+    fi
+
+
     if command -v gem &> /dev/null; then
         print_header "💎 Ruby-based Tools"
 

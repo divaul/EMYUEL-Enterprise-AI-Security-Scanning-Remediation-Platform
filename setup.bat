@@ -113,10 +113,11 @@ if %errorlevel% equ 0 (
         "unfurl github.com/tomnomnom/unfurl@latest"
         "gf github.com/tomnomnom/gf@latest"
         "assetfinder github.com/tomnomnom/assetfinder@latest"
-        "gitleaks github.com/gitleaks/gitleaks/v8@latest"
+        "gitleaks github.com/zricethezav/gitleaks/v8@latest"
         "gowitness github.com/sensepost/gowitness@latest"
         "shuffledns github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest"
         "interactsh-client github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest"
+        "kr github.com/assetnote/kiterunner/cmd/kr@v1.0.2"
     ) do (
         for /f "tokens=1,2" %%A in (%%T) do (
             where %%A >nul 2>&1
