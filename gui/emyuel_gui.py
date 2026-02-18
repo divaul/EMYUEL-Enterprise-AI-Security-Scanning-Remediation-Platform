@@ -2367,19 +2367,28 @@ Example:
         import pathlib
         
         home = pathlib.Path.home()
+        
+        # Build list, filtering out empty env vars to avoid Path('') bugs
         extra_dirs = [
             home / 'go' / 'bin',
             home / '.local' / 'bin',
             home / '.cargo' / 'bin',
-            pathlib.Path(os.environ.get('GOPATH', '')) / 'bin',
-            pathlib.Path(os.environ.get('GOBIN', '')),
             pathlib.Path('/usr/local/go/bin'),
             pathlib.Path('/usr/local/bin'),
             pathlib.Path('/snap/bin'),
         ]
+        gopath = os.environ.get('GOPATH', '')
+        if gopath:
+            extra_dirs.append(pathlib.Path(gopath) / 'bin')
+        gobin = os.environ.get('GOBIN', '')
+        if gobin:
+            extra_dirs.append(pathlib.Path(gobin))
         
         for d in extra_dirs:
-            if not d or not d.is_dir():
+            try:
+                if not d.is_dir():
+                    continue
+            except (OSError, ValueError):
                 continue
             candidate = d / cmd_name
             if candidate.is_file():
@@ -2391,26 +2400,28 @@ Example:
         return None
     
     def scan_installed_tools(self):
-        """Scan system for installed cybersecurity tools (runs in thread)"""
+        """Scan system for installed cybersecurity tools (concurrent for speed)"""
         import threading
         def _scan():
             import shutil
             import subprocess
             from datetime import datetime
+            from concurrent.futures import ThreadPoolExecutor, as_completed
             
-            self.ai_log_console(f"\n[{datetime.now().strftime('%H:%M:%S')}] 🔍 Scanning installed security tools...")
+            self.ai_log_console(f"\n[{datetime.now().strftime('%H:%M:%S')}] 🔍 Scanning {len(self.SECURITY_TOOLS)} security tools...")
             
-            tool_status = {}
-            installed_count = 0
-            
-            for tool_id, info in self.SECURITY_TOOLS.items():
+            def _check_single_tool(tool_id, info):
+                """Check a single tool — designed to run in parallel"""
                 is_installed = False
                 version = ""
                 
                 # Check command-line tools
                 if info.get('check_cmd'):
                     cmd = info['check_cmd']
-                    found_path = shutil.which(cmd) or self._find_cmd_in_extra_paths(cmd)
+                    try:
+                        found_path = shutil.which(cmd) or self._find_cmd_in_extra_paths(cmd)
+                    except Exception:
+                        found_path = None
                     if found_path:
                         is_installed = True
                         try:
@@ -2423,7 +2434,7 @@ Example:
                         except Exception:
                             version = f"installed ({found_path})"
                 
-                # Check pip packages
+                # Check pip packages (no check_cmd = pure Python lib)
                 elif info.get('install_pip'):
                     try:
                         pkg_name = info['install_pip'].replace('-', '_')
@@ -2445,13 +2456,29 @@ Example:
                         except Exception:
                             pass
                 
-                if is_installed:
-                    installed_count += 1
-                
-                tool_status[tool_id] = {
-                    'installed': is_installed,
-                    'version': version
+                return tool_id, is_installed, version
+            
+            tool_status = {}
+            installed_count = 0
+            
+            # Run checks concurrently (max 10 threads to avoid OS overload)
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                futures = {
+                    executor.submit(_check_single_tool, tid, info): tid
+                    for tid, info in self.SECURITY_TOOLS.items()
                 }
+                for future in as_completed(futures):
+                    try:
+                        tool_id, is_installed, version = future.result(timeout=15)
+                        if is_installed:
+                            installed_count += 1
+                        tool_status[tool_id] = {
+                            'installed': is_installed,
+                            'version': version
+                        }
+                    except Exception:
+                        tid = futures[future]
+                        tool_status[tid] = {'installed': False, 'version': ''}
             
             total = len(self.SECURITY_TOOLS)
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Scan complete: {installed_count}/{total} tools installed\n")
