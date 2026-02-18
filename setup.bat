@@ -68,9 +68,83 @@ if errorlevel 1 (
 )
 
 echo.
-REM Check cybersecurity tools
+REM ================================================
+REM   INSTALL PIP-BASED SECURITY TOOLS
+REM ================================================
 echo ================================================
-echo   Checking Cybersecurity Tools
+echo   Installing pip-based Security Tools
+echo ================================================
+echo.
+
+for %%T in (wapiti3 xsstrike dirsearch wfuzz arjun sslyze semgrep bandit trufflehog detect-secrets droopescan paramspider commix scrapy) do (
+    echo [pip] Installing %%T...
+    pip install %%T --quiet 2>nul
+    if errorlevel 1 (
+        echo [WARN] %%T failed to install
+    ) else (
+        echo [OK] %%T
+    )
+)
+echo.
+
+REM ================================================
+REM   INSTALL GO-BASED SECURITY TOOLS
+REM ================================================
+where go >nul 2>&1
+if %errorlevel% equ 0 (
+    echo ================================================
+    echo   Installing Go-based Security Tools
+    echo ================================================
+    echo.
+
+    for %%T in (
+        "naabu github.com/projectdiscovery/naabu/v2/cmd/naabu@latest"
+        "subfinder github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"
+        "httpx github.com/projectdiscovery/httpx/cmd/httpx@latest"
+        "nuclei github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"
+        "katana github.com/projectdiscovery/katana/cmd/katana@latest"
+        "dnsx github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
+        "dalfox github.com/hahwul/dalfox/v2@latest"
+        "waybackurls github.com/tomnomnom/waybackurls@latest"
+        "gau github.com/lc/gau/v2/cmd/gau@latest"
+        "hakrawler github.com/hakluke/hakrawler@latest"
+        "httprobe github.com/tomnomnom/httprobe@latest"
+        "qsreplace github.com/tomnomnom/qsreplace@latest"
+        "unfurl github.com/tomnomnom/unfurl@latest"
+        "gf github.com/tomnomnom/gf@latest"
+        "assetfinder github.com/tomnomnom/assetfinder@latest"
+        "gitleaks github.com/gitleaks/gitleaks/v8@latest"
+        "gowitness github.com/sensepost/gowitness@latest"
+        "shuffledns github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest"
+        "interactsh-client github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest"
+    ) do (
+        for /f "tokens=1,2" %%A in (%%T) do (
+            where %%A >nul 2>&1
+            if errorlevel 1 (
+                echo [go] Installing %%A...
+                go install -v %%B >nul 2>&1
+                if errorlevel 1 (
+                    echo [WARN] %%A failed
+                ) else (
+                    echo [OK] %%A
+                )
+            ) else (
+                echo [OK] %%A already installed
+            )
+        )
+    )
+    echo.
+) else (
+    echo ================================================
+    echo   [SKIP] Go not found - skipping Go-based tools
+    echo   Install Go from: https://go.dev/dl/
+    echo ================================================
+    echo.
+)
+
+REM Check cybersecurity tools (verification)
+echo ================================================
+echo   Verifying All Security Tools
 echo ================================================
 echo.
 python check_security_tools.py

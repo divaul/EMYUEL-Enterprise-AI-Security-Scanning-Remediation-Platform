@@ -181,6 +181,10 @@ install_dependencies() {
         "git"
         "curl"
         "wget"
+        "ruby"
+        "ruby-dev"
+        "perl"
+        "chromium-browser"
     )
     
     sudo apt update > /dev/null 2>&1
@@ -209,6 +213,304 @@ install_dependencies() {
     echo ""
     print_separator
 }
+
+# ═══════════════════════════════════════════════════════════════════════════
+# INSTALL ALL EXTERNAL SECURITY TOOLS
+# ═══════════════════════════════════════════════════════════════════════════
+install_security_tools() {
+    print_header "🔐 INSTALLING SECURITY TOOLS (79 tools)"
+
+    local installed=0
+    local skipped=0
+    local failed=0
+
+    # ── 1. Go Runtime ────────────────────────────────────────────────────
+    print_header "🐹 Go Runtime (required for ~22 tools)"
+
+    if command -v go &> /dev/null; then
+        GO_VER=$(go version | awk '{print $3}')
+        print_success "Go already installed: $GO_VER"
+    else
+        print_step "Installing Go 1.22..."
+        GO_TAR="go1.22.4.linux-amd64.tar.gz"
+        wget -q "https://go.dev/dl/${GO_TAR}" -O "/tmp/${GO_TAR}"
+        sudo rm -rf /usr/local/go
+        sudo tar -C /usr/local -xzf "/tmp/${GO_TAR}"
+        rm -f "/tmp/${GO_TAR}"
+
+        # Add to PATH for this session and permanently
+        export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
+        echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
+
+        if command -v go &> /dev/null; then
+            print_success "Go installed: $(go version)"
+        else
+            print_error "Go install failed — Go-based tools will be skipped"
+        fi
+    fi
+
+    # Ensure GOPATH/bin is in PATH
+    export PATH=$PATH:$HOME/go/bin
+    echo ""
+
+    # ── 2. APT Tools ─────────────────────────────────────────────────────
+    print_header "📦 APT Security Tools"
+
+    APT_TOOLS=(
+        "nmap"
+        "masscan"
+        "nikto"
+        "skipfish"
+        "whatweb"
+        "sqlmap"
+        "gobuster"
+        "dirb"
+        "ffuf"
+        "hydra"
+        "medusa"
+        "john"
+        "hashcat"
+        "joomscan"
+        "amass"
+        "sslscan"
+        "testssl.sh"
+        "exploitdb"
+        "openvas"
+    )
+
+    for tool in "${APT_TOOLS[@]}"; do
+        # Get binary name (some packages differ from binary)
+        local bin_name="$tool"
+        [[ "$tool" == "testssl.sh" ]] && bin_name="testssl"
+        [[ "$tool" == "exploitdb" ]] && bin_name="searchsploit"
+
+        if command -v "$bin_name" &> /dev/null || which "$bin_name" &> /dev/null 2>&1; then
+            print_success "$tool ${GRAY}(already installed)${NC}"
+            installed=$((installed + 1))
+        else
+            echo -ne "${BLUE}[→]${NC} Installing $tool... "
+            if sudo apt install -y "$tool" > /dev/null 2>&1; then
+                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool installed${NC}              "
+                installed=$((installed + 1))
+            else
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool — not in apt repos${NC}              "
+                failed=$((failed + 1))
+            fi
+        fi
+    done
+    echo ""
+
+    # ── 3. Go-based Tools ────────────────────────────────────────────────
+    if command -v go &> /dev/null; then
+        print_header "🐹 Go-based Security Tools"
+
+        declare -A GO_TOOLS=(
+            ["naabu"]="github.com/projectdiscovery/naabu/v2/cmd/naabu@latest"
+            ["dalfox"]="github.com/hahwul/dalfox/v2@latest"
+            ["subfinder"]="github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"
+            ["chaos"]="github.com/projectdiscovery/chaos-client/cmd/chaos@latest"
+            ["github-subdomains"]="github.com/gwen001/github-subdomains@latest"
+            ["subjack"]="github.com/haccer/subjack@latest"
+            ["assetfinder"]="github.com/tomnomnom/assetfinder@latest"
+            ["httpx"]="github.com/projectdiscovery/httpx/cmd/httpx@latest"
+            ["httprobe"]="github.com/tomnomnom/httprobe@latest"
+            ["nuclei"]="github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"
+            ["interactsh-client"]="github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest"
+            ["qsreplace"]="github.com/tomnomnom/qsreplace@latest"
+            ["unfurl"]="github.com/tomnomnom/unfurl@latest"
+            ["gf"]="github.com/tomnomnom/gf@latest"
+            ["waybackurls"]="github.com/tomnomnom/waybackurls@latest"
+            ["gau"]="github.com/lc/gau/v2/cmd/gau@latest"
+            ["hakrawler"]="github.com/hakluke/hakrawler@latest"
+            ["katana"]="github.com/projectdiscovery/katana/cmd/katana@latest"
+            ["aquatone"]="github.com/michenriksen/aquatone@latest"
+            ["gowitness"]="github.com/sensepost/gowitness@latest"
+            ["dnsx"]="github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
+            ["shuffledns"]="github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest"
+            ["gitleaks"]="github.com/gitleaks/gitleaks/v8@latest"
+            ["kr"]="github.com/assetnote/kiterunner/cmd/kr@latest"
+        )
+
+        local go_total=${#GO_TOOLS[@]}
+        local go_current=0
+
+        for tool_bin in "${!GO_TOOLS[@]}"; do
+            go_current=$((go_current + 1))
+
+            if command -v "$tool_bin" &> /dev/null; then
+                print_success "$tool_bin ${GRAY}(already installed)${NC}"
+                installed=$((installed + 1))
+            else
+                echo -ne "${BLUE}[→]${NC} go install $tool_bin ${BCYAN}[$go_current/$go_total]${NC}... "
+                if go install -v "${GO_TOOLS[$tool_bin]}" > /dev/null 2>&1; then
+                    echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool_bin installed${NC}                          "
+                    installed=$((installed + 1))
+                else
+                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin — go install failed${NC}                          "
+                    failed=$((failed + 1))
+                fi
+            fi
+        done
+        echo ""
+    else
+        print_warning "Go not available — skipping 22 Go-based tools"
+        skipped=$((skipped + 22))
+    fi
+
+    # ── 4. pip-based Tools ───────────────────────────────────────────────
+    print_header "🐍 pip-based Security Tools"
+
+    # We install into the venv if active, else user pip
+    PIP_TOOLS=(
+        "wapiti3"
+        "xsstrike"
+        "tplmap"
+        "ssrfmap"
+        "dirsearch"
+        "wfuzz"
+        "commix"
+        "paramspider"
+        "arjun"
+        "sslyze"
+        "semgrep"
+        "bandit"
+        "trufflehog"
+        "detect-secrets"
+        "droopescan"
+        "zaproxy"
+        "scrapy"
+    )
+
+    for pkg in "${PIP_TOOLS[@]}"; do
+        local bin_name="$pkg"
+        [[ "$pkg" == "wapiti3" ]] && bin_name="wapiti"
+        [[ "$pkg" == "beautifulsoup4" ]] && bin_name=""
+        [[ "$pkg" == "zaproxy" ]] && bin_name="zap-cli"
+        [[ "$pkg" == "detect-secrets" ]] && bin_name="detect-secrets"
+
+        if [ -n "$bin_name" ] && command -v "$bin_name" &> /dev/null; then
+            print_success "$pkg ${GRAY}(already installed)${NC}"
+            installed=$((installed + 1))
+        else
+            echo -ne "${BLUE}[→]${NC} pip install $pkg... "
+            if pip install "$pkg" --quiet > /dev/null 2>&1; then
+                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$pkg installed${NC}                     "
+                installed=$((installed + 1))
+            else
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$pkg — pip install failed${NC}                     "
+                failed=$((failed + 1))
+            fi
+        fi
+    done
+    echo ""
+
+    # ── 5. Ruby gems ─────────────────────────────────────────────────────
+    if command -v gem &> /dev/null; then
+        print_header "💎 Ruby-based Tools"
+
+        GEM_TOOLS=("wpscan" "brakeman")
+
+        for tool in "${GEM_TOOLS[@]}"; do
+            if command -v "$tool" &> /dev/null; then
+                print_success "$tool ${GRAY}(already installed)${NC}"
+                installed=$((installed + 1))
+            else
+                echo -ne "${BLUE}[→]${NC} gem install $tool... "
+                if sudo gem install "$tool" --no-document > /dev/null 2>&1; then
+                    echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool installed${NC}              "
+                    installed=$((installed + 1))
+                else
+                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool — gem install failed${NC}              "
+                    failed=$((failed + 1))
+                fi
+            fi
+        done
+        echo ""
+    else
+        print_warning "Ruby not available — skipping wpscan, brakeman"
+        skipped=$((skipped + 2))
+    fi
+
+    # ── 6. npm tools ─────────────────────────────────────────────────────
+    if command -v npm &> /dev/null; then
+        print_header "📦 npm-based Tools"
+
+        if command -v newman &> /dev/null; then
+            print_success "newman ${GRAY}(already installed)${NC}"
+            installed=$((installed + 1))
+        else
+            echo -ne "${BLUE}[→]${NC} npm install -g newman... "
+            if sudo npm install -g newman > /dev/null 2>&1; then
+                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}newman installed${NC}              "
+                installed=$((installed + 1))
+            else
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}newman — npm install failed${NC}              "
+                failed=$((failed + 1))
+            fi
+        fi
+        echo ""
+    else
+        print_warning "npm not available — skipping newman"
+        skipped=$((skipped + 1))
+    fi
+
+    # ── 7. Cargo (Rust) tools ────────────────────────────────────────────
+    if command -v cargo &> /dev/null; then
+        print_header "🦀 Rust-based Tools"
+
+        CARGO_TOOLS=("rustscan" "feroxbuster" "findomain")
+
+        for tool in "${CARGO_TOOLS[@]}"; do
+            if command -v "$tool" &> /dev/null; then
+                print_success "$tool ${GRAY}(already installed)${NC}"
+                installed=$((installed + 1))
+            else
+                echo -ne "${BLUE}[→]${NC} cargo install $tool... "
+                if cargo install "$tool" > /dev/null 2>&1; then
+                    echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool installed${NC}              "
+                    installed=$((installed + 1))
+                else
+                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool — cargo install failed${NC}              "
+                    failed=$((failed + 1))
+                fi
+            fi
+        done
+        echo ""
+    else
+        print_warning "Cargo not available — skipping rustscan, feroxbuster, findomain"
+        print_info "Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        skipped=$((skipped + 3))
+    fi
+
+    # ── 8. SecLists (wordlists) ──────────────────────────────────────────
+    print_header "📚 Wordlists"
+
+    if [ -d "/usr/share/seclists" ] || [ -d "/opt/seclists" ] || [ -d "$HOME/SecLists" ]; then
+        print_success "SecLists ${GRAY}(already installed)${NC}"
+        installed=$((installed + 1))
+    else
+        echo -ne "${BLUE}[→]${NC} Cloning SecLists (shallow)... "
+        if sudo git clone --depth 1 https://github.com/danielmiessler/SecLists.git /usr/share/seclists > /dev/null 2>&1; then
+            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}SecLists installed to /usr/share/seclists${NC}"
+            installed=$((installed + 1))
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}SecLists clone failed${NC}"
+            failed=$((failed + 1))
+        fi
+    fi
+    echo ""
+
+    # ── Summary ──────────────────────────────────────────────────────────
+    print_header "📊 TOOL INSTALLATION SUMMARY"
+    echo -e "  ${BGREEN}✅ Installed/Available: ${installed}${NC}"
+    echo -e "  ${BYELLOW}⏭️  Skipped (missing runtime): ${skipped}${NC}"
+    echo -e "  ${BRED}❌ Failed: ${failed}${NC}"
+    echo ""
+    print_info "Python libs (aiohttp, requests, etc.) are installed via requirements.txt"
+    print_info "Interactive tools (Burp Suite, mitmproxy) need manual setup"
+    print_separator
+}
+
 
 # Create virtual environment
 create_venv() {
@@ -769,6 +1071,7 @@ main() {
     check_kali
     check_prerequisites
     install_dependencies
+    install_security_tools
     create_venv
     install_python_deps
     setup_env
