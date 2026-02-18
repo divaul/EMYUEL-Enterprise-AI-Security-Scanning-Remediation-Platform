@@ -872,6 +872,9 @@ class EMYUELGUI:
         
         # Start real scan
         self._execute_real_scan(target, self.last_parsed.get('modules'))
+        
+        # Run external tools selected in Quick Scan tab
+        self._run_external_tools('quick', target)
     
     def start_advanced_scan(self):
         """Start advanced scan"""
@@ -903,6 +906,9 @@ class EMYUELGUI:
         
         # Start real scan
         self._execute_real_scan(target, modules)
+        
+        # Run external tools selected in Advanced Scan tab
+        self._run_external_tools('advanced', target)
     
     def _execute_real_scan(self, target: str, modules: Optional[List[str]] = None, resume_state: Optional[Dict] = None):
         """Execute real scan in background thread with pause/resume support"""
@@ -1077,6 +1083,61 @@ class EMYUELGUI:
             self.progress_label.config(text="Scan in progress...")
         if hasattr(self, 'status_label'):
             self.status_label.config(text="Initializing...", fg=self.colors['warning'])
+    
+    def _run_external_tools(self, tab, target):
+        """Run external security tools selected in the given tab (quick/advanced)."""
+        import threading
+        from gui.tool_executor import ToolExecutor
+        from gui.security_tools import SECURITY_TOOLS
+        
+        # Get selected tool IDs from the correct tab's checkbox vars
+        tool_vars_attr = f'{tab}_ext_tool_vars'
+        if not hasattr(self, tool_vars_attr):
+            return
+        
+        tool_vars = getattr(self, tool_vars_attr)
+        selected = [tid for tid, var in tool_vars.items() if var.get()]
+        
+        if not selected:
+            return
+        
+        self.log_console(f"[TOOLS] {len(selected)} external tools selected for {tab} scan")
+        
+        def _run():
+            try:
+                executor = ToolExecutor(
+                    target=target,
+                    selected_tool_ids=selected,
+                    tool_registry=SECURITY_TOOLS,
+                    log_fn=lambda msg: self.root.after(0, lambda m=msg: self.log_console(m)),
+                    max_workers=5,
+                )
+                findings = executor.run_all()
+                
+                if findings:
+                    # Append to existing scan results
+                    def _merge():
+                        if hasattr(self, 'last_scan_results') and self.last_scan_results:
+                            existing = self.last_scan_results.get('findings', [])
+                            existing.extend(findings)
+                            self.last_scan_results['findings'] = existing
+                            self.log_console(f"[TOOLS] ✅ Merged {len(findings)} external tool findings")
+                        else:
+                            # No built-in results yet, store standalone
+                            self.last_scan_results = {
+                                'target': target,
+                                'findings': findings,
+                                'total_pages': 0,
+                                'external_tools_only': True,
+                            }
+                            self.log_console(f"[TOOLS] ✅ Stored {len(findings)} external tool findings")
+                    self.root.after(0, _merge)
+            except Exception as e:
+                err = str(e)
+                self.root.after(0, lambda m=err: self.log_console(f"[TOOLS] ❌ Error: {m}"))
+        
+        thread = threading.Thread(target=_run, daemon=True)
+        thread.start()
     
     def start_scan(self):
         """Start vulnerability scan or add to queue"""
