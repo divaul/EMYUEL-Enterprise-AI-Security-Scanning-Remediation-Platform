@@ -471,6 +471,23 @@ def setup_ai_analysis_tab(parent, gui_instance):
     )
     analyze_btn.pack(side='left', padx=5)
     
+    # Download Results button
+    download_btn = tk.Button(
+        analyze_frame,
+        text="📥 Download Report",
+        font=('Segoe UI', 12, 'bold'),
+        bg=colors['accent_purple'],
+        fg='#ffffff',
+        activebackground=colors['accent_cyan'],
+        activeforeground='#000000',
+        relief='flat',
+        cursor='hand2',
+        command=getattr(gui_instance, 'download_ai_results', lambda: None),
+        padx=20,
+        pady=10
+    )
+    download_btn.pack(side='left', padx=5)
+    
     # Resume Scan button (hidden by default)
     gui_instance.resume_scan_btn_ai = tk.Button(
         analyze_frame,
