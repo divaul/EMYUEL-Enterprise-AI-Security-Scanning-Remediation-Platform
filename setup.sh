@@ -1071,9 +1071,9 @@ main() {
     check_kali
     check_prerequisites
     install_dependencies
-    install_security_tools
     create_venv
     install_python_deps
+    install_security_tools
     setup_env
     create_directories
     

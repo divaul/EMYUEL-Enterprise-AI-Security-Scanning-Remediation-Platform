@@ -36,7 +36,7 @@ def _load_registry() -> Dict:
 # ---------------------------------------------------------------------------
 PYTHON_LIBRARY_TOOLS = {
     'aiohttp', 'requests', 'beautifulsoup', 'scrapy', 'httpx_pkg',
-    'google_genai', 'seclists',
+    'google_genai', 'openai_sdk', 'anthropic_sdk',
 }
 
 # Tools that are GUI-only / interactive — no CLI auto-run
@@ -49,7 +49,12 @@ PLATFORM_TOOLS = {
     'dradis', 'faraday', 'defectdojo',
 }
 
-SKIP_PATH_CHECK = PYTHON_LIBRARY_TOOLS | INTERACTIVE_TOOLS | PLATFORM_TOOLS
+# Resource-only entries — no binary to check
+RESOURCE_TOOLS = {
+    'seclists',
+}
+
+SKIP_PATH_CHECK = PYTHON_LIBRARY_TOOLS | INTERACTIVE_TOOLS | PLATFORM_TOOLS | RESOURCE_TOOLS
 
 
 class SecurityToolsManager:
@@ -74,7 +79,9 @@ class SecurityToolsManager:
 
     def _resolve_binary(self, tool_id: str, info: Dict) -> str | None:
         """Find the binary on PATH (or common Go/Cargo dirs)."""
-        cmd = info.get('check_cmd', tool_id)
+        cmd = info.get('check_cmd') or info.get('check_cmd', tool_id)
+        if cmd is None:
+            return None
         # shutil.which is the safest cross-platform check
         found = shutil.which(cmd)
         if found:
@@ -164,8 +171,9 @@ class SecurityToolsManager:
                 if tid in PYTHON_LIBRARY_TOOLS:
                     # Python library — check import instead
                     pkg = info.get('install_pip') or tid
+                    mod = pkg.replace('-', '_').split('[')[0]
                     try:
-                        __import__(pkg.replace('-', '_').split('[')[0])
+                        __import__(mod)
                         status_sym = "✅"
                         installed = True
                     except ImportError:
@@ -173,6 +181,17 @@ class SecurityToolsManager:
                         installed = False
                     lib_count += 1
                     tag = " (Python lib)"
+                elif tid in RESOURCE_TOOLS:
+                    # Resource directory (e.g. SecLists)
+                    from pathlib import Path as P
+                    found = any(P(d).is_dir() for d in [
+                        '/usr/share/seclists', '/opt/seclists',
+                        str(Path.home() / 'SecLists'),
+                    ])
+                    status_sym = "✅" if found else "📦"
+                    installed = found
+                    skip_count += 1
+                    tag = " (resource)"
                 elif tid in INTERACTIVE_TOOLS | PLATFORM_TOOLS:
                     status_sym = "ℹ️ "
                     installed = None  # N/A
