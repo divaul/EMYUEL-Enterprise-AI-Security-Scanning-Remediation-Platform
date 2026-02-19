@@ -1090,9 +1090,15 @@ class EMYUELGUI:
         from gui.tool_executor import ToolExecutor
         from gui.security_tools import SECURITY_TOOLS
         
-        # Get selected tool IDs from the correct tab's checkbox vars
-        tool_vars_attr = f'{tab}_ext_tool_vars'
+        # Map tab name to actual attribute (advanced tab uses 'adv_' prefix)
+        attr_map = {
+            'quick': 'quick_ext_tool_vars',
+            'advanced': 'adv_ext_tool_vars',
+            'adv': 'adv_ext_tool_vars',
+        }
+        tool_vars_attr = attr_map.get(tab, f'{tab}_ext_tool_vars')
         if not hasattr(self, tool_vars_attr):
+            self.log_console(f"[TOOLS] ⚠️ No tool vars found for tab '{tab}' (attr: {tool_vars_attr})")
             return
         
         tool_vars = getattr(self, tool_vars_attr)
