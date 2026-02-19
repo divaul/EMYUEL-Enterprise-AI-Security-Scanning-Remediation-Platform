@@ -67,6 +67,7 @@ class SecurityToolsManager:
         self.is_mac = self.os_type == 'darwin'
         self.is_kali = self._is_kali_linux()
         self.registry = _load_registry()
+        self._go_installed = False  # track whether we already installed Go
 
     # ---- helpers ----
     @staticmethod
@@ -76,6 +77,21 @@ class SecurityToolsManager:
                 return 'kali' in f.read().lower()
         except Exception:
             return False
+
+    def _get_env_with_paths(self) -> dict:
+        """Return env dict that includes Go/Cargo bin in PATH."""
+        env = os.environ.copy()
+        home = Path.home()
+        extra = [
+            '/usr/local/go/bin',
+            str(home / 'go' / 'bin'),
+            str(home / '.cargo' / 'bin'),
+            '/usr/local/bin',
+            str(home / '.local' / 'bin'),
+        ]
+        env['PATH'] = ':'.join(extra) + ':' + env.get('PATH', '')
+        env['GOPATH'] = str(home / 'go')
+        return env
 
     def _resolve_binary(self, tool_id: str, info: Dict) -> str | None:
         """Find the binary on PATH (or common Go/Cargo dirs)."""
@@ -94,7 +110,8 @@ class SecurityToolsManager:
         extra_dirs.append(go_bin)
         extra_dirs.append(str(home / '.cargo' / 'bin'))
         if self.is_linux or self.is_mac:
-            extra_dirs += ['/usr/local/bin', '/snap/bin', str(home / '.local' / 'bin')]
+            extra_dirs += ['/usr/local/go/bin', '/usr/local/bin', '/snap/bin',
+                           str(home / '.local' / 'bin')]
 
         for d in extra_dirs:
             candidate = Path(d) / cmd
@@ -108,7 +125,6 @@ class SecurityToolsManager:
 
     def _install_instruction(self, info: Dict) -> str:
         """Get the install instruction for the current OS."""
-        # Custom install takes precedence
         custom = info.get('install_custom')
         apt = info.get('install_apt')
         pip = info.get('install_pip')
@@ -136,6 +152,57 @@ class SecurityToolsManager:
                 return f"Install via WSL: sudo apt-get install {apt} -y"
 
         return custom or (f"pip install {pip}" if pip else "See tool website")
+
+    # ---- Go runtime installer ----
+    def _ensure_go_runtime(self) -> bool:
+        """Install Go runtime if not already available."""
+        env = self._get_env_with_paths()
+        # Check if go is already in any known location
+        go_paths = ['/usr/local/go/bin/go', str(Path.home() / 'go' / 'bin' / 'go')]
+        if shutil.which('go', path=env.get('PATH', '')) is not None:
+            return True
+        for gp in go_paths:
+            if Path(gp).exists():
+                return True
+
+        if self._go_installed:
+            return False  # We already tried and it failed
+
+        print()
+        print("  🐹 Go runtime not found — installing Go 1.22.4...")
+        try:
+            cmds = [
+                'wget -q https://go.dev/dl/go1.22.4.linux-amd64.tar.gz -O /tmp/go.tar.gz',
+                'sudo rm -rf /usr/local/go',
+                'sudo tar -C /usr/local -xzf /tmp/go.tar.gz',
+                'rm -f /tmp/go.tar.gz',
+            ]
+            for cmd in cmds:
+                r = subprocess.run(cmd, shell=True, timeout=120)
+                if r.returncode != 0:
+                    print(f"  ❌ Go install step failed: {cmd}")
+                    self._go_installed = True
+                    return False
+
+            # Verify
+            result = subprocess.run(
+                '/usr/local/go/bin/go version', shell=True,
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                print(f"  ✅ {result.stdout.strip()}")
+                # Update current process PATH
+                os.environ['PATH'] = '/usr/local/go/bin:' + str(Path.home() / 'go' / 'bin') + ':' + os.environ.get('PATH', '')
+                self._go_installed = True
+                return True
+            else:
+                print("  ❌ Go verification failed")
+                self._go_installed = True
+                return False
+        except Exception as e:
+            print(f"  ❌ Go install error: {e}")
+            self._go_installed = True
+            return False
 
     # ---- main logic ----
     def check_all_tools(self, debug: bool = False) -> Dict[str, Dict]:
@@ -169,7 +236,6 @@ class SecurityToolsManager:
                 icon = info.get('icon', '🔧')
 
                 if tid in PYTHON_LIBRARY_TOOLS:
-                    # Python library — check import instead
                     pkg = info.get('install_pip') or tid
                     mod = pkg.replace('-', '_').split('[')[0]
                     try:
@@ -182,9 +248,7 @@ class SecurityToolsManager:
                     lib_count += 1
                     tag = " (Python lib)"
                 elif tid in RESOURCE_TOOLS:
-                    # Resource directory (e.g. SecLists)
-                    from pathlib import Path as P
-                    found = any(P(d).is_dir() for d in [
+                    found = any(Path(d).is_dir() for d in [
                         '/usr/share/seclists', '/opt/seclists',
                         str(Path.home() / 'SecLists'),
                     ])
@@ -198,7 +262,6 @@ class SecurityToolsManager:
                     skip_count += 1
                     tag = " (interactive/platform)"
                 else:
-                    # CLI binary — check PATH
                     path = self._resolve_binary(tid, info)
                     installed = path is not None
                     cli_total += 1
@@ -234,33 +297,67 @@ class SecurityToolsManager:
         return results
 
     def auto_install_linux(self, tool_id: str, info: Dict) -> bool:
-        """Attempt apt/pip install on Linux."""
+        """Attempt to install a tool on Linux using the best available method."""
         apt = info.get('install_apt')
         pip = info.get('install_pip')
+        custom = info.get('install_custom', '')
 
+        # Determine install command
         if apt:
             cmd = f"sudo apt-get install {apt} -y"
         elif pip:
             cmd = f"pip install {pip}"
+        elif custom:
+            # For Go-based tools, ensure Go runtime is available first
+            if 'go install' in custom:
+                if not self._ensure_go_runtime():
+                    print("  ⚠️  Go runtime not available — skipping")
+                    return False
+            # For Cargo-based tools, check if cargo is available
+            elif custom.startswith('cargo install'):
+                if not shutil.which('cargo'):
+                    print("  ⚠️  Cargo not found — install Rust first:")
+                    print("     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
+                    return False
+            # For npm-based tools, check if npm is available
+            elif 'npm install' in custom:
+                if not shutil.which('npm'):
+                    print("  ⚠️  npm not found — install Node.js first:")
+                    print("     sudo apt install nodejs npm -y")
+                    return False
+            # For gem-based tools, check if gem is available
+            elif custom.startswith('gem install'):
+                if not shutil.which('gem'):
+                    print("  ⚠️  gem not found — install Ruby first:")
+                    print("     sudo apt install ruby ruby-dev -y")
+                    return False
+
+            cmd = custom
         else:
-            custom = info.get('install_custom', '')
-            if custom.startswith('go install') or custom.startswith('cargo install'):
-                cmd = custom
-            else:
-                print(f"  ⚠️  No auto-install for {tool_id}: {custom}")
-                return False
+            print(f"  ⚠️  No install method available for {tool_id}")
+            return False
 
         print(f"  ⏳ Running: {cmd}")
         try:
-            result = subprocess.run(cmd, shell=True, text=True, timeout=180)
+            env = self._get_env_with_paths()
+            result = subprocess.run(
+                cmd, shell=True, text=True, timeout=300,
+                env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            )
             if result.returncode == 0:
                 print(f"  ✅ {tool_id} installed")
                 return True
             else:
+                # Show last line of stderr for debugging
+                err = (result.stderr or '').strip().split('\n')
+                last_err = err[-1] if err else ''
                 print(f"  ❌ Failed (exit {result.returncode})")
+                if last_err:
+                    print(f"     {last_err[:120]}")
                 return False
         except subprocess.TimeoutExpired:
-            print(f"  ❌ Timed out")
+            print(f"  ❌ Timed out (5 min)")
             return False
         except Exception as e:
             print(f"  ❌ Error: {e}")
@@ -295,7 +392,7 @@ class SecurityToolsManager:
 def main():
     print("""
 ╔══════════════════════════════════════════════════════════════╗
-║    EMYUEL Cybersecurity Tools Manager  (v2 — auto-sync)    ║
+║    EMYUEL Cybersecurity Tools Manager  (v3 — auto-sync)    ║
 ║    Reads tool list from gui/security_tools.py registry     ║
 ╚══════════════════════════════════════════════════════════════╝
     """)
@@ -351,8 +448,14 @@ def main():
         else:
             print("⏭️  Skipping auto-install\n")
 
-    # Print install instructions
+    # Print install instructions for remaining missing
     manager.print_install_instructions(results)
+
+    # Re-count after potential installs
+    missing_cli = [
+        tid for tid, s in results.items()
+        if s['installed'] is False and tid not in SKIP_PATH_CHECK
+    ]
 
     # Final
     if not missing_cli:

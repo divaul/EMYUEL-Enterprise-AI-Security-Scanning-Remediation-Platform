@@ -351,7 +351,7 @@ SECURITY_TOOLS = {
     'owasp_zap': {
         'name': 'OWASP ZAP', 'icon': '⚡', 'category': 'Web Proxy',
         'desc': 'Zed Attack Proxy — OWASP web app security scanner',
-        'check_cmd': 'zap.sh', 'install_apt': 'zaproxy', 'install_pip': 'zaproxy',
+        'check_cmd': 'zaproxy', 'install_apt': 'zaproxy', 'install_pip': 'zaproxy',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
     'mitmproxy': {
