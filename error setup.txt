@@ -1,0 +1,326 @@
+[!] chromium-browser (failed to install)
+
+
+
+Found 12 missing CLI tool(s).
+Auto-install missing tools? (requires sudo for apt)
+Install now? (y/N): y
+
+📦 Newman
+  ⚠️  No auto-install for newman: npm install -g newman
+
+📦 Kiterunner
+  ⏳ Running: go install github.com/assetnote/kiterunner/cmd/kr@latest
+go: github.com/assetnote/kiterunner/cmd/kr@latest: module github.com/assetnote/kiterunner@latest found (v1.0.2), but does not contain package github.com/assetnote/kiterunner/cmd/kr
+  ❌ Failed (exit 1)
+
+📦 Feroxbuster
+  ⏳ Running: cargo install feroxbuster
+/bin/sh: 1: cargo: not found
+  ❌ Failed (exit 127)
+
+📦 ParamSpider
+  ⏳ Running: pip install paramspider
+ERROR: Could not find a version that satisfies the requirement paramspider (from versions: none)                              
+ERROR: No matching distribution found for paramspider          
+  ❌ Failed (exit 1)                                           
+
+📦 RustScan
+  ⏳ Running: cargo install rustscan
+/bin/sh: 1: cargo: not found
+  ❌ Failed (exit 127)
+
+📦 Naabu
+  ⏳ Running: go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+github.com/gopacket/gopacket/pcap
+# github.com/gopacket/gopacket/pcap
+../go/pkg/mod/github.com/gopacket/gopacket@v1.2.0/pcap/pcap_unix.go:35:10: fatal error: pcap.h: No such file or directory
+   35 | #include <pcap.h>
+      |          ^~~~~~~~
+compilation terminated.
+  ❌ Failed (exit 1)
+
+📦 SSRFmap
+  ⚠️  No auto-install for ssrfmap: pip install ssrfmap
+
+📦 Tplmap
+  ⚠️  No auto-install for tplmap: pip install tplmap
+
+📦 Gitleaks
+  ⏳ Running: go install github.com/gitleaks/gitleaks/v8@latest
+go: github.com/gitleaks/gitleaks/v8@v8.30.0 requires go >= 1.25.4; switching to go1.25.7
+go: github.com/gitleaks/gitleaks/v8@latest: version constraints conflict:
+        github.com/gitleaks/gitleaks/v8@v8.30.0: parsing go.mod:
+        module declares its path as: github.com/zricethezav/gitleaks/v8
+                but was required as: github.com/gitleaks/gitleaks/v8
+  ❌ Failed (exit 1)
+
+📦 Findomain
+  ⏳ Running: cargo install findomain
+/bin/sh: 1: cargo: not found
+  ❌ Failed (exit 127)
+
+📦 Aquatone
+  ⏳ Running: go install github.com/michenriksen/aquatone@latest
+go: finding module for package github.com/fatih/color
+go: finding module for package github.com/parnurzeal/gorequest
+go: finding module for package golang.org/x/net/html
+go: finding module for package github.com/pmezard/go-difflib/difflib
+go: finding module for package github.com/mvdan/xurls
+go: finding module for package github.com/remeh/sizedwaitgroup
+go: finding module for package github.com/asaskevich/EventBus
+go: finding module for package github.com/PuerkitoBio/goquery
+go: finding module for package github.com/lair-framework/go-nmap
+go: finding module for package github.com/google/uuid
+go: found github.com/google/uuid in github.com/google/uuid v1.6.0
+go: found github.com/PuerkitoBio/goquery in github.com/PuerkitoBio/goquery v1.11.0
+go: found github.com/fatih/color in github.com/fatih/color v1.18.0
+go: found github.com/parnurzeal/gorequest in github.com/parnurzeal/gorequest v0.3.0
+go: found github.com/asaskevich/EventBus in github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
+go: found github.com/pmezard/go-difflib/difflib in github.com/pmezard/go-difflib v1.0.0
+go: found github.com/remeh/sizedwaitgroup in github.com/remeh/sizedwaitgroup v1.0.0
+go: found golang.org/x/net/html in golang.org/x/net v0.50.0
+go: found github.com/lair-framework/go-nmap in github.com/lair-framework/go-nmap v0.0.0-20191202052157-3507e0b03523
+go: found github.com/mvdan/xurls in github.com/mvdan/xurls v1.1.0
+go: finding module for package github.com/pkg/errors
+go: finding module for package github.com/moul/http2curl
+go: found github.com/moul/http2curl in github.com/moul/http2curl v1.0.0
+go: found github.com/pkg/errors in github.com/pkg/errors v0.9.1
+# github.com/michenriksen/aquatone/parsers
+../go/pkg/mod/github.com/michenriksen/aquatone@v1.7.0/parsers/regex.go:22:26: invalid operation: cannot call non-function xurls.Relaxed (variable of type *regexp.Regexp)
+  ❌ Failed (exit 1)
+
+📦 OWASP ZAP
+  ⏳ Running: pip install zaproxy
+Requirement already satisfied: zaproxy in ./venv/lib/python3.13/site-packages (0.5.0)
+Requirement already satisfied: requests<3.0.0,>=2.31.0 in ./venv/lib/python3.13/site-packages (from zaproxy) (2.32.5)
+Requirement already satisfied: six<2.0.0,>=1.16.0 in ./venv/lib/python3.13/site-packages (from zaproxy) (1.17.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.13/site-packages (from requests<3.0.0,>=2.31.0->zaproxy) (2.0.12)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.13/site-packages (from requests<3.0.0,>=2.31.0->zaproxy) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in ./venv/lib/python3.13/site-packages (from requests<3.0.0,>=2.31.0->zaproxy) (2.6.3)
+Requirement already satisfied: certifi>=2017.4.17 in ./venv/lib/python3.13/site-packages (from requests<3.0.0,>=2.31.0->zaproxy) (2026.1.4)
+  ✅ owasp_zap installed
+
+================================================================
+  ✅ Installed: 1  |  ❌ Failed: 11
+================================================================
+
+🔄 Re-checking after installation...
+
+🔐 Checking cybersecurity tools...
+
+📁 AI/LLM SDK
+  📦 🤖 Google GenAI       — Google Gemini AI SDK for Python (Python lib)
+  ✅ 🧠 OpenAI SDK         — OpenAI GPT API client library (Python lib)
+  ✅ 🔬 Anthropic SDK      — Anthropic Claude API client library (Python lib)
+
+📁 API Testing
+  ❌ 📬 Newman             — Postman collection runner (CLI)
+  ❌ 🪁 Kiterunner         — API endpoint discovery and content scanner
+
+📁 Brute Force
+  ✅ 🔐 Hydra              — Fast network logon cracker for various protocols
+  ✅ 🐍 Medusa             — Speedy, parallel, modular brute-force login tool
+
+📁 CMS Scanner
+  ✅ 💧 Droopescan         — Scanner for Drupal, WordPress, Joomla, Moodle, SilverStripe
+
+📁 Command Injection
+  ✅ 💉 Commix             — Automated OS command injection testing
+
+📁 DNS Recon
+  ✅ 🌐 dnsx               — Fast multi-purpose DNS toolkit (ProjectDiscovery)
+  ✅ 🔀 ShuffleDNS         — Wrapper around massdns for active DNS brute-forcing
+
+📁 Dir Discovery
+  ✅ 📁 GoBuster           — URI/DNS/VHost brute-forcing tool (Go)
+  ✅ 🔦 Dirsearch          — Advanced web path brute-forcer
+  ❌ 🦀 Feroxbuster        — Fast, recursive content discovery tool (Rust)
+
+📁 Dir Scanner
+  ✅ 📂 DIRB               — Web content scanner (dictionary based attack)
+
+📁 Exploit DB
+  ✅ 🔍 SearchSploit       — CLI search tool for Exploit Database
+
+📁 Fingerprinting
+  ✅ 🔎 WhatWeb            — Web technology identification and fingerprinting
+
+📁 Fuzzer
+  ✅ ⚡ FFUF               — Fast web fuzzer written in Go
+
+📁 HTML Parser
+  📦 🍲 BeautifulSoup      — HTML/XML parser for web scraping (Python lib)
+
+📁 HTTP Probe
+  ✅ 🌐 httpx (PD)         — Fast multi-purpose HTTP toolkit (ProjectDiscovery)
+  ✅ 📡 httprobe           — Probe for working HTTP/HTTPS servers
+
+📁 Joomla
+  ✅ 🔶 JoomScan           — OWASP Joomla vulnerability scanner
+
+📁 Network Scanner
+  ✅ 🌐 Nmap               — Network exploration and security auditing
+
+📁 OOB Testing
+  ✅ 📨 Interactsh         — Out-of-band interaction gathering (ProjectDiscovery)
+
+📁 OSINT/Recon
+  ✅ 🗺️ Amass              — In-depth attack surface mapping and discovery
+
+📁 Param Discovery
+  ❌ 🕷️ ParamSpider        — Mining parameters from web archives for bug hunting
+  ✅ 🏹 Arjun              — HTTP parameter discovery suite
+
+📁 Password Crack
+  ✅ 🔨 John the Ripper    — Offline password hash cracker
+  ✅ 🏷️ Hashcat            — GPU-accelerated password recovery (hash cracking)
+
+📁 Pattern Grep
+  ✅ 🧲 gf                 — Grep wrapper using pattern files (tomnomnom)
+
+📁 Port Scanner
+  ✅ 🚀 Masscan            — High-speed TCP port scanner (10M packets/sec)
+  ❌ ⚡ RustScan           — Ultra-fast port scanner (Rust) with Nmap integration
+  ❌ 🎯 Naabu              — Fast port scanning tool (ProjectDiscovery)
+
+📁 Python HTTP
+  ✅ 📡 aiohttp            — Async HTTP client/server for Python (Python lib)
+  ✅ 🔗 httpx (Python)     — Modern HTTP client with HTTP/2 support (Python lib)
+  ✅ 📨 Requests           — Simple HTTP library for Python (Python lib)
+
+📁 Reporting
+  ℹ️  📝 Dradis             — Collaboration and reporting platform for pentesters (interactive/platform)
+  ℹ️  🏭 Faraday            — Collaborative vulnerability management platform (interactive/platform)
+  ℹ️  🥋 DefectDojo         — DevSecOps vulnerability management and correlation (interactive/platform)
+
+📁 SAST
+  ✅ 🔎 Semgrep            — Lightweight static analysis for many languages
+  ✅ 🐍 Bandit             — Python source code security analyzer
+  ✅ 💎 Brakeman           — Static analysis security scanner for Ruby on Rails
+
+📁 SQL Injection
+  ✅ 🗄️ SQLMap             — Automatic SQL injection and database takeover
+
+📁 SSL/TLS
+  ✅ 🔒 SSLScan            — Tests SSL/TLS enabled services for cipher suites
+  ✅ 🔑 SSLyze             — Fast TLS/SSL scanner and configuration analyzer
+  ✅ 📜 testssl.sh         — Testing TLS/SSL encryption on any port
+
+📁 SSRF Scanner
+  ❌ 🔄 SSRFmap            — Automatic SSRF fuzzer and exploitation tool
+
+📁 SSTI Scanner
+  ❌ 🗺️ Tplmap             — Server-Side Template Injection detection and exploitation
+
+📁 Secret Scanner
+  ❌ 🔐 Gitleaks           — Scan git repos for secrets and sensitive data
+  ✅ 🐷 TruffleHog         — Find credentials in git repositories
+  ✅ 🕵️ detect-secrets     — Enterprise-friendly secret detection in code
+
+📁 Subdomain
+  ✅ 🌍 Subfinder          — Subdomain discovery tool (ProjectDiscovery)
+  ❌ 🔎 Findomain          — Cross-platform subdomain enumerator (Rust)
+  ✅ 🌀 Chaos              — ProjectDiscovery Chaos client for subdomain data
+  ✅ 🐙 github-subdomains  — Find subdomains via GitHub source code search
+  ✅ 🏷️ Assetfinder        — Find subdomains and related assets
+
+📁 Subdomain Takeover
+  ✅ 🏴 Subjack            — Subdomain takeover vulnerability checker
+
+📁 URL Manipulation
+  ✅ 🔁 qsreplace          — Accept URLs on stdin, replace query string values
+  ✅ 🔗 Unfurl             — Pull out bits of URLs for analysis (domains, paths, params)
+
+📁 Visual Recon
+  ❌ 📸 Aquatone           — Visual inspection of websites across large attack surfaces
+  ✅ 📷 Gowitness          — Website screenshot tool using Chrome headless
+
+📁 Vuln Scanner
+  ✅ ☢️ Nuclei             — Template-based vulnerability scanner (ProjectDiscovery)
+  ℹ️  🛡️ OpenVAS            — Open Vulnerability Assessment System (full framework) (interactive/platform)
+
+📁 Web Crawler
+  📦 🕸️ Scrapy             — Fast high-level web crawling framework (Python lib)
+
+📁 Web Fuzzer
+  ✅ 🎯 Wfuzz              — Web application payload fuzzing
+
+📁 Web Proxy
+  ℹ️  🔥 Burp Suite         — Web vulnerability scanner and proxy (PortSwigger) (interactive/platform)
+  ❌ ⚡ OWASP ZAP          — Zed Attack Proxy — OWASP web app security scanner
+  ℹ️  🔀 mitmproxy          — Interactive TLS-capable intercepting HTTP proxy (interactive/platform)
+
+📁 Web Recon
+  ✅ ⏪ Waybackurls        — Fetch all URLs from Wayback Machine
+  ✅ 🔗 gau                — Get All URLs from AlienVault, Wayback, Common Crawl
+  ✅ 🕷️ Hakrawler          — Fast web crawler for gathering URLs and JS file locations
+  ✅ ⚔️ Katana             — Next-gen crawling and spidering framework (PD)
+
+📁 Web Scanner
+  ✅ 🔍 Nikto              — Web server scanner for dangerous files/CGIs
+  ✅ 🕷️ Wapiti             — Black-box web application vulnerability scanner
+  ✅ 🐟 Skipfish           — Active web application security reconnaissance by Google
+
+📁 WordPress
+  ✅ 📝 WPScan             — WordPress security scanner with vuln DB
+
+📁 Wordlists
+  ✅ 📚 SecLists           — Collection of wordlists for fuzzing and discovery (resource)
+
+📁 XSS Scanner
+  ✅ 🦊 Dalfox             — Parameter analysis and XSS scanning tool (Go)
+  ✅ 💥 XSStrike           — Advanced XSS detection suite with fuzzing engine
+
+================================================================
+  CLI tools: 52/64 installed
+  Python libs: 8 (checked via import)
+  Interactive/platform: 7 (manual setup)
+================================================================
+
+================================================================
+  📦 Installation Instructions for Missing Tools
+================================================================
+
+  📸 Aquatone
+     go install github.com/michenriksen/aquatone@latest
+
+  🦀 Feroxbuster
+     cargo install feroxbuster
+
+  🔎 Findomain
+     cargo install findomain
+
+  🔐 Gitleaks
+     go install github.com/gitleaks/gitleaks/v8@latest
+
+  🪁 Kiterunner
+     go install github.com/assetnote/kiterunner/cmd/kr@latest
+
+  🎯 Naabu
+     go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+
+  📬 Newman
+     npm install -g newman
+
+  ⚡ OWASP ZAP
+     pip install zaproxy
+
+  🕷️ ParamSpider
+     pip install paramspider
+
+  ⚡ RustScan
+     cargo install rustscan
+
+  🔄 SSRFmap
+     pip install ssrfmap
+
+  🗺️ Tplmap
+     pip install tplmap
+
+⚠️  12 CLI tool(s) still missing — some scans may skip them
+   Missing tools will be silently skipped during scans.
+
+                                                               
+┌──(emyuel㉿emyuel)-[~/EMYUEL-Enterprise-AI-Security-Scanning-Remediation-Platform]
+└─$ 

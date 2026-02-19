@@ -184,7 +184,7 @@ install_dependencies() {
         "ruby"
         "ruby-dev"
         "perl"
-        "chromium-browser"
+        "chromium"
     )
     
     sudo apt update > /dev/null 2>&1
