@@ -313,24 +313,49 @@ class SecurityToolsManager:
                 if not self._ensure_go_runtime():
                     print("  ⚠️  Go runtime not available — skipping")
                     return False
-            # For Cargo-based tools, check if cargo is available
+            # For Cargo-based tools, auto-install Rust if needed
             elif custom.startswith('cargo install'):
                 if not shutil.which('cargo'):
-                    print("  ⚠️  Cargo not found — install Rust first:")
-                    print("     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh")
-                    return False
-            # For npm-based tools, check if npm is available
+                    print("  🦀 Cargo not found — installing Rust...")
+                    try:
+                        r = subprocess.run(
+                            'curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y',
+                            shell=True, timeout=300, env=self._get_env_with_paths()
+                        )
+                        if r.returncode != 0:
+                            print("  ❌ Rust install failed — skipping")
+                            return False
+                        os.environ['PATH'] = str(Path.home() / '.cargo' / 'bin') + ':' + os.environ.get('PATH', '')
+                        print("  ✅ Rust installed")
+                    except Exception as e:
+                        print(f"  ❌ Rust install error: {e}")
+                        return False
+            # For npm-based tools, auto-install nodejs+npm if needed
             elif 'npm install' in custom:
                 if not shutil.which('npm'):
-                    print("  ⚠️  npm not found — install Node.js first:")
-                    print("     sudo apt install nodejs npm -y")
-                    return False
-            # For gem-based tools, check if gem is available
+                    print("  📦 npm not found — installing Node.js + npm...")
+                    try:
+                        r = subprocess.run('sudo apt-get install -y nodejs npm', shell=True, timeout=120)
+                        if r.returncode != 0:
+                            print("  ❌ npm install failed — skipping")
+                            return False
+                        print("  ✅ Node.js + npm installed")
+                    except Exception as e:
+                        print(f"  ❌ npm install error: {e}")
+                        return False
+            # For gem-based tools, auto-install ruby if needed
             elif custom.startswith('gem install'):
                 if not shutil.which('gem'):
-                    print("  ⚠️  gem not found — install Ruby first:")
-                    print("     sudo apt install ruby ruby-dev -y")
-                    return False
+                    print("  💎 gem not found — installing Ruby...")
+                    try:
+                        r = subprocess.run('sudo apt-get install -y ruby ruby-dev', shell=True, timeout=120)
+                        if r.returncode != 0:
+                            print("  ❌ Ruby install failed — skipping")
+                            return False
+                        print("  ✅ Ruby installed")
+                    except Exception as e:
+                        print(f"  ❌ Ruby install error: {e}")
+                        return False
 
             cmd = custom
         else:

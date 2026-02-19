@@ -88,15 +88,15 @@ SECURITY_TOOLS = {
     'tplmap': {
         'name': 'Tplmap', 'icon': '🗺️', 'category': 'SSTI Scanner',
         'desc': 'Server-Side Template Injection detection and exploitation',
-        'check_cmd': 'tplmap', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'pip install git+https://github.com/epinna/tplmap.git',
+        'check_cmd': 'tplmap.py', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'sudo git clone https://github.com/epinna/tplmap.git /opt/tplmap && sudo ln -sf /opt/tplmap/tplmap.py /usr/local/bin/tplmap.py && sudo chmod +x /opt/tplmap/tplmap.py',
         'usable_in': ['advanced', 'ai'],
     },
     'ssrfmap': {
         'name': 'SSRFmap', 'icon': '🔄', 'category': 'SSRF Scanner',
         'desc': 'Automatic SSRF fuzzer and exploitation tool',
-        'check_cmd': 'ssrfmap', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'pip install git+https://github.com/swisskyrepo/SSRFmap.git',
+        'check_cmd': 'ssrfmap.py', 'install_apt': None, 'install_pip': None,
+        'install_custom': 'sudo git clone https://github.com/swisskyrepo/SSRFmap.git /opt/ssrfmap && sudo ln -sf /opt/ssrfmap/ssrfmap.py /usr/local/bin/ssrfmap.py && sudo chmod +x /opt/ssrfmap/ssrfmap.py',
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -373,7 +373,7 @@ SECURITY_TOOLS = {
         'name': 'Kiterunner', 'icon': '🪁', 'category': 'API Testing',
         'desc': 'API endpoint discovery and content scanner',
         'check_cmd': 'kr', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'go install github.com/assetnote/kiterunner/cmd/kr@v1.0.2',
+        'install_custom': 'wget -qO /tmp/kr.tar.gz https://github.com/assetnote/kiterunner/releases/download/v1.0.2/kiterunner_1.0.2_linux_amd64.tar.gz && sudo tar -xzf /tmp/kr.tar.gz -C /usr/local/bin kr && sudo chmod +x /usr/local/bin/kr && rm -f /tmp/kr.tar.gz',
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -412,7 +412,7 @@ SECURITY_TOOLS = {
         'name': 'Aquatone', 'icon': '📸', 'category': 'Visual Recon',
         'desc': 'Visual inspection of websites across large attack surfaces',
         'check_cmd': 'aquatone', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'wget -qO /tmp/aquatone.zip https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip && unzip -o /tmp/aquatone.zip -d /usr/local/bin/ aquatone && chmod +x /usr/local/bin/aquatone',
+        'install_custom': 'wget -qO /tmp/aquatone.zip https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip && sudo unzip -o /tmp/aquatone.zip -d /usr/local/bin/ aquatone && sudo chmod +x /usr/local/bin/aquatone && rm -f /tmp/aquatone.zip',
         'usable_in': ['advanced', 'ai'],
     },
     'gowitness': {

@@ -330,7 +330,6 @@ install_security_tools() {
             ["dnsx"]="github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
             ["shuffledns"]="github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest"
             ["gitleaks"]="github.com/zricethezav/gitleaks/v8@latest"
-            ["kr"]="github.com/assetnote/kiterunner/cmd/kr@v1.0.2"
         )
 
         local go_total=${#GO_TOOLS[@]}
@@ -355,8 +354,8 @@ install_security_tools() {
         done
         echo ""
     else
-        print_warning "Go not available — skipping 22 Go-based tools"
-        skipped=$((skipped + 22))
+        print_warning "Go not available — skipping 21 Go-based tools"
+        skipped=$((skipped + 21))
     fi
 
     # ── 4. pip-based Tools ───────────────────────────────────────────────
@@ -449,6 +448,49 @@ install_security_tools() {
         installed=$((installed + 1))
     fi
 
+    # ── 4d. Kiterunner (pre-built binary) ────────────────────────────────
+    if ! command -v kr &> /dev/null; then
+        echo -ne "${BLUE}[→]${NC} Downloading Kiterunner v1.0.2... "
+        if wget -qO /tmp/kr.tar.gz https://github.com/assetnote/kiterunner/releases/download/v1.0.2/kiterunner_1.0.2_linux_amd64.tar.gz 2>/dev/null && \
+           sudo tar -xzf /tmp/kr.tar.gz -C /usr/local/bin kr > /dev/null 2>&1 && \
+           sudo chmod +x /usr/local/bin/kr; then
+            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}kiterunner (kr) installed${NC}                     "
+            installed=$((installed + 1))
+            rm -f /tmp/kr.tar.gz
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}kiterunner — download failed${NC}                     "
+            failed=$((failed + 1))
+        fi
+    else
+        print_success "kr ${GRAY}(already installed)${NC}"
+        installed=$((installed + 1))
+    fi
+
+    # ── 4e. Git clone tools (tplmap, ssrfmap) ────────────────────────────
+    declare -A CLONE_TOOLS=(
+        ["tplmap.py"]="/opt/tplmap|https://github.com/epinna/tplmap.git"
+        ["ssrfmap.py"]="/opt/ssrfmap|https://github.com/swisskyrepo/SSRFmap.git"
+    )
+
+    for tool_bin in "${!CLONE_TOOLS[@]}"; do
+        IFS='|' read -r dest repo <<< "${CLONE_TOOLS[$tool_bin]}"
+        if command -v "$tool_bin" &> /dev/null || [ -f "/usr/local/bin/$tool_bin" ]; then
+            print_success "$tool_bin ${GRAY}(already installed)${NC}"
+            installed=$((installed + 1))
+        else
+            echo -ne "${BLUE}[→]${NC} git clone $tool_bin... "
+            if sudo git clone "$repo" "$dest" > /dev/null 2>&1 && \
+               sudo ln -sf "$dest/$tool_bin" "/usr/local/bin/$tool_bin" && \
+               sudo chmod +x "$dest/$tool_bin"; then
+                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool_bin installed${NC}                     "
+                installed=$((installed + 1))
+            else
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin — clone failed${NC}                     "
+                failed=$((failed + 1))
+            fi
+        fi
+    done
+    echo ""
 
     if command -v gem &> /dev/null; then
         print_header "💎 Ruby-based Tools"
