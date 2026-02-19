@@ -613,7 +613,17 @@ class ToolExecutor:
         }
 
     def run_all(self):
-        """Run all selected tools concurrently, then run pipeline chains."""
+        """Run tools in two phases: Recon first, then Vuln Testing."""
+        # ── Categories that make up Phase 1 (Recon / Discovery) ───
+        RECON_CATEGORIES = {
+            'Network Scanner', 'Port Scanner', 'Subdomain',
+            'Subdomain Takeover', 'OSINT/Recon', 'HTTP Probe',
+            'DNS Recon', 'Web Recon', 'Web Crawler',
+            'Visual Recon', 'Fingerprinting', 'URL Manipulation',
+            'Pattern Grep', 'Param Discovery', 'Dir Discovery',
+            'Dir Scanner', 'API Testing', 'SSL/TLS', 'Wordlists',
+        }
+
         runnable = []
         skipped_not_installed = []
         skipped_not_applicable = []
@@ -659,28 +669,66 @@ class ToolExecutor:
             self.log(f"[{ts}] ℹ️ No external tools to run.")
             return []
 
-        # Run all tools concurrently
-        tool_names = ', '.join(info['name'] for _, info, _, _, _ in runnable)
-        self.log(f"[{ts}] 🚀 Running: {tool_names}")
+        # ── Split into phases ────────────────────────────────────
+        recon_tools = [
+            t for t in runnable
+            if t[1].get('category', '') in RECON_CATEGORIES
+        ]
+        vuln_tools = [
+            t for t in runnable
+            if t[1].get('category', '') not in RECON_CATEGORIES
+        ]
 
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = {
-                executor.submit(self._run_single, tool_id, info, cmd_list, timeout, stdin_data): tool_id
-                for tool_id, info, cmd_list, timeout, stdin_data in runnable
-            }
-            for future in as_completed(futures):
-                tool_id = futures[future]
-                try:
-                    findings = future.result(timeout=600)
-                    self.all_findings.extend(findings)
-                except Exception as e:
-                    self.log(f"  ❌ {tool_id}: unhandled error: {e}")
+        # ── Phase 1: Recon ───────────────────────────────────────
+        if recon_tools:
+            recon_names = ', '.join(info['name'] for _, info, _, _, _ in recon_tools)
+            self.log(f"\n[{ts}] 🔍 Phase 1 — Recon ({len(recon_tools)} tools)")
+            self.log(f"  Running: {recon_names}")
 
-        # Run pipeline chains (if both source and dest were selected)
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {
+                    executor.submit(self._run_single, tool_id, info, cmd_list, timeout, stdin_data): tool_id
+                    for tool_id, info, cmd_list, timeout, stdin_data in recon_tools
+                }
+                for future in as_completed(futures):
+                    tool_id = futures[future]
+                    try:
+                        findings = future.result(timeout=600)
+                        self.all_findings.extend(findings)
+                    except Exception as e:
+                        self.log(f"  ❌ {tool_id}: unhandled error: {e}")
+
+            ts = datetime.now().strftime('%H:%M:%S')
+            self.log(f"[{ts}] ✅ Phase 1 complete: {len(self.all_findings)} recon findings")
+
+        # ── Phase 2: Vuln Testing ────────────────────────────────
+        if vuln_tools:
+            ts = datetime.now().strftime('%H:%M:%S')
+            vuln_names = ', '.join(info['name'] for _, info, _, _, _ in vuln_tools)
+            self.log(f"\n[{ts}] ⚔️ Phase 2 — Vulnerability Testing ({len(vuln_tools)} tools)")
+            self.log(f"  Running: {vuln_names}")
+
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                futures = {
+                    executor.submit(self._run_single, tool_id, info, cmd_list, timeout, stdin_data): tool_id
+                    for tool_id, info, cmd_list, timeout, stdin_data in vuln_tools
+                }
+                for future in as_completed(futures):
+                    tool_id = futures[future]
+                    try:
+                        findings = future.result(timeout=600)
+                        self.all_findings.extend(findings)
+                    except Exception as e:
+                        self.log(f"  ❌ {tool_id}: unhandled error: {e}")
+
+            ts = datetime.now().strftime('%H:%M:%S')
+            self.log(f"[{ts}] ✅ Phase 2 complete")
+
+        # ── Pipeline Chains (post-scan) ──────────────────────────
         self._run_pipelines()
 
         ts = datetime.now().strftime('%H:%M:%S')
-        self.log(f"[{ts}] ✅ External tools complete: {len(self.all_findings)} findings total")
+        self.log(f"[{ts}] ✅ All phases complete: {len(self.all_findings)} findings total")
         return self.all_findings
 
     def _run_single(self, tool_id, info, cmd_list, timeout, stdin_data=None):
