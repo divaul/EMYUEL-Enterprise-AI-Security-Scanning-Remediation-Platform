@@ -89,78 +89,78 @@ def _build_cmd(tool_id, target, context=None):
 
     builders = {
         # ─── Network Scanners
-        'nmap': lambda: (['nmap', '-sV', '-sC', '--top-ports', '100', '-T4', domain], 120, None),
-        'masscan': lambda: (['masscan', domain, '-p1-1000', '--rate=1000'], 120, None),
-        'rustscan': lambda: (['rustscan', '-a', domain, '--', '-sV'], 120, None),
-        'naabu': lambda: (['naabu', '-host', domain, '-top-ports', '100'], 90, None),
+        'nmap': lambda: (['nmap', '-sV', '-sC', '--top-ports', '1000', '-T4', '--open', domain], 300, None),
+        'masscan': lambda: (['masscan', domain, '-p1-65535', '--rate=1000'], 300, None),
+        'rustscan': lambda: (['rustscan', '-a', domain, '--', '-sV', '-sC'], 300, None),
+        'naabu': lambda: (['naabu', '-host', domain, '-top-ports', '1000'], 180, None),
 
         # ─── Web Scanners
-        'nikto': lambda: (['nikto', '-h', target, '-maxtime', '120'], 150, None) if is_url_target else None,
-        'wapiti': lambda: (['wapiti', '-u', target, '--flush-session', '-m', 'common', '--max-scan-time', '120'], 150, None) if is_url_target else None,
-        'skipfish': lambda: (['skipfish', '-o', os.path.join(temp_dir, f'skipfish_{domain}'), '-W', '/dev/null', target], 180, None) if is_url_target else None,
-        'whatweb': lambda: (['whatweb', '-v', target], 60, None) if is_url_target else None,
+        'nikto': lambda: (['nikto', '-h', target, '-maxtime', '300', '-Tuning', 'x'], 360, None) if is_url_target else None,
+        'wapiti': lambda: (['wapiti', '-u', target, '--flush-session', '-m', 'common', '--max-scan-time', '300', '-d', '3'], 360, None) if is_url_target else None,
+        'skipfish': lambda: (['skipfish', '-o', os.path.join(temp_dir, f'skipfish_{domain}'), '-W', '/dev/null', target], 300, None) if is_url_target else None,
+        'whatweb': lambda: (['whatweb', '-v', '-a', '3', target], 90, None) if is_url_target else None,
 
         # ─── SQL Injection
-        'sqlmap': lambda: (['sqlmap', '-u', target, '--batch', '--level=1', '--risk=1', '--timeout=30', '--flush-session'], 180, None) if is_url_target else None,
+        'sqlmap': lambda: (['sqlmap', '-u', target, '--batch', '--level=3', '--risk=2', '--timeout=60', '--flush-session', '--threads=3', '--crawl=2'], 420, None) if is_url_target else None,
 
         # ─── XSS
-        'dalfox': lambda: (['dalfox', 'url', target, '--silence'], 120, None) if is_url_target else None,
-        'xsstrike': lambda: (['xsstrike', '-u', target, '--skip'], 120, None) if is_url_target else None,
+        'dalfox': lambda: (['dalfox', 'url', target, '--silence', '--deep-domxss'], 300, None) if is_url_target else None,
+        'xsstrike': lambda: (['xsstrike', '-u', target, '--crawl', '-l', '3'], 300, None) if is_url_target else None,
 
         # ─── SSTI / SSRF
-        'tplmap': lambda: (['tplmap', '-u', target], 120, None) if is_url_target else None,
-        'ssrfmap': lambda: (['ssrfmap', '-r', target, '-p', 'url', '--auto'], 120, None) if is_url_target and '=' in target else None,
+        'tplmap': lambda: (['tplmap', '-u', target, '--level', '5'], 300, None) if is_url_target else None,
+        'ssrfmap': lambda: (['ssrfmap', '-r', target, '-p', 'url', '--auto'], 300, None) if is_url_target and '=' in target else None,
 
         # ─── Dir Discovery
-        'gobuster': lambda: (['gobuster', 'dir', '-u', target, '-w', wordlist, '-q', '-t', '20'], 120, None) if (is_url_target and wordlist) else None,
-        'dirb': lambda: (['dirb', target, '-S', '-r'], 120, None) if is_url_target else None,
-        'dirsearch': lambda: (['dirsearch', '-u', target, '--quiet', '-t', '20'], 120, None) if is_url_target else None,
-        'feroxbuster': lambda: (['feroxbuster', '-u', target, '-q', '--time-limit', '120s'], 150, None) if is_url_target else None,
+        'gobuster': lambda: (['gobuster', 'dir', '-u', target, '-w', wordlist, '-q', '-t', '30', '--timeout', '10s'], 300, None) if (is_url_target and wordlist) else None,
+        'dirb': lambda: (['dirb', target, '-S', '-r', '-z', '50'], 300, None) if is_url_target else None,
+        'dirsearch': lambda: (['dirsearch', '-u', target, '--quiet', '-t', '30', '-r', '-R', '3'], 300, None) if is_url_target else None,
+        'feroxbuster': lambda: (['feroxbuster', '-u', target, '-q', '--time-limit', '300s', '-d', '3', '-t', '30'], 360, None) if is_url_target else None,
 
         # ─── Fuzzing
-        'ffuf': lambda: (['ffuf', '-u', target.rstrip('/') + '/FUZZ', '-w', wordlist, '-mc', '200,301,302,403', '-t', '20'], 120, None) if (is_url_target and wordlist) else None,
-        'wfuzz': lambda: (['wfuzz', '-c', '--hc', '404', '-w', wordlist, target.rstrip('/') + '/FUZZ'], 120, None) if (is_url_target and wordlist) else None,
+        'ffuf': lambda: (['ffuf', '-u', target.rstrip('/') + '/FUZZ', '-w', wordlist, '-mc', '200,201,301,302,307,401,403,405,500', '-t', '30', '-recursion', '-recursion-depth', '2'], 300, None) if (is_url_target and wordlist) else None,
+        'wfuzz': lambda: (['wfuzz', '-c', '--hc', '404', '-t', '30', '-w', wordlist, target.rstrip('/') + '/FUZZ'], 300, None) if (is_url_target and wordlist) else None,
 
         # ─── Brute Force (configured for HTTP form brute-force by default)
-        'hydra': lambda: (['hydra', '-L', _default_users_file(), '-P', _default_pass_file(), '-f', '-V', '-t', '4', domain, 'http-get', '/'], 180, None) if (_default_users_file() and _default_pass_file()) else None,
-        'medusa': lambda: (['medusa', '-h', domain, '-U', _default_users_file(), '-P', _default_pass_file(), '-M', 'http', '-n', '80', '-f'], 180, None) if (_default_users_file() and _default_pass_file()) else None,
+        'hydra': lambda: (['hydra', '-L', _default_users_file(), '-P', _default_pass_file(), '-f', '-V', '-t', '8', domain, 'http-get', '/'], 360, None) if (_default_users_file() and _default_pass_file()) else None,
+        'medusa': lambda: (['medusa', '-h', domain, '-U', _default_users_file(), '-P', _default_pass_file(), '-M', 'http', '-n', '80', '-f', '-t', '8'], 360, None) if (_default_users_file() and _default_pass_file()) else None,
         'john': lambda: None,     # Requires hash file — user must provide
         'hashcat': lambda: None,  # Requires hash file — user must provide
 
         # ─── CMS
-        'wpscan': lambda: (['wpscan', '--url', target, '--enumerate', 'vp,vt,u', '--no-banner'], 180, None) if is_url_target else None,
-        'droopescan': lambda: (['droopescan', 'scan', '-u', target], 120, None) if is_url_target else None,
-        'joomscan': lambda: (['joomscan', '-u', target], 120, None) if is_url_target else None,
+        'wpscan': lambda: (['wpscan', '--url', target, '--enumerate', 'vp,vt,u,cb,dbe', '--no-banner', '--detection-mode', 'aggressive'], 360, None) if is_url_target else None,
+        'droopescan': lambda: (['droopescan', 'scan', '-u', target], 240, None) if is_url_target else None,
+        'joomscan': lambda: (['joomscan', '-u', target, '-ec'], 240, None) if is_url_target else None,
 
         # ─── Subdomain & Recon
-        'subfinder': lambda: (['subfinder', '-d', domain, '-silent'], 90, None),
-        'amass': lambda: (['amass', 'enum', '-d', domain, '-passive', '-timeout', '2'], 180, None),
-        'findomain': lambda: (['findomain', '-t', domain, '-q'], 90, None),
-        'chaos': lambda: (['chaos', '-d', domain, '-silent'], 60, None),
-        'github_subdomains': lambda: (['github-subdomains', '-d', domain], 90, None),
+        'subfinder': lambda: (['subfinder', '-d', domain, '-silent', '-all'], 180, None),
+        'amass': lambda: (['amass', 'enum', '-d', domain, '-passive', '-timeout', '10'], 600, None),
+        'findomain': lambda: (['findomain', '-t', domain, '-q'], 180, None),
+        'chaos': lambda: (['chaos', '-d', domain, '-silent'], 120, None),
+        'github_subdomains': lambda: (['github-subdomains', '-d', domain], 180, None),
         'subjack': lambda: _subjack_cmd(domain, ctx),
-        'assetfinder': lambda: (['assetfinder', '--subs-only', domain], 60, None),
+        'assetfinder': lambda: (['assetfinder', '--subs-only', domain], 120, None),
 
         # ─── HTTP Probing (stdin: one URL/domain per line)
-        'httpx_tool': lambda: (['httpx', '-u', target, '-silent', '-status-code', '-title', '-tech-detect'], 60, None),
-        'httprobe': lambda: (['httprobe'], 60, f"{domain}\n"),
+        'httpx_tool': lambda: (['httpx', '-u', target, '-silent', '-status-code', '-title', '-tech-detect', '-follow-redirects'], 120, None),
+        'httprobe': lambda: (['httprobe'], 120, f"{domain}\n"),
 
         # ─── Vulnerability Scanning
-        'nuclei': lambda: (['nuclei', '-u', target, '-severity', 'low,medium,high,critical', '-silent', '-nc'], 300, None) if is_url_target else None,
+        'nuclei': lambda: (['nuclei', '-u', target, '-severity', 'low,medium,high,critical', '-silent', '-nc', '-rl', '50', '-c', '10'], 600, None) if is_url_target else None,
         'openvas': lambda: None,  # Requires full GVM setup — cannot auto-configure
-        'interactsh_client': lambda: (['interactsh-client', '-n', '1', '-v'], 30, None),
+        'interactsh_client': lambda: (['interactsh-client', '-n', '1', '-v'], 60, None),
 
         # ─── SSL/TLS
-        'sslscan': lambda: (['sslscan', '--no-colour', domain], 60, None),
-        'sslyze': lambda: (['sslyze', domain], 90, None),
-        'testssl': lambda: (['testssl', '--quiet', '--color', '0', domain], 120, None),
+        'sslscan': lambda: (['sslscan', '--no-colour', '--show-certificate', '--show-ciphers', domain], 120, None),
+        'sslyze': lambda: (['sslyze', '--regular', domain], 180, None),
+        'testssl': lambda: (['testssl', '--quiet', '--color', '0', '--full', domain], 300, None),
 
         # ─── Command Injection
-        'commix': lambda: (['commix', '-u', target, '--batch', '--level=1'], 120, None) if is_url_target else None,
+        'commix': lambda: (['commix', '-u', target, '--batch', '--level=3', '--crawl=2'], 360, None) if is_url_target else None,
 
         # ─── Param Discovery / URL Manipulation
-        'paramspider': lambda: (['paramspider', '-d', domain], 90, None),
-        'arjun': lambda: (['arjun', '-u', target, '-q'], 120, None) if is_url_target else None,
+        'paramspider': lambda: (['paramspider', '-d', domain], 180, None),
+        'arjun': lambda: (['arjun', '-u', target, '-q', '-t', '15'], 300, None) if is_url_target else None,
         'qsreplace': lambda: (['qsreplace', 'FUZZ'], 30, f"{target}?id=1\n{target}?page=test\n{target}?q=hello\n") if is_url_target else None,
         'unfurl': lambda: (['unfurl', 'domains'], 30, f"{target}\n"),
         'gf': lambda: (['gf', 'xss'], 30, f"{target}?id=1\n{target}?page=test\n{target}?redirect=http://evil.com\n") if is_url_target else None,
@@ -175,28 +175,28 @@ def _build_cmd(tool_id, target, context=None):
         'kiterunner': lambda: (['kr', 'brute', target, '-w', wordlist], 120, None) if (is_url_target and wordlist) else None,
 
         # ─── Web Recon / URL Collection
-        'waybackurls': lambda: (['waybackurls', domain], 60, None),
-        'gau': lambda: (['gau', domain], 60, None),
-        'hakrawler': lambda: (['hakrawler', '-d', '2'], 90, f"{target}\n") if is_url_target else None,
-        'katana': lambda: (['katana', '-u', target, '-silent', '-d', '2'], 120, None) if is_url_target else None,
+        'waybackurls': lambda: (['waybackurls', domain], 180, None),
+        'gau': lambda: (['gau', '--threads', '5', domain], 180, None),
+        'hakrawler': lambda: (['hakrawler', '-d', '4', '-t', '10'], 240, f"{target}\n") if is_url_target else None,
+        'katana': lambda: (['katana', '-u', target, '-silent', '-d', '4', '-jc', '-kf'], 300, None) if is_url_target else None,
 
         # ─── Visual Recon
-        'aquatone': lambda: (['aquatone', '-out', os.path.join(temp_dir, f'aquatone_{domain}')], 120, f"{target}\n") if is_url_target else None,
-        'gowitness': lambda: (['gowitness', 'single', target], 60, None) if is_url_target else None,
+        'aquatone': lambda: (['aquatone', '-out', os.path.join(temp_dir, f'aquatone_{domain}')], 180, f"{target}\n") if is_url_target else None,
+        'gowitness': lambda: (['gowitness', 'single', target], 120, None) if is_url_target else None,
 
         # ─── DNS Recon
         'dnsx': lambda: (['dnsx', '-d', domain, '-silent'], 60, None),
         'shuffledns': lambda: _shuffledns_cmd(domain, wordlist),
 
         # ─── SAST (for local paths)
-        'semgrep': lambda: (['semgrep', 'scan', '--config=auto', '--quiet', target], 180, None) if is_path_target else None,
-        'bandit': lambda: (['bandit', '-r', target, '-q', '-f', 'screen'], 120, None) if is_path_target else None,
-        'brakeman': lambda: (['brakeman', '-q', '-p', target], 120, None) if is_path_target else None,
+        'semgrep': lambda: (['semgrep', 'scan', '--config=auto', '--quiet', target], 300, None) if is_path_target else None,
+        'bandit': lambda: (['bandit', '-r', target, '-q', '-f', 'screen', '-ll'], 240, None) if is_path_target else None,
+        'brakeman': lambda: (['brakeman', '-q', '-p', target], 240, None) if is_path_target else None,
 
         # ─── Secret Scanning (for local paths)
-        'gitleaks': lambda: (['gitleaks', 'detect', '--source', target, '--no-banner'], 120, None) if is_path_target else None,
-        'trufflehog': lambda: (['trufflehog', 'filesystem', target, '--no-update'], 120, None) if is_path_target else None,
-        'detect_secrets': lambda: (['detect-secrets', 'scan', target], 90, None) if is_path_target else None,
+        'gitleaks': lambda: (['gitleaks', 'detect', '--source', target, '--no-banner', '-v'], 240, None) if is_path_target else None,
+        'trufflehog': lambda: (['trufflehog', 'filesystem', target, '--no-update'], 240, None) if is_path_target else None,
+        'detect_secrets': lambda: (['detect-secrets', 'scan', target], 180, None) if is_path_target else None,
 
         # ─── Wordlists (not executable, resource only)
         'seclists': lambda: None,
