@@ -24,7 +24,7 @@ SECURITY_TOOLS = {
         'name': 'RustScan', 'icon': '⚡', 'category': 'Port Scanner',
         'desc': 'Ultra-fast port scanner (Rust) with Nmap integration',
         'check_cmd': 'rustscan', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'cargo install rustscan',
+        'install_custom': 'wget -qO /tmp/rustscan.deb https://github.com/RustScan/RustScan/releases/download/2.3.0/rustscan_2.3.0_amd64.deb && sudo dpkg -i /tmp/rustscan.deb && rm -f /tmp/rustscan.deb',
         'usable_in': ['advanced', 'ai'],
     },
     'naabu': {
@@ -122,8 +122,8 @@ SECURITY_TOOLS = {
     'feroxbuster': {
         'name': 'Feroxbuster', 'icon': '🦀', 'category': 'Dir Discovery',
         'desc': 'Fast, recursive content discovery tool (Rust)',
-        'check_cmd': 'feroxbuster', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'cargo install feroxbuster',
+        'check_cmd': 'feroxbuster', 'install_apt': 'feroxbuster', 'install_pip': None,
+        'install_custom': 'sudo apt-get install -y feroxbuster',
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -206,7 +206,7 @@ SECURITY_TOOLS = {
         'name': 'Findomain', 'icon': '🔎', 'category': 'Subdomain',
         'desc': 'Cross-platform subdomain enumerator (Rust)',
         'check_cmd': 'findomain', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'cargo install findomain',
+        'install_custom': 'wget -qO /tmp/findomain https://github.com/Findomain/Findomain/releases/download/9.0.4/findomain-linux.zip && sudo unzip -o /tmp/findomain -d /usr/local/bin/ && sudo chmod +x /usr/local/bin/findomain && rm -f /tmp/findomain',
         'usable_in': ['advanced', 'ai'],
     },
     'chaos': {
@@ -366,7 +366,7 @@ SECURITY_TOOLS = {
         'name': 'Newman', 'icon': '📬', 'category': 'API Testing',
         'desc': 'Postman collection runner (CLI)',
         'check_cmd': 'newman', 'install_apt': None, 'install_pip': None,
-        'install_custom': 'npm install -g newman',
+        'install_custom': 'sudo npm install -g newman',
         'usable_in': ['quick', 'advanced', 'ai'],
     },
     'kiterunner': {
