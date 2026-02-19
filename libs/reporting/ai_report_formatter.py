@@ -119,6 +119,25 @@ class AIReportFormatter:
         start_time = results.get('start_time', 'Unknown')
         duration = results.get('duration_seconds', 0)
         
+        # Build per-tool summary
+        tool_summary = {}
+        for f in findings:
+            tool_name = f.get('tool', f.get('source', 'AI Scanner'))
+            if tool_name.startswith('external:'):
+                tool_name = tool_name.replace('external:', '')
+            if tool_name not in tool_summary:
+                tool_summary[tool_name] = {'count': 0, 'severities': {}}
+            tool_summary[tool_name]['count'] += 1
+            sev = f.get('severity', 'info').lower()
+            tool_summary[tool_name]['severities'][sev] = tool_summary[tool_name]['severities'].get(sev, 0) + 1
+        
+        # Format per-tool table
+        tool_table_lines = []
+        for tool_name, stats in sorted(tool_summary.items(), key=lambda x: x[1]['count'], reverse=True):
+            sev_str = ', '.join(f"{k}: {v}" for k, v in sorted(stats['severities'].items()))
+            tool_table_lines.append(f"| {tool_name} | {stats['count']} | {sev_str} |")
+        tool_table = '\n'.join(tool_table_lines) if tool_table_lines else '| N/A | 0 | N/A |'
+        
         # Build findings summary
         findings_json = json.dumps(findings[:20], indent=2)  # Limit to top 20
         
@@ -136,6 +155,11 @@ SEVERITY DISTRIBUTION:
 - High: {severity.get('high', 0)}
 - Medium: {severity.get('medium', 0)}
 - Low: {severity.get('low', 0)}
+
+FINDINGS BY TOOL:
+| Tool | Findings | Severity Breakdown |
+|------|----------|-------------------|
+{tool_table}
 
 VULNERABILITY FINDINGS:
 {findings_json}
@@ -196,15 +220,32 @@ Following industry standards:
 - Dynamic security testing
 - Configuration review
 
+### 2.4 Tools Deployment Summary
+For each external security tool used, include a row in this table showing:
+- Tool name, category, number of findings, and severity breakdown.
+Use the FINDINGS BY TOOL data above for accuracy.
+
 ---
 
-## 3. DETAILED FINDINGS
+## 3. TOOL FINDINGS SUMMARY
+
+For each security tool that produced findings, provide a brief summary:
+- What the tool does
+- What it found (count and severity level)
+- Key findings from that tool
+
+Group findings by source (AI Scanner vs External tools like Nmap, Nikto, SQLMap, etc.).
+
+---
+
+## 4. DETAILED FINDINGS
 
 For each vulnerability discovered, provide detailed analysis using this format:
 
-### 3.1 [SEVERITY] - [Vulnerability Title]
+### 4.1 [SEVERITY] - [Vulnerability Title]
 
 **Vulnerability ID:** VUL-{scan_id}-001  
+**Discovered By:** [Tool name or AI Scanner]  
 **CVSS Score:** [Calculate if applicable]  
 **CWE ID:** [CWE classification if applicable]  
 **OWASP Category:** [A01-A10 if web app]
@@ -241,33 +282,33 @@ Business impact explanation in non-technical terms.
 
 ---
 
-[Repeat Section 3.X for each critical and high-severity finding]
+[Repeat Section 4.X for each critical and high-severity finding]
 
 ---
 
-## 4. RISK ASSESSMENT MATRIX
+## 5. RISK ASSESSMENT MATRIX
 
-| Finding | Severity | Likelihood | Impact | Risk Level |
-|---------|----------|------------|--------|------------|
-| [Title] | Critical | High       | High   | Critical   |
-| ...     | ...      | ...        | ...    | ...        |
+| Finding | Discovered By | Severity | Likelihood | Impact | Risk Level |
+|---------|---------------|----------|------------|--------|------------|
+| [Title] | [Tool]        | Critical | High       | High   | Critical   |
+| ...     | ...           | ...      | ...        | ...    | ...        |
 
 ---
 
-## 5. RECOMMENDATIONS
+## 6. RECOMMENDATIONS
 
-### 5.1 Critical Priority (Immediate Action Required)
+### 6.1 Critical Priority (Immediate Action Required)
 1. **[Action]:** [Description]
    - Timeline: Within 24-48 hours
    - Owner: Security Team/DevOps
    
-### 5.2 High Priority (Within 1 Week)
+### 6.2 High Priority (Within 1 Week)
 [List high-priority fixes]
 
-### 5.3 Medium Priority (Within 1 Month)
+### 6.3 Medium Priority (Within 1 Month)
 [List medium-priority improvements]
 
-### 5.4 Strategic Recommendations
+### 6.4 Strategic Recommendations
 Long-term security improvements:
 - Security architecture enhancements
 - Process improvements
@@ -275,26 +316,26 @@ Long-term security improvements:
 
 ---
 
-## 6. COMPLIANCE CONSIDERATIONS
+## 7. COMPLIANCE CONSIDERATIONS
 
-### 6.1 Regulatory Impact
+### 7.1 Regulatory Impact
 - **GDPR:** [Impact if applicable]
 - **PCI DSS:** [Impact if applicable]
 - **HIPAA:** [Impact if applicable]
 - **SOC 2:** [Impact if applicable]
 
-### 6.2 Industry Standards
+### 7.2 Industry Standards
 - ISO 27001:2022 compliance status
 - NIST Cybersecurity Framework alignment
 
 ---
 
-## 7. CONCLUSION
+## 8. CONCLUSION
 
-### 7.1 Summary
+### 8.1 Summary
 Overall assessment summary in 1-2 paragraphs.
 
-### 7.2 Next Steps
+### 8.2 Next Steps
 1. Review and prioritize findings
 2. Assign remediation tasks
 3. Set target remediation dates
@@ -384,11 +425,39 @@ IMPORTANT FORMATTING GUIDELINES:
 
 """
         
+        # Per-tool summary
+        tool_groups = {}
+        for f in findings:
+            tool_name = f.get('tool', f.get('source', 'AI Scanner'))
+            if tool_name.startswith('external:'):
+                tool_name = tool_name.replace('external:', '')
+            if tool_name not in tool_groups:
+                tool_groups[tool_name] = []
+            tool_groups[tool_name].append(f)
+        
+        if tool_groups:
+            report += "## TOOL FINDINGS SUMMARY\n\n"
+            report += "| Tool | Findings | Severities |\n"
+            report += "|------|----------|------------|\n"
+            for tool_name, tool_findings in sorted(tool_groups.items(), key=lambda x: len(x[1]), reverse=True):
+                sevs = {}
+                for f in tool_findings:
+                    s = f.get('severity', 'info').lower()
+                    sevs[s] = sevs.get(s, 0) + 1
+                sev_str = ', '.join(f"{k}: {v}" for k, v in sorted(sevs.items()))
+                report += f"| {tool_name} | {len(tool_findings)} | {sev_str} |\n"
+            report += "\n---\n\n"
+        
         for i, finding in enumerate(findings, 1):
-            report += f"""### {i}. [{finding.get('severity', 'Unknown').upper()}] {finding.get('title', 'Untitled')}
+            tool_label = finding.get('tool', finding.get('source', ''))
+            if tool_label.startswith('external:'):
+                tool_label = tool_label.replace('external:', '')
+            tool_tag = f" (by {tool_label})" if tool_label else ""
+            report += f"""### {i}. [{finding.get('severity', 'Unknown').upper()}] {finding.get('title', 'Untitled')}{tool_tag}
 
-**Location:** {finding.get('file_path', 'N/A')}  
-**Type:** {finding.get('type', 'N/A')}
+**Location:** {finding.get('file_path', finding.get('url', 'N/A'))}  
+**Type:** {finding.get('type', 'N/A')}  
+**Tool:** {tool_label or 'AI Scanner'}
 
 **Description:**  
 {finding.get('description', 'No description available')}

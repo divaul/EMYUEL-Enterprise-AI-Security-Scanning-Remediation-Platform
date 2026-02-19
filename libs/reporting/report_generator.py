@@ -276,6 +276,17 @@ class ReportGenerator:
     def _prepare_report_context(self, scan_results: Dict[str, Any]) -> Dict[str, Any]:
         """Prepare template context from scan results"""
         findings_by_severity = scan_results.get('findings_by_severity', {})
+        findings = scan_results.get('findings', [])
+        
+        # Group findings by tool
+        findings_by_tool = {}
+        for f in findings:
+            tool = f.get('tool', f.get('source', 'AI Scanner'))
+            if tool.startswith('external:'):
+                tool = tool.replace('external:', '')
+            if tool not in findings_by_tool:
+                findings_by_tool[tool] = []
+            findings_by_tool[tool].append(f)
         
         context = {
             'scan_id': scan_results.get('scan_id', 'Unknown'),
@@ -289,8 +300,9 @@ class ReportGenerator:
             'high_count': findings_by_severity.get('high', 0),
             'medium_count': findings_by_severity.get('medium', 0),
             'low_count': findings_by_severity.get('low', 0),
-            'findings': scan_results.get('findings', []),
+            'findings': findings,
             'findings_by_type': scan_results.get('findings_by_type', {}),
+            'findings_by_tool': findings_by_tool,
             'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
