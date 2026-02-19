@@ -407,8 +407,6 @@ install_security_tools() {
 
     declare -A GIT_PIP_TOOLS=(
         ["paramspider"]="git+https://github.com/devanshbatham/ParamSpider.git"
-        ["tplmap"]="git+https://github.com/epinna/tplmap.git"
-        ["ssrfmap"]="git+https://github.com/swisskyrepo/SSRFmap.git"
     )
 
     for tool_bin in "${!GIT_PIP_TOOLS[@]}"; do
@@ -541,33 +539,59 @@ install_security_tools() {
         skipped=$((skipped + 1))
     fi
 
-    # ── 7. Cargo (Rust) tools ────────────────────────────────────────────
-    if command -v cargo &> /dev/null; then
-        print_header "🦀 Rust-based Tools"
+    # ── 7. Rust-based tools (apt / pre-built binaries) ────────────────────
+    print_header "🦀 Rust-based Tools (via apt / binary download)"
 
-        CARGO_TOOLS=("rustscan" "feroxbuster" "findomain")
-
-        for tool in "${CARGO_TOOLS[@]}"; do
-            if command -v "$tool" &> /dev/null; then
-                print_success "$tool ${GRAY}(already installed)${NC}"
-                installed=$((installed + 1))
-            else
-                echo -ne "${BLUE}[→]${NC} cargo install $tool... "
-                if cargo install "$tool" > /dev/null 2>&1; then
-                    echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool installed${NC}              "
-                    installed=$((installed + 1))
-                else
-                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool — cargo install failed${NC}              "
-                    failed=$((failed + 1))
-                fi
-            fi
-        done
-        echo ""
+    # Feroxbuster — available via apt on Kali
+    if command -v feroxbuster &> /dev/null; then
+        print_success "feroxbuster ${GRAY}(already installed)${NC}"
+        installed=$((installed + 1))
     else
-        print_warning "Cargo not available — skipping rustscan, feroxbuster, findomain"
-        print_info "Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-        skipped=$((skipped + 3))
+        echo -ne "${BLUE}[→]${NC} apt install feroxbuster... "
+        if sudo apt-get install -y feroxbuster > /dev/null 2>&1; then
+            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}feroxbuster installed${NC}              "
+            installed=$((installed + 1))
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}feroxbuster — apt install failed${NC}              "
+            failed=$((failed + 1))
+        fi
     fi
+
+    # RustScan — pre-built .deb from GitHub releases
+    if command -v rustscan &> /dev/null; then
+        print_success "rustscan ${GRAY}(already installed)${NC}"
+        installed=$((installed + 1))
+    else
+        echo -ne "${BLUE}[→]${NC} Downloading RustScan v2.3.0... "
+        if wget -qO /tmp/rustscan.deb https://github.com/RustScan/RustScan/releases/download/2.3.0/rustscan_2.3.0_amd64.deb 2>/dev/null && \
+           sudo dpkg -i /tmp/rustscan.deb > /dev/null 2>&1; then
+            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}rustscan installed${NC}              "
+            installed=$((installed + 1))
+            rm -f /tmp/rustscan.deb
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}rustscan — download failed${NC}              "
+            failed=$((failed + 1))
+        fi
+    fi
+
+    # Findomain — pre-built binary from GitHub releases
+    if command -v findomain &> /dev/null; then
+        print_success "findomain ${GRAY}(already installed)${NC}"
+        installed=$((installed + 1))
+    else
+        echo -ne "${BLUE}[→]${NC} Downloading Findomain v9.0.4... "
+        if wget -qO /tmp/findomain.zip https://github.com/Findomain/Findomain/releases/download/9.0.4/findomain-linux.zip 2>/dev/null && \
+           sudo unzip -o /tmp/findomain.zip -d /usr/local/bin/ > /dev/null 2>&1 && \
+           sudo chmod +x /usr/local/bin/findomain; then
+            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}findomain installed${NC}              "
+            installed=$((installed + 1))
+            rm -f /tmp/findomain.zip
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}findomain — download failed${NC}              "
+            failed=$((failed + 1))
+        fi
+    fi
+    echo ""
 
     # ── 8. SecLists (wordlists) ──────────────────────────────────────────
     print_header "📚 Wordlists"
