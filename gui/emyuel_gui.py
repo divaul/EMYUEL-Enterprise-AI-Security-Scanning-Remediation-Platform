@@ -877,7 +877,9 @@ class EMYUELGUI:
         self._run_external_tools('quick', target)
     
     def start_advanced_scan(self):
-        """Start advanced scan"""
+        """Start advanced scan — coordinated: recon tools → AI scan → vuln tools → results."""
+        import threading
+        
         target = self.target_var.get()
         
         if not target or target == "https://example.com or /path/to/directory":
@@ -904,12 +906,304 @@ class EMYUELGUI:
             fg=self.colors['accent_cyan']
         )
         
-        # Start real scan
-        self._execute_real_scan(target, modules)
+        # ── Collect selected external tools ──────────────────────
+        ext_tool_findings = []
+        attr_map = {
+            'quick': 'quick_ext_tool_vars',
+            'advanced': 'adv_ext_tool_vars',
+        }
+        tool_vars_attr = attr_map.get('advanced', 'adv_ext_tool_vars')
+        selected_tools = []
+        if hasattr(self, tool_vars_attr):
+            tool_vars = getattr(self, tool_vars_attr)
+            selected_tools = [tid for tid, var in tool_vars.items() if var.get()]
         
-        # Run external tools selected in Advanced Scan tab
-        self._run_external_tools('advanced', target)
+        if selected_tools:
+            self.log_console(f"[TOOLS] {len(selected_tools)} external tools selected")
+        
+        def _coordinated_scan():
+            """Run everything in one thread: ext tools → AI scan → display."""
+            from gui.tool_executor import ToolExecutor
+            from gui.security_tools import SECURITY_TOOLS
+            
+            all_ext_findings = []
+            
+            # ── Step 1: Run external tools (recon first, then vuln) ──
+            if selected_tools:
+                try:
+                    self.root.after(0, lambda: self.status_label.config(
+                        text=f"Phase 1: External Tools scanning {target}...",
+                        fg=self.colors['accent_cyan']
+                    ))
+                    
+                    executor = ToolExecutor(
+                        target=target,
+                        selected_tool_ids=selected_tools,
+                        tool_registry=SECURITY_TOOLS,
+                        log_fn=lambda msg: self.root.after(0, lambda m=msg: self.log_console(m)),
+                        max_workers=5,
+                    )
+                    all_ext_findings = executor.run_all()
+                    
+                    # Normalize finding format
+                    for f in all_ext_findings:
+                        if 'type' not in f:
+                            f['type'] = f.get('source', f.get('tool', 'External Tool'))
+                        if 'url' not in f:
+                            f['url'] = f.get('target', target)
+                    
+                    self.root.after(0, lambda c=len(all_ext_findings): self.log_console(
+                        f"[TOOLS] ✅ External tools complete: {c} findings"
+                    ))
+                    
+                except Exception as e:
+                    err = str(e)
+                    self.root.after(0, lambda m=err: self.log_console(f"[TOOLS] ❌ Error: {m}"))
+            
+            # ── Step 2: Run AI scan (ScannerCore) ────────────────────
+            ai_results = None
+            try:
+                self.root.after(0, lambda: self.status_label.config(
+                    text=f"Phase 2: AI Analysis of {target}...",
+                    fg=self.colors['accent_cyan']
+                ))
+                
+                ai_results = self._execute_real_scan_sync(target, modules)
+            except Exception as e:
+                err = str(e)
+                self.root.after(0, lambda m=err: self.log_console(f"[AI] ❌ AI scan error: {m}"))
+            
+            # ── Step 3: Merge all findings and display ───────────────
+            def _finalize():
+                if ai_results:
+                    self.last_scan_results = ai_results
+                else:
+                    self.last_scan_results = {
+                        'target': target,
+                        'findings': [],
+                        'total_pages': 0,
+                        'total_findings': 0,
+                        'findings_by_severity': {},
+                    }
+                
+                # Merge external tool findings
+                existing = self.last_scan_results.get('findings', [])
+                existing.extend(all_ext_findings)
+                self.last_scan_results['findings'] = existing
+                
+                # Recalculate severity stats from ALL findings
+                all_findings = self.last_scan_results['findings']
+                by_sev = {}
+                for f in all_findings:
+                    sev = f.get('severity', 'info').lower()
+                    by_sev[sev] = by_sev.get(sev, 0) + 1
+                
+                self.last_scan_results['total_findings'] = len(all_findings)
+                self.last_scan_results['findings_by_severity'] = by_sev
+                
+                # Update UI stat labels
+                if hasattr(self, 'stat_critical_label'):
+                    self.stat_critical_label.config(text=str(by_sev.get('critical', 0)))
+                if hasattr(self, 'stat_high_label'):
+                    self.stat_high_label.config(text=str(by_sev.get('high', 0)))
+                if hasattr(self, 'stat_medium_label'):
+                    self.stat_medium_label.config(text=str(by_sev.get('medium', 0)))
+                if hasattr(self, 'stat_low_label'):
+                    self.stat_low_label.config(text=str(by_sev.get('low', 0)))
+                
+                # Save to database
+                scan_id = self.last_scan_results.get('scan_id')
+                if self.db and scan_id and all_ext_findings:
+                    try:
+                        import json
+                        with self.db._get_connection() as conn:
+                            cursor = conn.cursor()
+                            for f in all_ext_findings:
+                                cursor.execute("""
+                                    INSERT INTO findings (
+                                        scan_id, severity, vulnerability_type, title, description,
+                                        url, parameter, method, evidence, remediation, refs
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                """, (
+                                    scan_id,
+                                    f.get('severity', 'info'),
+                                    f.get('type', 'External Tool'),
+                                    f.get('title', 'External finding'),
+                                    f.get('description', ''),
+                                    f.get('url', ''),
+                                    f.get('parameter', ''),
+                                    f.get('method', 'GET'),
+                                    f.get('evidence', ''),
+                                    f.get('remediation', ''),
+                                    json.dumps(f.get('references', []))
+                                ))
+                            # Update scan severity counts
+                            cursor.execute("""
+                                UPDATE scans SET
+                                    total_findings = ?,
+                                    critical_count = ?,
+                                    high_count = ?,
+                                    medium_count = ?,
+                                    low_count = ?,
+                                    info_count = ?
+                                WHERE scan_id = ?
+                            """, (
+                                len(all_findings),
+                                by_sev.get('critical', 0),
+                                by_sev.get('high', 0),
+                                by_sev.get('medium', 0),
+                                by_sev.get('low', 0),
+                                by_sev.get('info', 0),
+                                scan_id
+                            ))
+                        self.log_console(f"[DB] ✅ Saved {len(all_ext_findings)} external findings to database")
+                    except Exception as db_err:
+                        self.log_console(f"[DB] ⚠️ Could not save external findings: {db_err}")
+                
+                # Final status
+                total = len(all_findings)
+                ext_count = len(all_ext_findings)
+                ai_count = total - ext_count
+                
+                self.status_label.config(
+                    text=f"✅ Scan complete: {total} findings ({ai_count} AI + {ext_count} tools)",
+                    fg=self.colors['success'] if total == 0 else self.colors['warning']
+                )
+                self.progress_var.set(100)
+                
+                self.log_console(f"[SCAN] ✅ All scans complete: {total} total findings")
+                self.log_console(f"[SCAN] 📊 AI: {ai_count} | External tools: {ext_count}")
+                
+                sev_parts = []
+                for s in ['critical', 'high', 'medium', 'low', 'info']:
+                    if by_sev.get(s, 0) > 0:
+                        sev_parts.append(f"{s}: {by_sev[s]}")
+                if sev_parts:
+                    self.log_console(f"[SCAN] 📊 Severity: {' | '.join(sev_parts)}")
+                
+                self.log_console(f"[INFO] ✅ You can now generate a report!")
+                
+                # Enable report button
+                if total > 0 and hasattr(self, 'report_btn'):
+                    self.report_btn.config(state='normal')
+                
+                # Refresh report summary
+                if hasattr(self, 'update_report_summary'):
+                    self.update_report_summary()
+                
+                # Display results
+                self._display_scan_results(self.last_scan_results)
+            
+            self.root.after(0, _finalize)
+        
+        # Start coordinated scan in background thread
+        scan_thread = threading.Thread(target=_coordinated_scan, daemon=True)
+        scan_thread.start()
+        
+        # Show progress
+        self.progress_var.set(10)
+        if hasattr(self, 'progress_label'):
+            self.progress_label.config(text="Scan in progress...")
+        if hasattr(self, 'status_label'):
+            self.status_label.config(text="Initializing...", fg=self.colors['warning'])
     
+    def _execute_real_scan_sync(self, target: str, modules=None):
+        """Synchronous AI scan — called from coordinated scan thread. Returns results dict."""
+        import asyncio
+        import sys
+        from pathlib import Path
+        
+        # Import scanner exceptions
+        sys.path.insert(0, str(Path(__file__).parent.parent / 'libs'))
+        from scanner_exceptions import ScanPausedException, APIError
+        
+        # Ensure parent directory is in path
+        parent_dir = Path(__file__).parent.parent
+        if str(parent_dir) not in sys.path:
+            sys.path.insert(0, str(parent_dir))
+        
+        # Import scanner
+        from services.scanner_core import ScannerCore
+        
+        # Import API key manager
+        scanner_core_dir = parent_dir / "services" / "scanner-core"
+        if str(scanner_core_dir) not in sys.path:
+            sys.path.insert(0, str(scanner_core_dir))
+        
+        from libs.api_key_manager import APIKeyManager
+        
+        # Get API keys from GUI
+        api_key_manager = APIKeyManager()
+        keys_set = []
+        for provider in ['openai', 'gemini', 'claude']:
+            key_var = getattr(self, f'api_key_{provider}', None)
+            if key_var:
+                key = key_var.get()
+                if key and key.strip():
+                    api_key_manager.add_key(provider, key.strip())
+                    keys_set.append(provider)
+        
+        if keys_set:
+            api_key_manager.save_keys()
+            self.root.after(0, lambda p=keys_set: self.log_console(f"[API] Saved keys to file: {p}"))
+        else:
+            self.root.after(0, lambda: self.log_console("[API] ⚠️ No API keys found in GUI"))
+        
+        self.root.after(0, lambda: self.log_console(f"[API] Active keys: {list(api_key_manager.keys.keys())}"))
+        
+        # Check SSL settings
+        skip_ssl_advanced = getattr(self, 'opt_skip_ssl_var', tk.BooleanVar(value=False)).get()
+        skip_ssl_quick = getattr(self, 'quick_scan_skip_ssl_var', tk.BooleanVar(value=False)).get()
+        skip_ssl = skip_ssl_advanced or skip_ssl_quick
+        
+        config = {
+            'llm': {
+                'api_key_manager': api_key_manager,
+                'provider': self.provider_var.get()
+            },
+            'profile': self.profile_var.get(),
+            'verify_ssl': not skip_ssl
+        }
+        
+        if skip_ssl:
+            self.root.after(0, lambda: self.log_console("[WARNING] ⚠️ SSL verification DISABLED"))
+        
+        scanner = ScannerCore(config)
+        scan_id = f"scan_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        self.root.after(0, lambda: self.log_console("[AI] Initializing AI scanner..."))
+        self.root.after(0, lambda: self.progress_var.set(50))
+        
+        results = loop.run_until_complete(
+            scanner.scan(target=target, modules=modules, scan_id=scan_id)
+        )
+        loop.close()
+        
+        # Save AI results to database
+        if self.db:
+            try:
+                scan_data = {
+                    'scan_id': scan_id,
+                    'target': target,
+                    'scan_type': 'advanced',
+                    'modules': modules if modules else ['all'],
+                    'total_pages': results.get('total_pages', 0),
+                    'findings': results.get('findings', [])
+                }
+                saved_id = self.db.save_scan(scan_data)
+                self.root.after(0, lambda sid=saved_id: self.log_console(f"[DB] ✅ AI scan saved: {sid}"))
+            except Exception as e:
+                err = str(e)
+                self.root.after(0, lambda m=err: self.log_console(f"[DB] ⚠️ Failed to save AI scan: {m}"))
+        
+        ai_count = len(results.get('findings', []))
+        self.root.after(0, lambda c=ai_count: self.log_console(f"[AI] ✅ AI analysis complete: {c} findings"))
+        
+        return results
+
     def _execute_real_scan(self, target: str, modules: Optional[List[str]] = None, resume_state: Optional[Dict] = None):
         """Execute real scan in background thread with pause/resume support"""
         import threading
