@@ -142,33 +142,16 @@ class WebScanner:
             self.visited_urls.add(url)
             
             try:
-                # Fetch page
-                async with self.session.get(url, timeout=10, allow_redirects=True) as response:
-                    # Handle encoding errors (Bug Fix #4)
-                    try:
-                        html = await response.text(errors='replace')
-                    except Exception as e:
-                        print(f"[Web] Encoding error reading {url}: {e}")
-                        continue
-                    
-                    headers = dict(response.headers)
-                    
-                    page_data = {
-                        'url': url,
-                        'status': response.status,
-                        'headers': headers,
-                        'html': html,
-                        'depth': depth
-                    }
-                    
+                # Fetch page with retry and HTTP fallback
+                page_data = await self._fetch_page_with_retry(url, depth, start_url)
+                if page_data:
                     pages.append(page_data)
                     
                     # Extract links for further crawling
-                    if depth < self.max_depth:
-                        # Handle HTML parsing errors (Bug Fix #4)
+                    if depth < self.max_depth and page_data.get('html'):
                         try:
-                            soup = BeautifulSoup(html, 'html.parser')
-                            links = self._extract_links(soup, url, start_url)
+                            soup = BeautifulSoup(page_data['html'], 'html.parser')
+                            links = self._extract_links(soup, page_data['url'], start_url)
                             
                             for link in links:
                                 if link not in self.visited_urls:
@@ -180,6 +163,52 @@ class WebScanner:
                 print(f"[Web] Error crawling {url}: {e}")
         
         return pages
+    
+    async def _fetch_page_with_retry(self, url: str, depth: int, start_url: str, max_retries: int = 3) -> Optional[Dict]:
+        """Fetch page with retry logic and HTTP fallback"""
+        urls_to_try = [url]
+        
+        # If HTTPS fails, try HTTP as fallback
+        if url.startswith('https://'):
+            urls_to_try.append(url.replace('https://', 'http://', 1))
+        
+        for try_url in urls_to_try:
+            for attempt in range(max_retries):
+                try:
+                    timeout = aiohttp.ClientTimeout(total=30, connect=15)
+                    async with self.session.get(try_url, timeout=timeout, allow_redirects=True) as response:
+                        try:
+                            html = await response.text(errors='replace')
+                        except Exception as e:
+                            print(f"[Web] Encoding error reading {try_url}: {e}")
+                            return None
+                        
+                        headers = dict(response.headers)
+                        
+                        return {
+                            'url': str(response.url),  # Use final URL after redirects
+                            'status': response.status,
+                            'headers': headers,
+                            'html': html,
+                            'depth': depth
+                        }
+                        
+                except (aiohttp.ClientConnectorError, aiohttp.ClientConnectorSSLError, 
+                        asyncio.TimeoutError, ConnectionError, OSError) as e:
+                    if attempt < max_retries - 1:
+                        wait = (attempt + 1) * 2  # 2s, 4s backoff
+                        print(f"[Web] Connection failed for {try_url} (attempt {attempt+1}/{max_retries}), retrying in {wait}s...")
+                        await asyncio.sleep(wait)
+                    else:
+                        if try_url == urls_to_try[-1]:  # Last URL to try
+                            print(f"[Web] Failed to connect to {url} after {max_retries} attempts: {e}")
+                        else:
+                            print(f"[Web] HTTPS failed for {url}, trying HTTP fallback...")
+                except Exception as e:
+                    print(f"[Web] Unexpected error fetching {try_url}: {e}")
+                    return None
+        
+        return None
     
     def _extract_links(self, soup: BeautifulSoup, current_url: str, base_url: str) -> List[str]:
         """Extract valid links from page"""
