@@ -487,6 +487,7 @@ SECURITY_TOOLS = {
         'desc': 'Collection of wordlists for fuzzing and discovery',
         'check_cmd': None, 'install_apt': 'seclists', 'install_pip': None,
         'install_custom': 'git clone --depth 1 https://github.com/danielmiessler/SecLists.git /usr/share/seclists',
+        'check_path': ['/usr/share/seclists', '/usr/share/wordlists/seclists', '/opt/seclists'],
         'usable_in': ['advanced', 'ai'],
     },
 
@@ -556,12 +557,14 @@ SECURITY_TOOLS = {
         'desc': 'Collaboration and reporting platform for pentesters',
         'check_cmd': 'dradis', 'install_apt': None, 'install_pip': None,
         'install_custom': 'gem install dradis',
+        'optional': True,
         'usable_in': ['advanced'],
     },
     'faraday': {
         'name': 'Faraday', 'icon': '🏭', 'category': 'Reporting',
         'desc': 'Collaborative vulnerability management platform',
         'check_cmd': 'faraday-cli', 'install_apt': None, 'install_pip': 'faraday-cli',
+        'optional': True,
         'usable_in': ['advanced'],
     },
     'defectdojo': {
@@ -569,6 +572,7 @@ SECURITY_TOOLS = {
         'desc': 'DevSecOps vulnerability management and correlation',
         'check_cmd': None, 'install_apt': None, 'install_pip': None,
         'install_custom': 'echo "Deploy via Docker: https://github.com/DefectDojo/django-DefectDojo"',
+        'optional': True,
         'usable_in': ['advanced'],
     },
 }

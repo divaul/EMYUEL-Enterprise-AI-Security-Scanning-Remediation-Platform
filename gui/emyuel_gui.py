@@ -2879,6 +2879,22 @@ Example:
                 is_installed = False
                 version = ""
                 
+                # Optional tools (web platforms like Dradis, DefectDojo) — 
+                # mark as installed since they can't be reliably detected
+                if info.get('optional'):
+                    return tool_id, True, "optional (web platform)"
+                
+                # Check path-based tools (e.g., SecLists wordlists directory)
+                if info.get('check_path'):
+                    import os
+                    for path in info['check_path']:
+                        if os.path.exists(path):
+                            is_installed = True
+                            version = f"installed ({path})"
+                            break
+                    if is_installed:
+                        return tool_id, True, version
+                
                 # Check command-line tools
                 if info.get('check_cmd'):
                     cmd = info['check_cmd']
