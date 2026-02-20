@@ -2236,6 +2236,142 @@ class EMYUELGUI:
             self.ai_analysis_running = False
             self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ AI Analysis complete")
     
+    def _run_ai_phase0_recon(self, target_url: str) -> str:
+        """
+        Phase 0: Run real CLI recon tools and return a formatted summary string
+        for injection into the LLM prompt. Runs synchronously in the analysis thread.
+        """
+        from gui.tool_executor import ToolExecutor
+        from gui.security_tools import SECURITY_TOOLS
+
+        # Only use fast, non-intrusive recon tools for AI pre-analysis
+        AI_RECON_TOOL_IDS = [
+            'subfinder', 'dnsx', 'httpx_tool', 'whatweb',
+            'waybackurls', 'gau', 'nmap', 'naabu',
+        ]
+
+        # Filter to only tools that are actually installed
+        import shutil, pathlib
+        def _resolve(name):
+            found = shutil.which(name)
+            if found:
+                return found
+            home = pathlib.Path.home()
+            for d in [home/'go'/'bin', home/'.local'/'bin', home/'.cargo'/'bin']:
+                c = d / name
+                if c.is_file():
+                    return str(c)
+                c2 = d / f'{name}.exe'
+                if c2.is_file():
+                    return str(c2)
+            return None
+
+        available_ids = []
+        for tid in AI_RECON_TOOL_IDS:
+            info = SECURITY_TOOLS.get(tid, {})
+            check_cmd = info.get('check_cmd', tid)
+            if _resolve(check_cmd):
+                available_ids.append(tid)
+
+        if not available_ids:
+            self.ai_log_console(f"  ℹ️  No recon tools installed — skipping CLI phase")
+            return "No CLI recon tools available on this system."
+
+        self.ai_log_console(f"  🔧 Running: {', '.join(available_ids)}")
+
+        def _log(msg):
+            self.root.after(0, lambda m=msg: self.ai_log_console(m))
+
+        executor = ToolExecutor(
+            target=target_url,
+            selected_tool_ids=available_ids,
+            tool_registry=SECURITY_TOOLS,
+            log_fn=_log,
+            max_workers=4,
+        )
+        # Run only recon (not vuln) — use internal method directly
+        findings = executor.run_all()
+        # Store for later use by Phase 4 CLI steps
+        self._ai_recon_findings = findings
+
+        # Build readable summary for LLM
+        subdomains  = set()
+        open_ports  = []
+        live_urls   = []
+        param_urls  = []
+        technologies= []
+        endpoints   = []
+
+        for f in findings:
+            title = f.get('title', '')
+            desc  = f.get('description', '')
+            tool  = f.get('tool', '')
+            sev   = f.get('severity', '')
+            combined = f'{title} {desc}'.lower()
+
+            # Subdomains
+            import re
+            import urllib.parse
+            domain = urllib.parse.urlparse(target_url).hostname or target_url
+            sub_m = re.findall(r'[\w\-]+\.[\w\-]+\.[a-z]{2,}', combined)
+            for s in sub_m:
+                if domain in s or s.endswith(f'.{domain}'):
+                    subdomains.add(s)
+
+            # Open ports
+            port_m = re.findall(r'(\d{2,5})\s*/(?:tcp|udp)', combined)
+            for p in port_m:
+                if p not in open_ports:
+                    open_ports.append(p)
+
+            # Live URLs
+            if any(t in tool.lower() for t in ['httpx', 'httprobe', 'whatweb']):
+                url_m = re.findall(r'https?://[^\s\'"<>]+', f'{title} {desc}')
+                live_urls.extend(url_m[:5])
+
+            # Param URLs
+            url_m2 = re.findall(r'https?://[^\s\'"<>]+\?[^\s\'"<>]+', combined)
+            param_urls.extend(url_m2[:5])
+
+            # Technologies
+            for tech in ['nginx', 'apache', 'wordpress', 'joomla', 'drupal',
+                         'php', 'python', 'ruby', 'node', 'laravel', 'django',
+                         'jquery', 'react', 'vue', 'angular', 'mysql', 'postgres']:
+                if tech in combined and tech not in technologies:
+                    technologies.append(tech)
+
+            # Endpoints  
+            path_m = re.findall(r'/[a-zA-Z0-9_\-/]+(?:\?[^\s]*)?', combined)
+            for p in path_m:
+                if len(p) > 3 and p not in endpoints:
+                    endpoints.append(p)
+
+        # Format summary
+        lines = ["=== CLI RECON RESULTS (ground truth data) ==="]
+        lines.append(f"Target: {target_url}")
+        lines.append(f"Tools run: {', '.join(available_ids)}")
+        lines.append(f"Total findings: {len(findings)}")
+        lines.append("")
+        if subdomains:
+            lines.append(f"SUBDOMAINS ({len(subdomains)}): {', '.join(list(subdomains)[:20])}")
+        if open_ports:
+            lines.append(f"OPEN PORTS: {', '.join(open_ports[:15])}")
+        if live_urls:
+            lines.append(f"LIVE URLS ({len(live_urls)}): {', '.join(live_urls[:10])}")
+        if param_urls:
+            lines.append(f"PARAMETER URLs ({len(param_urls)}): {', '.join(param_urls[:10])}")
+        if technologies:
+            lines.append(f"TECHNOLOGIES DETECTED: {', '.join(technologies)}")
+        if endpoints:
+            lines.append(f"ENDPOINTS ({len(endpoints)}): {', '.join(endpoints[:15])}")
+        if not (subdomains or open_ports or live_urls or technologies):
+            lines.append("Note: Limited data — target may be restricted or tools produced minimal output")
+        lines.append("=== END RECON DATA ===")
+
+        summary = '\n'.join(lines)
+        self._ai_recon_summary = summary
+        return summary
+
     async def _run_real_ai_analysis(self, target_url: str, nlp_query: str = "", provider: str = "gemini"):
         """Real AI-powered autonomous security analysis"""
         from libs.api_key_manager import APIKeyManager
@@ -2246,10 +2382,10 @@ class EMYUELGUI:
         if str(scanner_core_dir) not in sys.path:
             sys.path.insert(0, str(scanner_core_dir))
         from llm_analyzer import LLMAnalyzer
-        
+
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔧 Initializing AI analyzer...")
-        
-        # Initialize LLM with GUI's saved API keys (FIXED: was creating empty APIKeyManager)
+
+        # Initialize LLM with GUI's saved API keys
         api_mgr = APIKeyManager()
         key_map = {
             'openai': getattr(self, 'api_key_openai', None),
@@ -2261,43 +2397,64 @@ class EMYUELGUI:
                 key_value = key_var.get().strip() if hasattr(key_var, 'get') else str(key_var).strip()
                 if key_value:
                     api_mgr.add_key(provider_name, key_value)
-        
+
         llm = LLMAnalyzer(api_mgr, provider)
-        
+
+        # ==========================================
+        # PHASE 0: CLI RECON (real tool execution)
+        # ==========================================
+        self._ai_clear_steps()
+        self._ai_add_step("🔧", "Phase 0: CLI Recon", "Running...", 'warning')
+        self.ai_log_console(f"\n[{datetime.now().strftime('%H:%M:%S')}] 🔧 Phase 0: Running CLI recon tools...")
+        self.ai_update_reasoning("🔧 PHASE 0: CLI RECON\n\nRunning real security tools to gather ground-truth data...\nThis may take 1-3 minutes depending on installed tools.")
+
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            recon_summary = await loop.run_in_executor(
+                None, self._run_ai_phase0_recon, target_url
+            )
+            self._ai_update_step(0, "🔧", "Phase 0: CLI Recon", "Complete ✅", 'success')
+            self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Phase 0 complete — {len(getattr(self, '_ai_recon_findings', []))} recon findings")
+        except Exception as e:
+            recon_summary = f"CLI recon failed: {e}"
+            self._ai_update_step(0, "🔧", "Phase 0: CLI Recon", f"Failed: {e}", 'error')
+            self.ai_log_console(f"  ⚠️ Phase 0 error: {e}")
+
         # ==========================================
         # PHASE 1: TARGET RECONNAISSANCE (15-30s)
         # ==========================================
-        # Clear steps frame
-        self._ai_clear_steps()
-        self._ai_add_step("🔍", "Phase 1: Target Reconnaissance", "Running...", 'warning')
-        
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 Phase 1: Target Reconnaissance")
-        self.ai_update_reasoning("🔍 PHASE 1: TARGET RECONNAISSANCE\n\nAnalyzing target architecture and attack surface...")
-        
+        self._ai_add_step("🔍", "Phase 1: LLM Reconnaissance", "Running...", 'warning')
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] 🔍 Phase 1: LLM Reconnaissance Analysis")
+        self.ai_update_reasoning("🔍 PHASE 1: LLM RECONNAISSANCE\n\nAI analyzing ground-truth recon data...")
+
         recon_prompt = f"""You are a professional penetration tester analyzing a target for security assessment.
 
 Target URL: {target_url}
 User Focus: {nlp_query if nlp_query else "Comprehensive security analysis"}
 
-Analyze this target and provide:
+{recon_summary}
+
+Based on the real scan data above, provide your analysis:
 
 1. **Technology Stack Detection**
-   - Identify web server, frameworks, databases
-   - Detect technologies from URL patterns
+   - Confirm technologies detected, infer additional ones from context
+   - Framework/CMS versions and known CVEs if applicable
 
 2. **Attack Surface Identification**
-   - List potential entry points (login, search, file upload, etc.)
-   - Identify user-controllable inputs
+   - Specific entry points found (from discovered URLs, ports, endpoints)
+   - User-controllable inputs identified
+   - Subdomains worth testing
 
 3. **Initial Security Assessment**
-   - Obvious security headers missing?
-   - Common misconfigurations?
+   - Security headers status
+   - Common misconfigurations visible from recon data
 
-4. **Recommended Test Vectors**
-   - Top 5 most relevant vulnerability tests
-   - Prioritize based on target characteristics
+4. **Prioritized Test Vectors**
+   - Top 5 most likely vulnerabilities based on the discovered attack surface
+   - Reference specific URLs/parameters found in recon
 
-**Format as step-by-step analysis. Be concise but thorough.**
+**Be specific — reference actual data from the recon output above.**
 """
 
         try:
@@ -2454,27 +2611,44 @@ USER QUERY: {nlp_query if nlp_query else "N/A"}
         self._ai_add_step("⚡", "Phase 4: Protocol Generation", "Running...", 'warning')
         self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ⚡ Phase 4: Generating executable test protocols...")
         
+        # Build param URLs context for CLI step targeting
+        param_url_context = ""
+        if hasattr(self, '_ai_recon_summary') and 'PARAMETER URLs' in self._ai_recon_summary:
+            param_url_context = self._ai_recon_summary
+
         protocol_prompt = f"""Based on the vulnerability analysis, generate EXECUTABLE test protocols as a JSON array.
 
 Target: {target_url}
-Reconnaissance: {recon_response[:300]}
-Vulnerability Strategy: {vuln_response[:300]}
+CLI Recon Data (use specific URLs/subdomains from this):
+{param_url_context[:600] if param_url_context else 'Not available'}
+LLM Reconnaissance: {recon_response[:200]}
+Vulnerability Strategy: {vuln_response[:200]}
 
-Generate exactly 5-8 test protocols. Each protocol is a JSON object with these fields:
+Generate exactly 6-10 test protocols mixing both exec types.
+Each protocol is a JSON object with these REQUIRED fields:
 - "id": step number (1, 2, 3...)
-- "name": short descriptive name (e.g., "SQL Injection Test on Login")
-- "category": one of ["SQLi", "XSS", "CSRF", "Headers", "Auth", "InfoLeak", "SSL", "DirectoryTraversal"]
+- "name": short descriptive name
+- "category": one of ["SQLi", "XSS", "CSRF", "Headers", "Auth", "InfoLeak", "SSL", "DirectoryTraversal", "RCE", "LFI"]
 - "severity": one of ["Critical", "High", "Medium", "Low"]
-- "method": HTTP method ("GET" or "POST")
-- "path": URL path to test (e.g., "/login", "/search?q=test")
-- "payload": test payload string (e.g., "' OR 1=1 --", "<script>alert(1)</script>")
-- "check_type": what to check in response - one of ["status_code", "body_contains", "header_missing", "redirect"]
-- "check_value": expected value that indicates vulnerability (e.g., "error", "sql", "syntax")
+- "exec_type": either "http" (quick HTTP request check) or "cli" (run a real CLI security tool)
 - "description": 1-2 sentence description of what this test does
 
+For exec_type="http" also include:
+- "method": "GET" or "POST"
+- "path": URL path to test (e.g., "/login?user=INJECT")
+- "payload": test payload string
+- "check_type": one of ["status_code", "body_contains", "header_missing", "redirect"]
+- "check_value": expected indicator of vulnerability
+
+For exec_type="cli" also include:
+- "tool_id": one of ["sqlmap", "dalfox", "xsstrike", "nuclei", "nikto", "gobuster", "nmap", "sslscan", "commix", "wpscan"]
+- "target_url": specific URL to test (use param URLs from recon if available, otherwise base target)
+
 RESPOND WITH ONLY THE JSON ARRAY, no markdown, no backticks, just the raw JSON.
+Mix at least 3 CLI steps and 3 HTTP steps. Use specific URLs discovered in recon.
 Example:
-[{{"id":1,"name":"SQL Injection on Search","category":"SQLi","severity":"High","method":"GET","path":"/search?q=' OR 1=1 --","payload":"' OR 1=1 --","check_type":"body_contains","check_value":"error","description":"Tests for SQL injection vulnerability in search parameter."}}]
+[{{"id":1,"name":"SQLi on Search Param","category":"SQLi","severity":"High","exec_type":"cli","tool_id":"sqlmap","target_url":"{target_url}/search?q=test","description":"Run SQLMap against discovered search parameter."}},
+ {{"id":2,"name":"Missing Security Headers","category":"Headers","severity":"Medium","exec_type":"http","method":"GET","path":"/","payload":"","check_type":"header_missing","check_value":"X-Frame-Options","description":"Check for missing clickjacking protection header."}}]
 """
 
         try:
@@ -2611,46 +2785,70 @@ Example:
             }
             category_icons = {
                 'SQLi': '🗄️', 'XSS': '⚡', 'CSRF': '🔄', 'Headers': '📋',
-                'Auth': '🔐', 'InfoLeak': '🔍', 'SSL': '🔒', 'DirectoryTraversal': '📁'
+                'Auth': '🔐', 'InfoLeak': '🔍', 'SSL': '🔒',
+                'DirectoryTraversal': '📁', 'RCE': '💣', 'LFI': '📂'
             }
-            
+
             for i, step in enumerate(protocols):
                 sev = step.get('severity', 'Medium')
                 cat = step.get('category', '')
+                exec_type = step.get('exec_type', 'http')
+                tool_id = step.get('tool_id', '')
                 icon = category_icons.get(cat, '🔧')
                 sev_color = severity_colors.get(sev, '#3b82f6')
-                
+
+                # Badge: CLI gets purple, HTTP gets cyan
+                if exec_type == 'cli':
+                    badge_text = f'[CLI: {tool_id}]' if tool_id else '[CLI]'
+                    badge_color = '#a855f7'   # purple
+                    badge_bg = '#2d1b4e'
+                else:
+                    badge_text = '[HTTP]'
+                    badge_color = '#00d4ff'   # cyan
+                    badge_bg = '#0a2233'
+
                 # Step card
                 card = tk.Frame(self.ai_exec_steps_frame, bg='#1a2332', relief='flat', bd=1,
                                 highlightbackground='#243244', highlightthickness=1)
                 card.pack(fill='x', padx=8, pady=4)
-                
+
                 # Top row: icon + name + severity
                 top = tk.Frame(card, bg='#1a2332')
                 top.pack(fill='x', padx=10, pady=(8, 2))
-                
+
                 tk.Label(top, text=f"{icon} [{cat}] {step.get('name', 'Test')}",
                          font=('Segoe UI', 10, 'bold'), fg='#e6eef8', bg='#1a2332',
                          anchor='w').pack(side='left')
-                
+
                 tk.Label(top, text=sev, font=('Segoe UI', 9, 'bold'),
                          fg=sev_color, bg='#1a2332').pack(side='right', padx=(0, 5))
-                
+
                 # Description row
                 tk.Label(card, text=step.get('description', ''),
                          font=('Segoe UI', 8), fg='#9fb0c9', bg='#1a2332',
                          anchor='w', wraplength=500).pack(fill='x', padx=12, pady=(0, 2))
-                
-                # Detail row: method + path
+
+                # Detail row: exec type badge + target info
                 detail = tk.Frame(card, bg='#1a2332')
                 detail.pack(fill='x', padx=10, pady=(0, 2))
-                
-                method = step.get('method', 'GET')
-                method_color = '#10b981' if method == 'GET' else '#f59e0b'
-                tk.Label(detail, text=f"{method}", font=('Consolas', 9, 'bold'),
-                         fg=method_color, bg='#1a2332').pack(side='left')
-                tk.Label(detail, text=f" {step.get('path', '/')}",
+
+                # exec badge
+                badge_lbl = tk.Label(detail, text=badge_text,
+                                     font=('Consolas', 8, 'bold'),
+                                     fg=badge_color, bg=badge_bg,
+                                     padx=4, pady=1, relief='flat')
+                badge_lbl.pack(side='left', padx=(0, 6))
+
+                # target detail: path for HTTP, target_url for CLI
+                if exec_type == 'cli':
+                    target_detail = step.get('target_url', '')[:70]
+                else:
+                    method = step.get('method', 'GET')
+                    path = step.get('path', '/')
+                    target_detail = f"{method} {path}"
+                tk.Label(detail, text=target_detail,
                          font=('Consolas', 8), fg='#6b7fa0', bg='#1a2332').pack(side='left')
+
                 
                 # Bottom row: run button + status
                 bottom = tk.Frame(card, bg='#1a2332')
@@ -2720,97 +2918,142 @@ Example:
         thread.start()
     
     async def _ai_execute_step(self, index, target_url):
-        """Execute a single test step via HTTP"""
+        """Execute a single test step — via HTTP or CLI tool depending on exec_type."""
         from datetime import datetime
         import urllib.parse
-        
+
         if index >= len(self.ai_exec_step_data):
             return
-        
+
         step = self.ai_exec_step_data[index]
-        name = step.get('name', f'Step {index+1}')
-        method = step.get('method', 'GET').upper()
-        path = step.get('path', '/')
-        payload = step.get('payload', '')
+        name     = step.get('name', f'Step {index+1}')
+        category = step.get('category', '')
+        exec_type = step.get('exec_type', 'http')  # 'http' or 'cli'
+
+        self._ai_exec_update_status(index, "🔄 Running...", '#f59e0b')
+        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ▶ [{category}] {name} ({exec_type.upper()})")
+
+        # ── CLI Tool Execution ──────────────────────────────────────────────
+        if exec_type == 'cli':
+            import subprocess, shutil
+            tool_id    = step.get('tool_id', '')
+            step_target = step.get('target_url') or target_url
+
+            if not tool_id:
+                self._ai_exec_update_status(index, "⚠️ No tool_id", '#f59e0b')
+                return
+
+            # Build command via existing _build_cmd
+            try:
+                from gui.tool_executor import _build_cmd, _resolve_cmd
+                result = _build_cmd(tool_id, step_target, {'wordlist': None})
+                if result is None:
+                    self._ai_exec_update_status(index, f"⚠️ {tool_id} not applicable for this target", '#f59e0b')
+                    self.ai_log_console(f"  ⚠️ {tool_id}: not applicable for {step_target[:60]}")
+                    return
+
+                cmd_list, timeout, stdin_data = result
+                resolved = _resolve_cmd(cmd_list[0])
+                if not resolved:
+                    self._ai_exec_update_status(index, f"⚠️ {tool_id} not installed", '#f59e0b')
+                    self.ai_log_console(f"  ⚠️ {tool_id} not found on PATH")
+                    return
+
+                cmd_list[0] = resolved
+                self.ai_log_console(f"  🔧 CMD: {' '.join(cmd_list[:6])}{'...' if len(cmd_list) > 6 else ''}")
+
+                import asyncio
+                loop = asyncio.get_event_loop()
+
+                def _run_sync():
+                    proc = subprocess.run(
+                        cmd_list,
+                        capture_output=True, text=True,
+                        timeout=min(timeout, 180),
+                        input=stdin_data,
+                        env={**__import__('os').environ, 'TERM': 'dumb', 'NO_COLOR': '1'},
+                    )
+                    return (proc.stdout or '') + (proc.stderr or ''), proc.returncode
+
+                output, exit_code = await loop.run_in_executor(None, _run_sync)
+                line_count = len([l for l in output.split('\n') if l.strip()])
+
+                if output.strip():
+                    # Log first 10 lines of output
+                    preview = '\n'.join(output.strip().split('\n')[:10])
+                    self.ai_log_console(f"  📋 Output ({line_count} lines):\n{preview}")
+                    if line_count > 10:
+                        self.ai_log_console(f"  ... (+{line_count - 10} more lines)")
+                    self._ai_exec_update_status(index, f"✅ Done ({line_count} lines output)", '#10b981')
+                else:
+                    self.ai_log_console(f"  ℹ️ {tool_id}: exited {exit_code}, no output")
+                    self._ai_exec_update_status(index, f"ℹ️ No output (exit {exit_code})", '#9fb0c9')
+
+            except subprocess.TimeoutExpired:
+                self._ai_exec_update_status(index, "⏰ Timed out", '#f59e0b')
+                self.ai_log_console(f"  ⏰ {tool_id} timed out")
+            except Exception as e:
+                self._ai_exec_update_status(index, f"❌ {str(e)[:60]}", '#ef4444')
+                self.ai_log_console(f"  ❌ CLI error: {e}")
+            return
+
+        # ── HTTP Execution ──────────────────────────────────────────────────
+        method     = step.get('method', 'GET').upper()
+        path       = step.get('path', '/')
+        payload    = step.get('payload', '')
         check_type = step.get('check_type', 'body_contains')
         check_value = step.get('check_value', '')
-        category = step.get('category', '')
-        
-        # Update UI - running
-        self._ai_exec_update_status(index, "🔄 Running...", '#f59e0b')
-        self.ai_log_console(f"[{datetime.now().strftime('%H:%M:%S')}] ▶ [{category}] {name}")
-        
+
         try:
-            import aiohttp
-            import ssl
-            
-            # Build full URL
+            import aiohttp, ssl
+
             base = target_url.rstrip('/')
-            if path.startswith('http'):
-                full_url = path
-            else:
-                full_url = f"{base}{path}"
-            
+            full_url = path if path.startswith('http') else f"{base}{path}"
+
             ssl_ctx = ssl.create_default_context()
             ssl_ctx.check_hostname = False
             ssl_ctx.verify_mode = ssl.CERT_NONE
-            
+
             connector = aiohttp.TCPConnector(ssl=ssl_ctx)
-            timeout = aiohttp.ClientTimeout(total=30)
-            
-            async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+            timeout_cfg = aiohttp.ClientTimeout(total=30)
+
+            async with aiohttp.ClientSession(connector=connector, timeout=timeout_cfg) as session:
                 headers = {
                     'User-Agent': 'EMYUEL-SecurityScanner/1.0',
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                 }
-                
                 if method == 'POST':
                     data = {'input': payload, 'q': payload, 'search': payload, 'username': payload}
                     async with session.post(full_url, data=data, headers=headers, allow_redirects=False) as resp:
-                        status_code = resp.status
-                        body = await resp.text(errors='replace')
-                        resp_headers = dict(resp.headers)
+                        status_code = resp.status; body = await resp.text(errors='replace'); resp_headers = dict(resp.headers)
                 else:
                     async with session.get(full_url, headers=headers, allow_redirects=False) as resp:
-                        status_code = resp.status
-                        body = await resp.text(errors='replace')
-                        resp_headers = dict(resp.headers)
-            
-            # Check for vulnerability
-            vulnerable = False
-            finding = ""
-            
+                        status_code = resp.status; body = await resp.text(errors='replace'); resp_headers = dict(resp.headers)
+
+            vulnerable = False; finding = ""
             if check_type == 'status_code':
                 if str(status_code) == str(check_value):
-                    vulnerable = True
-                    finding = f"Status code {status_code} matches expected vuln indicator"
+                    vulnerable = True; finding = f"Status code {status_code} matches expected"
             elif check_type == 'body_contains':
                 if check_value.lower() in body.lower():
-                    vulnerable = True
-                    finding = f"Response body contains '{check_value}'"
+                    vulnerable = True; finding = f"Response contains '{check_value}'"
             elif check_type == 'header_missing':
                 if check_value.lower() not in [h.lower() for h in resp_headers.keys()]:
-                    vulnerable = True
-                    finding = f"Security header '{check_value}' is missing"
+                    vulnerable = True; finding = f"Header '{check_value}' is missing"
             elif check_type == 'redirect':
                 if 300 <= status_code < 400:
-                    vulnerable = True
-                    finding = f"Redirect detected (HTTP {status_code})"
-            
+                    vulnerable = True; finding = f"Redirect detected (HTTP {status_code})"
+
             if vulnerable:
-                result_text = f"🔴 VULNERABLE - {finding}"
-                result_color = '#ef4444'
+                self._ai_exec_update_status(index, f"🔴 VULNERABLE — {finding}", '#ef4444')
                 self.ai_log_console(f"  🔴 VULNERABLE: {finding} (HTTP {status_code})")
             else:
-                result_text = f"🟢 Secure (HTTP {status_code})"
-                result_color = '#10b981'
-                self.ai_log_console(f"  🟢 Secure: No vulnerability detected (HTTP {status_code})")
-            
-            self._ai_exec_update_status(index, result_text, result_color)
-            
+                self._ai_exec_update_status(index, f"🟢 Secure (HTTP {status_code})", '#10b981')
+                self.ai_log_console(f"  🟢 Secure (HTTP {status_code})")
+
         except Exception as e:
             error_msg = str(e)[:80]
-            self._ai_exec_update_status(index, f"⚠️ Error: {error_msg}", '#f59e0b')
+            self._ai_exec_update_status(index, f"⚠️ {error_msg}", '#f59e0b')
             self.ai_log_console(f"  ⚠️ Error: {error_msg}")
     
     def _ai_exec_update_status(self, index, text, color):
