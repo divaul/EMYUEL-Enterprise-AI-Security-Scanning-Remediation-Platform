@@ -2248,6 +2248,7 @@ class EMYUELGUI:
         AI_RECON_TOOL_IDS = [
             'subfinder', 'dnsx', 'httpx_tool', 'whatweb',
             'waybackurls', 'gau', 'nmap', 'naabu',
+            'exiftool',   # EXIF/GPS metadata leak in uploaded images
         ]
 
         # Filter to only tools that are actually installed
@@ -2301,6 +2302,7 @@ class EMYUELGUI:
         param_urls  = []
         technologies= []
         endpoints   = []
+        exif_data   = []    # GPS / device metadata hits from exiftool
 
         for f in findings:
             title = f.get('title', '')
@@ -2346,6 +2348,18 @@ class EMYUELGUI:
                 if len(p) > 3 and p not in endpoints:
                     endpoints.append(p)
 
+            # EXIF / GPS metadata (from exiftool output)
+            if 'exiftool' in tool.lower() or 'exif' in tool.lower():
+                # Detect GPS coordinates
+                gps_m = re.findall(r'GPS(?:Latitude|Longitude)[^:]*:\s*([\d\.]+\s*[NSEW]?)', f'{title} {desc}')
+                # Detect device info
+                device_m = re.findall(r'(?:Make|Model|Software)\s*:\s*([^\n,]+)', f'{title} {desc}')
+                hits = gps_m + device_m
+                for h in hits:
+                    h = h.strip()
+                    if h and h not in exif_data:
+                        exif_data.append(h)
+
         # Format summary
         lines = ["=== CLI RECON RESULTS (ground truth data) ==="]
         lines.append(f"Target: {target_url}")
@@ -2364,6 +2378,9 @@ class EMYUELGUI:
             lines.append(f"TECHNOLOGIES DETECTED: {', '.join(technologies)}")
         if endpoints:
             lines.append(f"ENDPOINTS ({len(endpoints)}): {', '.join(endpoints[:15])}")
+        if exif_data:
+            lines.append(f"EXIF/METADATA LEAK ({len(exif_data)} hits): {', '.join(exif_data[:10])}")
+            lines.append("WARNING: Images contain GPS/device metadata — potential privacy/OSINT vulnerability!")
         if not (subdomains or open_ports or live_urls or technologies):
             lines.append("Note: Limited data — target may be restricted or tools produced minimal output")
         lines.append("=== END RECON DATA ===")
@@ -3010,12 +3027,29 @@ Example:
             base = target_url.rstrip('/')
             full_url = path if path.startswith('http') else f"{base}{path}"
 
-            ssl_ctx = ssl.create_default_context()
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl.CERT_NONE
+            # ── Read settings from UI vars ──────────────────────────────
+            ssl_bypass    = getattr(self, 'ai_ssl_bypass_var',   None)
+            follow_redir  = getattr(self, 'ai_follow_redir_var', None)
+            timeout_var   = getattr(self, 'ai_timeout_var',      None)
 
-            connector = aiohttp.TCPConnector(ssl=ssl_ctx)
-            timeout_cfg = aiohttp.ClientTimeout(total=30)
+            do_ssl_bypass    = ssl_bypass.get()    if ssl_bypass    else True
+            do_follow_redir  = follow_redir.get()  if follow_redir  else False
+            try:
+                req_timeout = max(5, int(timeout_var.get())) if timeout_var else 30
+            except (ValueError, AttributeError):
+                req_timeout = 30
+
+            # ── Build SSL context ───────────────────────────────────────
+            if do_ssl_bypass:
+                ssl_ctx = ssl.create_default_context()
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl.CERT_NONE
+                self.ai_log_console(f"  ⚠️ SSL Bypass aktif (sertifikat tidak divalidasi)")
+            else:
+                ssl_ctx = ssl.create_default_context()  # default — validates cert
+
+            connector   = aiohttp.TCPConnector(ssl=ssl_ctx)
+            timeout_cfg = aiohttp.ClientTimeout(total=req_timeout)
 
             async with aiohttp.ClientSession(connector=connector, timeout=timeout_cfg) as session:
                 headers = {
@@ -3024,10 +3058,12 @@ Example:
                 }
                 if method == 'POST':
                     data = {'input': payload, 'q': payload, 'search': payload, 'username': payload}
-                    async with session.post(full_url, data=data, headers=headers, allow_redirects=False) as resp:
+                    async with session.post(full_url, data=data, headers=headers,
+                                            allow_redirects=do_follow_redir) as resp:
                         status_code = resp.status; body = await resp.text(errors='replace'); resp_headers = dict(resp.headers)
                 else:
-                    async with session.get(full_url, headers=headers, allow_redirects=False) as resp:
+                    async with session.get(full_url, headers=headers,
+                                           allow_redirects=do_follow_redir) as resp:
                         status_code = resp.status; body = await resp.text(errors='replace'); resp_headers = dict(resp.headers)
 
             vulnerable = False; finding = ""

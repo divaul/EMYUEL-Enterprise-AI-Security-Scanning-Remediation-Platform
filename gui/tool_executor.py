@@ -218,6 +218,11 @@ def _build_cmd(tool_id, target, context=None):
         'dradis': lambda: None,
         'faraday': lambda: None,
         'defectdojo': lambda: None,
+
+        # ─── Metadata Analysis ──────────────────────────────────
+        # For URL targets: we download all <img> tags and scan them
+        # For path targets: recursive exiftool scan on local directory
+        'exiftool': lambda: _exiftool_cmd(target, domain, temp_dir, is_url_target, is_path_target),
     }
 
     builder = builders.get(tool_id)

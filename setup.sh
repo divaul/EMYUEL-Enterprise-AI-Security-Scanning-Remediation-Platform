@@ -1,4 +1,4 @@
-#!/bin/bash
+2wsx#!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
 # EMYUEL - Enterprise AI-Powered Security Scanner
 # Automated Setup Script for Linux (Kali, Ubuntu, Debian, etc.)
@@ -218,7 +218,7 @@ install_dependencies() {
 # INSTALL ALL EXTERNAL SECURITY TOOLS
 # ═══════════════════════════════════════════════════════════════════════════
 install_security_tools() {
-    print_header "🔐 INSTALLING SECURITY TOOLS (79 tools)"
+    print_header "🔐 INSTALLING SECURITY TOOLS (80 tools)"
 
     local installed=0
     local skipped=0
@@ -279,13 +279,16 @@ install_security_tools() {
         "libpcap-dev"
         "zaproxy"
         "unzip"
+        "libimage-exiftool-perl"   # ExifTool — EXIF/GPS metadata extraction
     )
 
     for tool in "${APT_TOOLS[@]}"; do
         # Get binary name (some packages differ from binary)
         local bin_name="$tool"
-        [[ "$tool" == "testssl.sh" ]] && bin_name="testssl"
-        [[ "$tool" == "exploitdb" ]] && bin_name="searchsploit"
+        [[ "$tool" == "testssl.sh" ]]              && bin_name="testssl"
+        [[ "$tool" == "exploitdb" ]]               && bin_name="searchsploit"
+        [[ "$tool" == "libimage-exiftool-perl" ]]  && bin_name="exiftool"
+        [[ "$tool" == "libpcap-dev" ]]             && bin_name=""   # library, no binary
 
         if command -v "$bin_name" &> /dev/null || which "$bin_name" &> /dev/null 2>&1; then
             print_success "$tool ${GRAY}(already installed)${NC}"
@@ -619,6 +622,7 @@ install_security_tools() {
     echo ""
     print_info "Python libs (aiohttp, requests, etc.) are installed via requirements.txt"
     print_info "Interactive tools (Burp Suite, mitmproxy) need manual setup"
+    print_info "ExifTool installed via libimage-exiftool-perl — used for EXIF/GPS metadata leak detection"
     print_separator
 }
 

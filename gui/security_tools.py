@@ -499,6 +499,17 @@ SECURITY_TOOLS = {
         'usable_in': ['advanced', 'ai'],
     },
 
+    # ─── Metadata Analysis ─────────────────────────
+    'exiftool': {
+        'name': 'ExifTool', 'icon': '🖼️', 'category': 'Metadata Analysis',
+        'desc': 'Read/write EXIF metadata from images — detect GPS, device info leak',
+        'check_cmd': 'exiftool',
+        'install_apt': 'libimage-exiftool-perl',
+        'install_pip': None,
+        'install_custom': 'winget install -e --id OliverBetz.ExifTool  # Windows\n# OR: choco install exiftool',
+        'usable_in': ['quick', 'advanced', 'ai'],
+    },
+
     # ─── Python Libraries ──────────────────────────
     'aiohttp': {
         'name': 'aiohttp', 'icon': '📡', 'category': 'Python HTTP',

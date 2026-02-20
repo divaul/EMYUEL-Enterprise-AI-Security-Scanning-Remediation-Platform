@@ -195,10 +195,14 @@ def setup_ai_analysis_tab(parent, gui_instance):
     url_input_container.grid_columnconfigure(1, weight=0)
 
     # Prepare vars on gui_instance
-    gui_instance.ai_target_var = getattr(gui_instance, 'ai_target_var', tk.StringVar(value='https://testphp.vulnweb.com'))
-    gui_instance.ai_nlp_query_var = getattr(gui_instance, 'ai_nlp_query_var', tk.StringVar())
-    gui_instance.ai_depth_var = getattr(gui_instance, 'ai_depth_var', tk.StringVar(value='Standard'))
-    gui_instance.ai_provider_var = getattr(gui_instance, 'ai_provider_var', tk.StringVar(value='Google Gemini'))
+    gui_instance.ai_target_var       = getattr(gui_instance, 'ai_target_var', tk.StringVar(value='https://testphp.vulnweb.com'))
+    gui_instance.ai_nlp_query_var    = getattr(gui_instance, 'ai_nlp_query_var', tk.StringVar())
+    gui_instance.ai_depth_var        = getattr(gui_instance, 'ai_depth_var', tk.StringVar(value='Standard'))
+    gui_instance.ai_provider_var     = getattr(gui_instance, 'ai_provider_var', tk.StringVar(value='Google Gemini'))
+    # SSL Bypass & request options
+    gui_instance.ai_ssl_bypass_var   = getattr(gui_instance, 'ai_ssl_bypass_var', tk.BooleanVar(value=False))
+    gui_instance.ai_follow_redir_var = getattr(gui_instance, 'ai_follow_redir_var', tk.BooleanVar(value=True))
+    gui_instance.ai_timeout_var      = getattr(gui_instance, 'ai_timeout_var', tk.StringVar(value='30'))
 
     url_entry = tk.Entry(
         url_input_container,
@@ -290,8 +294,9 @@ def setup_ai_analysis_tab(parent, gui_instance):
     ).pack(side='left', padx=(0, 10))
 
     example_queries = [
-        ("🗄️ Database", "test keamanan databasenya"),
-        ("⚡ XSS", "cari celah XSS"),
+        ("🗄️ Database",  "test keamanan databasenya"),
+        ("⚡ XSS",       "cari celah XSS"),
+        ("🔒 Auth",      "test autentikasi dan session"),
         ("🔍 Full Scan", "scan semua kerentanan")
     ]
 
@@ -328,55 +333,147 @@ def setup_ai_analysis_tab(parent, gui_instance):
     config_container = tk.Frame(config_frame, bg=colors['bg_secondary'])
     config_container.pack(fill='both', expand=True, padx=15, pady=(0, 10))
 
-    # Configure grid weights for responsive resizing (two columns share space)
+    # Configure grid weights — 4 columns: Depth | Provider | Options | Timeout
     config_container.grid_columnconfigure(0, weight=1, uniform='cfg')
     config_container.grid_columnconfigure(1, weight=1, uniform='cfg')
+    config_container.grid_columnconfigure(2, weight=1, uniform='cfg')
+    config_container.grid_columnconfigure(3, weight=1, uniform='cfg')
 
-    # Left column - Analysis Depth
+    # ── Col 0: Analysis Depth ──────────────────────────
     tk.Label(
         config_container,
         text="Analysis Depth:",
         font=('Segoe UI', 9, 'bold'),
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
-    ).grid(row=0, column=0, sticky='w', pady=(0, 5), padx=(0, 10))
-
-    depth_options = ['Quick', 'Standard', 'Deep', 'Comprehensive']
+    ).grid(row=0, column=0, sticky='w', pady=(0, 5), padx=(0, 8))
 
     depth_frame = tk.Frame(config_container, bg=colors['bg_tertiary'], relief='flat', bd=1)
-    depth_frame.grid(row=1, column=0, sticky='ew', pady=(0, 5), padx=(0, 10))
-
-    depth_combo = ttk.Combobox(
+    depth_frame.grid(row=1, column=0, sticky='ew', pady=(0, 8), padx=(0, 8))
+    ttk.Combobox(
         depth_frame,
         textvariable=gui_instance.ai_depth_var,
-        values=depth_options,
-        state='readonly',
-        font=('Segoe UI', 9)
-    )
-    depth_combo.pack(fill='x', padx=5, pady=5)
+        values=['Quick', 'Standard', 'Deep', 'Comprehensive'],
+        state='readonly', font=('Segoe UI', 9)
+    ).pack(fill='x', padx=5, pady=5)
 
-    # Right column - AI Provider
+    # ── Col 1: AI Provider ─────────────────────────────
     tk.Label(
         config_container,
         text="AI Model Provider:",
         font=('Segoe UI', 9, 'bold'),
         fg=colors['text_secondary'],
         bg=colors['bg_secondary']
-    ).grid(row=0, column=1, sticky='w', pady=(0, 5), padx=(10, 0))
-
-    provider_options = ['OpenAI GPT-4', 'Google Gemini', 'Anthropic Claude']
+    ).grid(row=0, column=1, sticky='w', pady=(0, 5), padx=(8, 8))
 
     provider_frame = tk.Frame(config_container, bg=colors['bg_tertiary'], relief='flat', bd=1)
-    provider_frame.grid(row=1, column=1, sticky='ew', pady=(0, 5), padx=(10, 0))
-
-    provider_combo = ttk.Combobox(
+    provider_frame.grid(row=1, column=1, sticky='ew', pady=(0, 8), padx=(8, 8))
+    ttk.Combobox(
         provider_frame,
         textvariable=gui_instance.ai_provider_var,
-        values=provider_options,
-        state='readonly',
-        font=('Segoe UI', 9)
+        values=['OpenAI GPT-4', 'Google Gemini', 'Anthropic Claude'],
+        state='readonly', font=('Segoe UI', 9)
+    ).pack(fill='x', padx=5, pady=5)
+
+    # ── Col 2: SSL Bypass + Follow Redirect ────────────
+    tk.Label(
+        config_container,
+        text="Request Options:",
+        font=('Segoe UI', 9, 'bold'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).grid(row=0, column=2, sticky='w', pady=(0, 5), padx=(8, 8))
+
+    options_card = tk.Frame(config_container, bg=colors['bg_tertiary'],
+                            highlightbackground='#243244', highlightthickness=1)
+    options_card.grid(row=1, column=2, sticky='nsew', pady=(0, 8), padx=(8, 8))
+
+    # SSL Bypass row
+    ssl_row = tk.Frame(options_card, bg=colors['bg_tertiary'])
+    ssl_row.pack(fill='x', padx=8, pady=(7, 3))
+
+    ssl_cb = tk.Checkbutton(
+        ssl_row,
+        variable=gui_instance.ai_ssl_bypass_var,
+        text=" SSL Bypass",
+        font=('Segoe UI', 9, 'bold'),
+        fg='#f59e0b',           # amber — warn user this is unsafe
+        bg=colors['bg_tertiary'],
+        activebackground=colors['bg_tertiary'],
+        activeforeground='#f59e0b',
+        selectcolor=colors['bg_primary'],
+        cursor='hand2',
+        relief='flat'
     )
-    provider_combo.pack(fill='x', padx=5, pady=5)
+    ssl_cb.pack(side='left')
+
+    tk.Label(
+        ssl_row,
+        text="⚠",
+        font=('Segoe UI', 10),
+        fg='#f59e0b',
+        bg=colors['bg_tertiary']
+    ).pack(side='left', padx=(4, 0))
+
+    # Follow Redirect row
+    redir_row = tk.Frame(options_card, bg=colors['bg_tertiary'])
+    redir_row.pack(fill='x', padx=8, pady=(3, 7))
+
+    tk.Checkbutton(
+        redir_row,
+        variable=gui_instance.ai_follow_redir_var,
+        text=" Follow Redirects",
+        font=('Segoe UI', 9),
+        fg=colors['text_primary'],
+        bg=colors['bg_tertiary'],
+        activebackground=colors['bg_tertiary'],
+        selectcolor=colors['bg_primary'],
+        cursor='hand2',
+        relief='flat'
+    ).pack(side='left')
+
+    # ── Col 3: Request Timeout ─────────────────────────
+    tk.Label(
+        config_container,
+        text="Req. Timeout (s):",
+        font=('Segoe UI', 9, 'bold'),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).grid(row=0, column=3, sticky='w', pady=(0, 5), padx=(8, 0))
+
+    timeout_card = tk.Frame(config_container, bg=colors['bg_tertiary'],
+                            highlightbackground='#243244', highlightthickness=1)
+    timeout_card.grid(row=1, column=3, sticky='nsew', pady=(0, 8), padx=(8, 0))
+
+    tk.Entry(
+        timeout_card,
+        textvariable=gui_instance.ai_timeout_var,
+        font=('Consolas', 11, 'bold'),
+        bg=colors['bg_tertiary'],
+        fg=colors['accent_cyan'],
+        insertbackground=colors['accent_cyan'],
+        relief='flat',
+        justify='center',
+        width=6
+    ).pack(padx=10, pady=9)
+
+    # Separator + SSL warning banner (shown when SSL Bypass is ON)
+    ssl_warn_banner = tk.Label(
+        config_frame,
+        text="⚠️  SSL Bypass aktif — sertifikat SSL tidak divalidasi. Gunakan hanya untuk target testing!",
+        font=('Segoe UI', 8, 'bold'),
+        fg='#000000',
+        bg='#f59e0b',
+        padx=10, pady=4
+    )
+
+    def _toggle_ssl_warning(*_):
+        if gui_instance.ai_ssl_bypass_var.get():
+            ssl_warn_banner.pack(fill='x', padx=15, pady=(0, 6))
+        else:
+            ssl_warn_banner.pack_forget()
+
+    gui_instance.ai_ssl_bypass_var.trace_add('write', _toggle_ssl_warning)
 
     # Progress Section
     progress_frame = tk.Frame(scrollable_frame, bg=colors['bg_secondary'], relief='flat', bd=2)
