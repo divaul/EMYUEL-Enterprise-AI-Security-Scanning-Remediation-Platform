@@ -791,6 +791,19 @@ class ToolExecutor:
         expanded['param_urls']    = set(list(expanded['param_urls'])[:MAX_PARAM_URLS])
         expanded['endpoints']     = set(list(expanded['endpoints'])[:MAX_ENDPOINTS])
 
+        # Write subdomains to temp file for subjack pipeline
+        if expanded['subdomains']:
+            subs_file = os.path.join(
+                self._context.get('temp_dir', tempfile.gettempdir()),
+                'emyuel_subdomains.txt'
+            )
+            try:
+                with open(subs_file, 'w') as fp:
+                    fp.write('\n'.join(expanded['subdomains']))
+                self._context['subdomains_file'] = subs_file
+            except Exception:
+                pass
+
         return expanded
 
     def _run_vuln_on_expanded(self, vuln_tools_runnable, expanded):
@@ -951,18 +964,18 @@ class ToolExecutor:
             ts = datetime.now().strftime('%H:%M:%S')
             self.log(f"[{ts}] ✅ Phase 1 complete: {len(self.all_findings)} recon findings")
 
-# ── After Phase 1: analyze recon output, expand target surface ────
+        # ── After Phase 1: analyze recon output, expand target surface ──
         expanded = self._build_expanded_targets()
-        sub_count  = len(expanded['subdomains'])
-        param_count= len(expanded['param_urls'])
-        ep_count   = len(expanded['endpoints'])
-        port_count = len(expanded['open_ports'])
+        sub_count   = len(expanded['subdomains'])
+        param_count = len(expanded['param_urls'])
+        ep_count    = len(expanded['endpoints'])
+        port_count  = len(expanded['open_ports'])
 
         ts = datetime.now().strftime('%H:%M:%S')
-        self.log(f'\n[{ts}] 🗺️  Recon Analysis Complete — Expanded Attack Surface:')
+        self.log(f'\n[{ts}] 🗺️  Recon Analysis — Expanded Attack Surface:')
         self.log(f'  📡 {sub_count} subdomains  |  🔗 {param_count} param URLs  |  📂 {ep_count} endpoints  |  🔌 {port_count} open ports')
 
-        # ── Phase 2a: Vuln Testing on original target ────────────────────
+        # ── Phase 2a: Vuln Testing on original target ─────────────────
 
         # ── Phase 2: Vuln Testing ────────────────────────────────
         if vuln_tools:
