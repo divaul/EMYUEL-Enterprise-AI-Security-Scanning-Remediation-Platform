@@ -345,246 +345,330 @@ def _resolve_cmd(cmd_name):
 def _parse_output_to_findings(tool_id, tool_name, output_text, target):
     """Convert raw tool output into structured findings list."""
     findings = []
-
     if not output_text or not output_text.strip():
         return findings
+    lines = [l for l in output_text.strip().split('\n') if l.strip()]
 
-    lines = output_text.strip().split('\n')
+    def _f(title, severity, description, **extra):
+        return {
+            'title': title, 'severity': severity, 'description': description,
+            'source': f'external:{tool_name}', 'tool': tool_name, 'target': target,
+            **extra,
+        }
 
-    # Nuclei: [severity] [template-id] [protocol] target
+    # ── Nuclei ──────────────────────────────────────────────────────────
     if tool_id == 'nuclei':
         for line in lines:
-            line = line.strip()
-            if not line:
-                continue
-            severity = 'info'
-            for sev in ['critical', 'high', 'medium', 'low']:
-                if f'[{sev}]' in line.lower():
-                    severity = sev
-                    break
-            findings.append({
-                'title': f'[Nuclei] {line[:120]}',
-                'severity': severity,
-                'description': line,
-                'source': f'external:{tool_name}',
-                'tool': tool_name,
-                'target': target,
-            })
+            sev = next((s for s in ['critical','high','medium','low'] if f'[{s}]' in line.lower()), 'info')
+            findings.append(_f(f'[Nuclei] {line[:120]}', sev, line))
         return findings
 
-    # Nmap — open ports
+    # ── Nmap ────────────────────────────────────────────────────────────
     if tool_id == 'nmap':
+        import re as _re
+        HIGH_PORTS = {'21','23','3389','5900','69','161','512','513','514'}
         for line in lines:
-            if '/tcp' in line or '/udp' in line:
-                parts = line.split()
-                if len(parts) >= 3 and 'open' in parts[1]:
-                    findings.append({
-                        'title': f'[Nmap] Open port: {parts[0]} ({parts[2]})',
-                        'severity': 'info',
-                        'description': line.strip(),
-                        'source': f'external:{tool_name}',
-                        'tool': tool_name,
-                        'target': target,
-                    })
+            m = _re.match(r'(\d+)/(tcp|udp)\s+(open\S*)\s+(\S+)(.*)', line)
+            if not m:
+                continue
+            port, proto, state, svc = m.group(1), m.group(2), m.group(3), m.group(4)
+            high_svcs = {'ftp','telnet','rdp','vnc','rsh','rlogin','tftp','snmp'}
+            sev = ('high' if (svc.lower() in high_svcs or port in HIGH_PORTS) else
+                   'medium' if svc.lower() in {'http','https','ssh','smtp'} else 'info')
+            findings.append(_f(f'[Nmap] Open {port}/{proto} — {svc}', sev, line.strip(),
+                               port=port, protocol=proto, service=svc))
         return findings
 
-    # Subdomain tools — each line is a subdomain
-    if tool_id in ('subfinder', 'amass', 'findomain', 'chaos', 'github_subdomains', 'assetfinder'):
-        unique_subs = set()
+    # ── Masscan ─────────────────────────────────────────────────────────
+    if tool_id == 'masscan':
+        import re as _re
         for line in lines:
-            sub = line.strip()
-            if sub and '.' in sub and sub not in unique_subs:
-                unique_subs.add(sub)
-        if unique_subs:
-            findings.append({
-                'title': f'[{tool_name}] Found {len(unique_subs)} subdomains',
-                'severity': 'info',
-                'description': '\n'.join(sorted(unique_subs)[:50]),
-                'source': f'external:{tool_name}',
-                'tool': tool_name,
-                'target': target,
-            })
+            m = _re.search(r'port (\d+)/(\w+)\s+open', line)
+            if m:
+                findings.append(_f(f'[Masscan] Open port {m.group(1)}/{m.group(2)}', 'info', line.strip(), port=m.group(1)))
         return findings
 
-    # URL collectors — each line is a URL
-    if tool_id in ('waybackurls', 'gau', 'katana', 'hakrawler'):
-        urls = [l.strip() for l in lines if l.strip().startswith('http')]
-        if urls:
-            findings.append({
-                'title': f'[{tool_name}] Discovered {len(urls)} URLs',
-                'severity': 'info',
-                'description': '\n'.join(urls[:30]) + (f'\n... and {len(urls)-30} more' if len(urls) > 30 else ''),
-                'source': f'external:{tool_name}',
-                'tool': tool_name,
-                'target': target,
-            })
+    # ── Naabu ───────────────────────────────────────────────────────────
+    if tool_id == 'naabu':
+        for line in lines:
+            if ':' in line:
+                findings.append(_f(f'[Naabu] Open port: {line.strip()[:80]}', 'info', line.strip()))
         return findings
 
-    # httprobe — alive hosts
+    # ── Nikto ───────────────────────────────────────────────────────────
+    if tool_id == 'nikto':
+        for line in lines:
+            if not line.strip().startswith('+'):
+                continue
+            c = line.lstrip('+ ').strip()
+            sev = ('high' if any(k in c.lower() for k in ['osvdb','xss','injection','allow']) else
+                   'low' if any(k in c.lower() for k in ['server:','retrieved','cookie','info']) else 'medium')
+            findings.append(_f(f'[Nikto] {c[:120]}', sev, c))
+        return findings
+
+    # ── WhatWeb ─────────────────────────────────────────────────────────
+    if tool_id == 'whatweb':
+        for line in lines:
+            if line.strip() and not line.startswith('#'):
+                findings.append(_f(f'[WhatWeb] {line.strip()[:120]}', 'info', line.strip()))
+        return findings
+
+    # ── httpx ───────────────────────────────────────────────────────────
+    if tool_id == 'httpx_tool':
+        for line in lines:
+            sev = 'low' if any(c in line for c in ['[401]','[403]','[500]']) else 'info'
+            findings.append(_f(f'[httpx] {line.strip()[:120]}', sev, line.strip()))
+        return findings
+
+    # ── Subdomain tools — each subdomain = 1 finding ────────────────────
+    if tool_id in ('subfinder','amass','findomain','chaos','github_subdomains','assetfinder'):
+        seen = set()
+        for line in lines:
+            sub = line.strip().lower()
+            if sub and '.' in sub and sub not in seen:
+                seen.add(sub)
+                findings.append(_f(f'[{tool_name}] Subdomain: {sub}', 'info', sub, subdomain=sub))
+        return findings
+
+    # ── httprobe ────────────────────────────────────────────────────────
     if tool_id == 'httprobe':
-        alive = [l.strip() for l in lines if l.strip().startswith('http')]
-        if alive:
-            findings.append({
-                'title': f'[httprobe] {len(alive)} live hosts',
-                'severity': 'info',
-                'description': '\n'.join(alive[:30]),
-                'source': f'external:{tool_name}',
-                'tool': tool_name,
-                'target': target,
-            })
+        for line in lines:
+            if line.strip().startswith('http'):
+                findings.append(_f(f'[httprobe] Alive: {line.strip()[:100]}', 'info', line.strip(), url=line.strip()))
         return findings
 
-    # subjack — takeover vulns
+    # ── URL collectors — each URL = 1 finding ───────────────────────────
+    if tool_id in ('waybackurls','gau','katana','hakrawler'):
+        for line in lines:
+            line = line.strip()
+            if not line.startswith('http'):
+                continue
+            sev = 'info'
+            if '?' in line and '=' in line:
+                sev = 'medium' if any(k in line.lower() for k in ['admin','config','debug','token','key','password','backup']) else 'low'
+            findings.append(_f(f'[{tool_name}] URL: {line[:120]}', sev, line, url=line))
+        return findings
+
+    # ── Dir discovery — each path = 1 finding ───────────────────────────
+    if tool_id in ('gobuster','dirb','dirsearch','feroxbuster'):
+        import re as _re
+        for line in lines:
+            m = _re.search(r'(https?://\S+|/\S+)', line)
+            if not m:
+                continue
+            path = m.group(1)
+            sev = ('high' if any(k in path.lower() for k in ['/admin','/config','/.env','/backup','/db','/secret','/login']) else
+                   'medium' if any(k in path.lower() for k in ['/upload','/test','/debug','/.git','/user','/panel']) else 'info')
+            st = _re.search(r'\b(200|201|301|302|307|401|403|405|500)\b', line)
+            code = f' [{st.group(1)}]' if st else ''
+            findings.append(_f(f'[{tool_name}] Path: {path[:80]}{code}', sev, line.strip(), url=path))
+        return findings
+
+    # ── FFUF / WFuzz ────────────────────────────────────────────────────
+    if tool_id in ('ffuf','wfuzz'):
+        import re as _re
+        for line in lines:
+            if _re.search(r'\b(200|201|301|302|307|401|403|405|500)\b', line):
+                findings.append(_f(f'[{tool_name}] {line.strip()[:120]}', 'medium', line.strip()))
+        return findings
+
+    # ── Paramspider / Arjun ─────────────────────────────────────────────
+    if tool_id in ('paramspider','arjun'):
+        for line in lines:
+            if '?' in line and '=' in line:
+                findings.append(_f(f'[{tool_name}] Param URL: {line.strip()[:120]}', 'low', line.strip(), url=line.strip()))
+            elif any(k in line.lower() for k in ['parameter','[+]','found']):
+                findings.append(_f(f'[{tool_name}] {line.strip()[:120]}', 'low', line.strip()))
+        return findings
+
+    # ── Subjack ─────────────────────────────────────────────────────────
     if tool_id == 'subjack':
         for line in lines:
-            if 'vulnerable' in line.lower() or 'takeover' in line.lower():
-                findings.append({
-                    'title': f'[Subjack] Subdomain takeover possible',
-                    'severity': 'high',
-                    'description': line.strip(),
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
+            if any(k in line.lower() for k in ['vulnerable','takeover']):
+                findings.append(_f(f'[Subjack] Takeover: {line.strip()[:100]}', 'high', line.strip()))
+            elif line.strip():
+                findings.append(_f(f'[Subjack] {line.strip()[:100]}', 'info', line.strip()))
         return findings
 
-    # SQLMap — injection confirmations
+    # ── SQLMap ──────────────────────────────────────────────────────────
     if tool_id == 'sqlmap':
         for line in lines:
-            if 'is vulnerable' in line.lower() or 'injectable' in line.lower():
-                findings.append({
-                    'title': f'[SQLMap] SQL Injection found',
-                    'severity': 'critical',
-                    'description': line.strip(),
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
+            ll = line.lower()
+            if 'is vulnerable' in ll or 'injectable' in ll or '[critical]' in ll:
+                findings.append(_f('[SQLMap] SQL Injection confirmed', 'critical', line.strip()))
+            elif 'parameter' in ll and 'appears to be' in ll:
+                findings.append(_f(f'[SQLMap] Injectable param: {line.strip()[:100]}', 'high', line.strip()))
+            elif 'back-end dbms' in ll:
+                findings.append(_f(f'[SQLMap] DBMS: {line.strip()[:100]}', 'medium', line.strip()))
         return findings
 
-    # Dalfox — XSS
+    # ── Dalfox ──────────────────────────────────────────────────────────
     if tool_id == 'dalfox':
         for line in lines:
-            if 'vuln' in line.lower() or 'xss' in line.lower() or 'POC' in line:
-                findings.append({
-                    'title': f'[Dalfox] XSS vulnerability',
-                    'severity': 'high',
-                    'description': line.strip(),
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
-        return findings
-
-    # Bandit — Python security
-    if tool_id == 'bandit':
-        for line in lines:
-            for sev in ['HIGH', 'MEDIUM', 'LOW']:
-                if f'Severity: {sev}' in line:
-                    findings.append({
-                        'title': f'[Bandit] {line.strip()[:100]}',
-                        'severity': sev.lower(),
-                        'description': line.strip(),
-                        'source': f'external:{tool_name}',
-                        'tool': tool_name,
-                        'target': target,
-                    })
-        return findings
-
-    # Gitleaks — secrets
-    if tool_id == 'gitleaks':
-        for line in lines:
-            if 'secret' in line.lower() or 'leak' in line.lower() or 'key' in line.lower():
-                findings.append({
-                    'title': f'[Gitleaks] Secret detected',
-                    'severity': 'high',
-                    'description': line.strip()[:200],
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
-        return findings
-
-    # Hydra / Medusa — cracked creds
-    if tool_id in ('hydra', 'medusa'):
-        for line in lines:
-            if 'login:' in line.lower() or 'password:' in line.lower() or 'success' in line.lower():
-                findings.append({
-                    'title': f'[{tool_name}] Credential found',
-                    'severity': 'critical',
-                    'description': line.strip()[:200],
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
-        return findings
-
-    # SSLScan/SSLyze — weak ciphers / expired certs
-    if tool_id in ('sslscan', 'sslyze', 'testssl'):
-        for line in lines:
             ll = line.lower()
-            if any(kw in ll for kw in ['expired', 'weak', 'vulnerable', 'rejected', 'insecure', 'sslv', 'tlsv1.0']):
-                findings.append({
-                    'title': f'[{tool_name}] SSL/TLS issue',
-                    'severity': 'medium',
-                    'description': line.strip()[:200],
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
-        if not findings:
-            # No issues found, report clean
-            findings.append({
-                'title': f'[{tool_name}] SSL/TLS scan complete',
-                'severity': 'info',
-                'description': f'No major issues found. {len(lines)} lines analyzed.',
-                'source': f'external:{tool_name}',
-                'tool': tool_name,
-                'target': target,
-            })
+            if any(k in ll for k in ['poc','vuln','xss']):
+                findings.append(_f(f'[Dalfox] XSS: {line.strip()[:120]}', 'critical' if 'poc' in ll else 'high', line.strip()))
         return findings
 
-    # WPScan — WordPress vulns
-    if tool_id == 'wpscan':
+    # ── XSStrike ────────────────────────────────────────────────────────
+    if tool_id == 'xsstrike':
         for line in lines:
-            if 'vulnerability' in line.lower() or 'vuln' in line.lower():
-                findings.append({
-                    'title': f'[WPScan] WordPress vulnerability',
-                    'severity': 'high',
-                    'description': line.strip()[:200],
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
+            if any(k in line.lower() for k in ['vulnerable','xss','payload']):
+                findings.append(_f(f'[XSStrike] {line.strip()[:120]}', 'high', line.strip()))
         return findings
 
-    # Commix — command injection
+    # ── Commix ──────────────────────────────────────────────────────────
     if tool_id == 'commix':
         for line in lines:
-            if 'vulnerable' in line.lower() or 'injection' in line.lower():
-                findings.append({
-                    'title': f'[Commix] Command injection found',
-                    'severity': 'critical',
-                    'description': line.strip()[:200],
-                    'source': f'external:{tool_name}',
-                    'tool': tool_name,
-                    'target': target,
-                })
+            ll = line.lower()
+            if any(k in ll for k in ['vulnerable','injection','shell']):
+                findings.append(_f(f'[Commix] Cmd injection: {line.strip()[:120]}', 'critical' if 'shell' in ll else 'high', line.strip()))
         return findings
 
-    # Generic — report full output
-    truncated = output_text[:2000]
-    if len(output_text) > 2000:
-        truncated += f'\n... ({len(output_text)} bytes total)'
-    findings.append({
-        'title': f'[{tool_name}] Scan results',
-        'severity': 'info',
-        'description': truncated,
-        'source': f'external:{tool_name}',
-        'tool': tool_name,
-        'target': target,
-    })
+    # ── Tplmap ──────────────────────────────────────────────────────────
+    if tool_id == 'tplmap':
+        for line in lines:
+            if any(k in line.lower() for k in ['vulnerable','code execution','injection']):
+                findings.append(_f(f'[Tplmap] SSTI: {line.strip()[:120]}', 'critical', line.strip()))
+        return findings
+
+    # ── SSL tools ───────────────────────────────────────────────────────
+    if tool_id in ('sslscan','sslyze','testssl'):
+        SEV = {'heartbleed':'critical','poodle':'high','beast':'high','crime':'high','null cipher':'critical',
+               'expired':'high','self-signed':'high','vulnerable':'high','sslv2':'high','sslv3':'high',
+               'rc4':'high','des':'high','weak':'medium','tlsv1.0':'medium','tlsv1.1':'low',
+               'deprecated':'medium','insecure':'medium','md5':'medium'}
+        for line in lines:
+            ll = line.lower()
+            sev = next((v for k,v in SEV.items() if k in ll), None)
+            if sev:
+                findings.append(_f(f'[{tool_name}] {line.strip()[:120]}', sev, line.strip()))
+        if not findings:
+            findings.append(_f(f'[{tool_name}] SSL/TLS scan — no critical issues', 'info', f'{len(lines)} lines analyzed'))
+        return findings
+
+    # ── WPScan ──────────────────────────────────────────────────────────
+    if tool_id == 'wpscan':
+        for line in lines:
+            ll = line.lower()
+            if 'vulnerability' in ll or '[!]' in line:
+                findings.append(_f(f'[WPScan] {line.strip()[:120]}', 'high', line.strip()))
+            elif ('version' in ll and ('detected' in ll or 'found' in ll)) or ('user' in ll and 'found' in ll):
+                findings.append(_f(f'[WPScan] {line.strip()[:120]}', 'medium', line.strip()))
+        return findings
+
+    # ── Droopescan / Joomscan ───────────────────────────────────────────
+    if tool_id in ('droopescan','joomscan'):
+        for line in lines:
+            ll = line.lower()
+            if any(k in ll for k in ['vulnerability','version','found','detected','exposed']):
+                sev = 'high' if 'vuln' in ll else 'medium' if 'version' in ll else 'info'
+                findings.append(_f(f'[{tool_name}] {line.strip()[:120]}', sev, line.strip()))
+        return findings
+
+    # ── Hydra / Medusa ──────────────────────────────────────────────────
+    if tool_id in ('hydra','medusa'):
+        for line in lines:
+            if any(k in line.lower() for k in ['login:','password:','success']):
+                findings.append(_f(f'[{tool_name}] Credential found: {line.strip()[:150]}', 'critical', line.strip()))
+        return findings
+
+    # ── Bandit ──────────────────────────────────────────────────────────
+    if tool_id == 'bandit':
+        import re as _re
+        cur = {}
+        for line in lines:
+            if 'Severity:' in line:
+                m = _re.search(r'Severity:\s*(\w+)', line)
+                if m: cur['sev'] = m.group(1).lower()
+            if 'Issue:' in line:
+                cur['issue'] = line.split('Issue:',1)[-1].strip()
+            if 'Location:' in line and cur.get('issue'):
+                loc = line.split('Location:',1)[-1].strip()
+                findings.append(_f(f'[Bandit] {cur["issue"][:80]}', cur.get("sev","medium"),
+                                   f'{cur["issue"]} at {loc}', file_path=loc))
+                cur = {}
+        return findings
+
+    # ── Semgrep ─────────────────────────────────────────────────────────
+    if tool_id == 'semgrep':
+        import re as _re
+        for line in lines:
+            m = _re.match(r'(.+?):(\d+):\s*(\S+):\s*(.+)', line)
+            if m:
+                fpath, lineno, rule, msg = m.groups()
+                sev = 'high' if any(k in rule for k in ['injection','exec','shell','xss','sqli']) else 'medium'
+                findings.append(_f(f'[Semgrep] {rule}: {msg[:80]}', sev,
+                                   f'{fpath}:{lineno} — {msg}', file_path=fpath))
+        return findings
+
+    # ── Gitleaks ────────────────────────────────────────────────────────
+    if tool_id == 'gitleaks':
+        for line in lines:
+            ll = line.lower()
+            if any(k in ll for k in ['secret','token','key','password','credential','leak','finding']):
+                sev = 'critical' if any(k in ll for k in ['secret','token','credential']) else 'high'
+                findings.append(_f(f'[Gitleaks] {line.strip()[:120]}', sev, line.strip()))
+        return findings
+
+    # ── TruffleHog ──────────────────────────────────────────────────────
+    if tool_id == 'trufflehog':
+        for line in lines:
+            ll = line.lower()
+            if any(k in ll for k in ['found','secret','detector','verified','raw']):
+                findings.append(_f(f'[TruffleHog] {line.strip()[:120]}',
+                                   'critical' if 'verified' in ll else 'high', line.strip()))
+        return findings
+
+    # ── detect-secrets ──────────────────────────────────────────────────
+    if tool_id == 'detect_secrets':
+        import json as _json
+        try:
+            data = _json.loads(output_text)
+            for fname, secrets in data.get('results', {}).items():
+                for s in secrets:
+                    findings.append(_f(f'[detect-secrets] {s.get("type","Secret")} in {fname}', 'high',
+                                       f'Line {s.get("line_number","?")} in {fname}', file_path=fname))
+        except Exception:
+            for line in lines:
+                if line.strip():
+                    findings.append(_f(f'[detect-secrets] {line.strip()[:120]}', 'high', line.strip()))
+        return findings
+
+    # ── dnsx ────────────────────────────────────────────────────────────
+    if tool_id == 'dnsx':
+        for line in lines:
+            if line.strip():
+                findings.append(_f(f'[dnsx] {line.strip()[:100]}', 'info', line.strip()))
+        return findings
+
+    # ── Interactsh ──────────────────────────────────────────────────────
+    if tool_id == 'interactsh_client':
+        for line in lines:
+            if any(k in line.lower() for k in ['interaction','received','oob']):
+                findings.append(_f(f'[Interactsh] OOB: {line.strip()[:120]}', 'high', line.strip()))
+        return findings
+
+    # ── Generic fallback — severity-classified per line ─────────────────
+    SEV_KWS = {
+        'critical': ['critical','rce','remote code','shell','exploit','backdoor'],
+        'high':     ['vuln','vulnerable','xss','sqli','injection','leak','exposed','takeover','heap'],
+        'medium':   ['warning','found','detected','weak','misconfigured','missing header','open redirect'],
+        'low':      ['info','version','cookie','redirect','deprecated','allowed'],
+    }
+    for line in lines[:300]:
+        line = line.strip()
+        if not line or len(line) < 6:
+            continue
+        ll = line.lower()
+        sev = 'info'
+        for s, kws in SEV_KWS.items():
+            if any(k in ll for k in kws):
+                sev = s
+                break
+        findings.append(_f(f'[{tool_name}] {line[:120]}', sev, line))
     return findings
+
 
 
 # ─── Tool Executor Class ─────────────────────────────────────────
@@ -611,6 +695,172 @@ class ToolExecutor:
             'temp_dir': tempfile.mkdtemp(prefix='emyuel_'),
             'wordlist': _find_wordlist(),
         }
+
+    def _build_expanded_targets(self):
+        """
+        After Phase 1 recon, extract from findings + raw tool output:
+          - subdomains   → test with web vuln tools
+          - param_urls   → test with SQLi/XSS/injection tools
+          - endpoints    → test with dir scanners / vuln tools
+          - open_ports   → context info
+        Returns dict with sets of strings.
+        """
+        from urllib.parse import urlparse, urljoin
+        expanded = {
+            'subdomains': set(),    # 'sub.example.com'
+            'param_urls': set(),    # 'http://x.com/p?id=1'
+            'endpoints': set(),     # 'http://x.com/admin'
+            'open_ports': [],       # (port_str, service)
+        }
+        import re as _re
+
+        base_domain = _extract_domain(self.target)
+        base_url = self.target if _is_url(self.target) else f'http://{self.target}'
+
+        def _looks_like_subdomain(s):
+            return bool(s and '.' in s and not s.startswith('http')
+                        and base_domain in s and len(s) < 200)
+
+        # ── 1. Mine raw tool stdout outputs ─────────────────────────────
+        subdomain_tools = ('subfinder','amass','findomain','assetfinder','chaos','github_subdomains')
+        for tid in subdomain_tools:
+            for line in self._tool_outputs.get(tid, '').split('\n'):
+                s = line.strip().lower()
+                if _looks_like_subdomain(s):
+                    expanded['subdomains'].add(s)
+
+        param_url_tools = ('waybackurls','gau','katana','hakrawler','paramspider','arjun')
+        for tid in param_url_tools:
+            for line in self._tool_outputs.get(tid, '').split('\n'):
+                line = line.strip()
+                if line.startswith('http') and '?' in line and '=' in line:
+                    expanded['param_urls'].add(line)
+                elif '?' in line and '=' in line and not line.startswith('http'):
+                    full = base_url.rstrip('/') + '/' + line.lstrip('/')
+                    expanded['param_urls'].add(full)
+
+        dir_tools = ('gobuster','dirb','dirsearch','feroxbuster','ffuf','wfuzz')
+        for tid in dir_tools:
+            for line in self._tool_outputs.get(tid, '').split('\n'):
+                m = _re.search(r'(https?://\S+|/\S+)', line)
+                if m:
+                    path = m.group(1)
+                    if path.startswith('http') and base_domain in path:
+                        expanded['endpoints'].add(path.split('#')[0])
+                    elif path.startswith('/'):
+                        expanded['endpoints'].add(base_url.rstrip('/') + path.split('?')[0])
+
+        # ── 2. Mine structured findings ─────────────────────────────────
+        for f in self.all_findings:
+            desc = f.get('description', '')
+
+            # subdomains embedded in description
+            for line in desc.split('\n'):
+                s = line.strip().lower()
+                if _looks_like_subdomain(s):
+                    expanded['subdomains'].add(s)
+
+            # URLs with params
+            if f.get('url'):
+                url = f['url']
+                if '?' in url and '=' in url:
+                    expanded['param_urls'].add(url)
+                elif url.startswith('http') and base_domain in url:
+                    expanded['endpoints'].add(url)
+
+            # Open ports from Nmap findings
+            if f.get('port') and f.get('service'):
+                expanded['open_ports'].append((f['port'], f.get('service','')))
+
+        # ── 3. Build subdomain URLs ──────────────────────────────────────
+        # Convert subdomains to full URLs for web tools
+        subdomain_urls = set()
+        for sub in expanded['subdomains']:
+            if not sub.startswith('http'):
+                subdomain_urls.add(f'https://{sub}')
+                subdomain_urls.add(f'http://{sub}')
+        expanded['subdomain_urls'] = subdomain_urls
+
+        # ── 4. Deduplicate & cap (avoid infinite scan) ───────────────────
+        MAX_SUBDOMAINS = 15
+        MAX_PARAM_URLS = 30
+        MAX_ENDPOINTS  = 20
+
+        expanded['subdomains']    = set(list(expanded['subdomains'])[:MAX_SUBDOMAINS])
+        expanded['subdomain_urls']= set(list(expanded['subdomain_urls'])[:MAX_SUBDOMAINS*2])
+        expanded['param_urls']    = set(list(expanded['param_urls'])[:MAX_PARAM_URLS])
+        expanded['endpoints']     = set(list(expanded['endpoints'])[:MAX_ENDPOINTS])
+
+        return expanded
+
+    def _run_vuln_on_expanded(self, vuln_tools_runnable, expanded):
+        """
+        For each vuln tool, run it against appropriate expanded targets
+        discovered during recon (subdomains, param URLs, endpoints).
+        Returns additional findings list.
+        """
+        extra_findings = []
+        if not vuln_tools_runnable:
+            return extra_findings
+
+        PARAM_URL_TOOLS = {'sqlmap', 'dalfox', 'xsstrike', 'commix', 'tplmap', 'ssrfmap', 'arjun'}
+        SUBDOMAIN_TOOLS = {'nuclei', 'nikto', 'wapiti', 'whatweb', 'wpscan', 'droopescan',
+                           'joomscan', 'sslscan', 'sslyze', 'testssl', 'gobuster', 'dirsearch',
+                           'feroxbuster', 'ffuf', 'dirb', 'httpx_tool'}
+        ENDPOINT_TOOLS  = {'dalfox', 'xsstrike', 'sqlmap', 'commix', 'nikto', 'nuclei'}
+
+        ts = datetime.now().strftime('%H:%M:%S')
+        self.log(f'\n[{ts}] 🎯 Phase 2b — Vuln testing expanded targets...')
+
+        tasks = []
+        orig_norm = self.target.rstrip('/')
+
+        for tool_id, info, _orig_cmd, timeout, _orig_stdin in vuln_tools_runnable:
+            targets_for_tool = set()
+            if tool_id in PARAM_URL_TOOLS:
+                targets_for_tool.update(expanded['param_urls'])
+            if tool_id in SUBDOMAIN_TOOLS:
+                targets_for_tool.update(expanded['subdomain_urls'])
+            if tool_id in ENDPOINT_TOOLS:
+                targets_for_tool.update(expanded['endpoints'])
+
+            # Exclude original target (already scanned in Phase 2a)
+            targets_for_tool.discard(orig_norm)
+            targets_for_tool.discard(orig_norm + '/')
+
+            for exp_target in targets_for_tool:
+                built = _build_cmd(tool_id, exp_target, self._context)
+                if built is None:
+                    continue
+                cmd_list, to, stdin = built
+                resolved = _resolve_cmd(cmd_list[0])
+                if not resolved:
+                    continue
+                cmd_list[0] = resolved
+                tasks.append((tool_id, info, cmd_list, to, stdin, exp_target))
+
+        if not tasks:
+            self.log('  ℹ️  No expanded targets applicable for selected vuln tools')
+            return extra_findings
+
+        self.log(f'  🔬 Running {len(tasks)} additional targeted scans on expanded attack surface...')
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = {
+                executor.submit(self._run_single, tool_id, info, cmd, to, stdin): (tool_id, exp_target)
+                for tool_id, info, cmd, to, stdin, exp_target in tasks
+            }
+            for future in as_completed(futures):
+                tool_id, exp_target = futures[future]
+                try:
+                    results = future.result(timeout=660)
+                    extra_findings.extend(results)
+                except Exception as e:
+                    self.log(f'  ⚠️  {tool_id} on {exp_target[:60]}: {e}')
+
+        ts = datetime.now().strftime('%H:%M:%S')
+        self.log(f'[{ts}] ✅ Phase 2b complete: +{len(extra_findings)} findings from expanded targets')
+        return extra_findings
 
     def run_all(self):
         """Run tools in two phases: Recon first, then Vuln Testing."""
@@ -701,11 +951,24 @@ class ToolExecutor:
             ts = datetime.now().strftime('%H:%M:%S')
             self.log(f"[{ts}] ✅ Phase 1 complete: {len(self.all_findings)} recon findings")
 
+# ── After Phase 1: analyze recon output, expand target surface ────
+        expanded = self._build_expanded_targets()
+        sub_count  = len(expanded['subdomains'])
+        param_count= len(expanded['param_urls'])
+        ep_count   = len(expanded['endpoints'])
+        port_count = len(expanded['open_ports'])
+
+        ts = datetime.now().strftime('%H:%M:%S')
+        self.log(f'\n[{ts}] 🗺️  Recon Analysis Complete — Expanded Attack Surface:')
+        self.log(f'  📡 {sub_count} subdomains  |  🔗 {param_count} param URLs  |  📂 {ep_count} endpoints  |  🔌 {port_count} open ports')
+
+        # ── Phase 2a: Vuln Testing on original target ────────────────────
+
         # ── Phase 2: Vuln Testing ────────────────────────────────
         if vuln_tools:
             ts = datetime.now().strftime('%H:%M:%S')
             vuln_names = ', '.join(info['name'] for _, info, _, _, _ in vuln_tools)
-            self.log(f"\n[{ts}] ⚔️ Phase 2 — Vulnerability Testing ({len(vuln_tools)} tools)")
+            self.log(f"\n[{ts}] ⚔️ Phase 2a — Vuln Testing original target ({len(vuln_tools)} tools)")
             self.log(f"  Running: {vuln_names}")
 
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -722,7 +985,11 @@ class ToolExecutor:
                         self.log(f"  ❌ {tool_id}: unhandled error: {e}")
 
             ts = datetime.now().strftime('%H:%M:%S')
-            self.log(f"[{ts}] ✅ Phase 2 complete")
+            self.log(f"[{ts}] ✅ Phase 2a complete")
+
+            # ── Phase 2b: expanded vuln testing on recon-discovered targets
+            expanded_findings = self._run_vuln_on_expanded(vuln_tools, expanded)
+            self.all_findings.extend(expanded_findings)
 
         # ── Pipeline Chains (post-scan) ──────────────────────────
         self._run_pipelines()
