@@ -63,14 +63,26 @@ class WebScanner:
         
         # Create SSL context based on verify_ssl setting
         import ssl
-        ssl_context = None  # Use default SSL verification
         if not self.verify_ssl:
-            ssl_context = False  # Disable SSL verification
+            self.ssl_ctx = False  # Disable ALL SSL verification
             print(f"[Web] ⚠️ SSL verification DISABLED - vulnerable to MITM attacks!")
+        else:
+            self.ssl_ctx = None  # Use default SSL verification
         
-        # Create persistent session with SSL configuration
-        connector = aiohttp.TCPConnector(ssl=ssl_context)
-        async with aiohttp.ClientSession(connector=connector) as session:
+        # Create persistent session with SSL configuration and common headers
+        connector = aiohttp.TCPConnector(
+            ssl=self.ssl_ctx,
+            limit=10,
+            enable_cleanup_closed=True,
+        )
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+        }
+        async with aiohttp.ClientSession(connector=connector, headers=headers) as session:
             self.session = session
             
             try:
@@ -172,11 +184,20 @@ class WebScanner:
         if url.startswith('https://'):
             urls_to_try.append(url.replace('https://', 'http://', 1))
         
+        # Get ssl context stored on self (set in scan_url)
+        ssl_param = getattr(self, 'ssl_ctx', None)
+        
         for try_url in urls_to_try:
             for attempt in range(max_retries):
                 try:
                     timeout = aiohttp.ClientTimeout(total=30, connect=15)
-                    async with self.session.get(try_url, timeout=timeout, allow_redirects=True) as response:
+                    # Pass ssl explicitly per-request to ensure bypass takes effect
+                    async with self.session.get(
+                        try_url,
+                        timeout=timeout,
+                        allow_redirects=True,
+                        ssl=ssl_param,
+                    ) as response:
                         try:
                             html = await response.text(errors='replace')
                         except Exception as e:
@@ -193,7 +214,8 @@ class WebScanner:
                             'depth': depth
                         }
                         
-                except (aiohttp.ClientConnectorError, aiohttp.ClientConnectorSSLError, 
+                except (aiohttp.ClientConnectorError, aiohttp.ClientConnectorSSLError,
+                        aiohttp.ServerDisconnectedError,
                         asyncio.TimeoutError, ConnectionError, OSError) as e:
                     if attempt < max_retries - 1:
                         wait = (attempt + 1) * 2  # 2s, 4s backoff
@@ -201,7 +223,7 @@ class WebScanner:
                         await asyncio.sleep(wait)
                     else:
                         if try_url == urls_to_try[-1]:  # Last URL to try
-                            print(f"[Web] Failed to connect to {url} after {max_retries} attempts: {e}")
+                            print(f"[Web] ❌ Failed to connect to {url} (all retries exhausted): {e}")
                         else:
                             print(f"[Web] HTTPS failed for {url}, trying HTTP fallback...")
                 except Exception as e:
