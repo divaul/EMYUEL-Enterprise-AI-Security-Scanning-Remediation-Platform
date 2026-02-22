@@ -1,14 +1,14 @@
-2wsx#!/bin/bash
-# ═══════════════════════════════════════════════════════════════════════════
+﻿2wsx#!/bin/bash
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # EMYUEL - Enterprise AI-Powered Security Scanner
 # Automated Setup Script for Linux (Kali, Ubuntu, Debian, etc.)
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 set -e  # Exit on error
 
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # COLOR DEFINITIONS
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -30,49 +30,49 @@ BG_BLUE='\033[44m'
 BG_GREEN='\033[42m'
 BG_RED='\033[41m'
 
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # DISPLAY BANNER
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 clear
 echo -e "${CYAN}"
 cat << "EOF"
-    ╔═══════════════════════════════════════════════════════════════════════╗
-    ║                                                                       ║
-    ║   ███████╗███╗   ███╗██╗   ██╗██╗   ██╗███████╗██╗                   ║
-    ║   ██╔════╝████╗ ████║╚██╗ ██╔╝██║   ██║██╔════╝██║                   ║
-    ║   █████╗  ██╔████╔██║ ╚████╔╝ ██║   ██║█████╗  ██║                   ║
-    ║   ██╔══╝  ██║╚██╔╝██║  ╚██╔╝  ██║   ██║██╔══╝  ██║                   ║
-    ║   ███████╗██║ ╚═╝ ██║   ██║   ╚██████╔╝███████╗███████╗              ║
-    ║   ╚══════╝╚═╝     ╚═╝   ╚═╝    ╚═════╝ ╚══════╝╚══════╝              ║
-    ║                                                                       ║
-    ║        Enterprise AI-Powered Security Scanning Platform              ║
-    ║                    Automated Setup Wizard                            ║
-    ║                                                                       ║
-    ╚═══════════════════════════════════════════════════════════════════════╝
+    â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+    â•‘                                                                       â•‘
+    â•‘   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ•—   â–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—   â–ˆâ–ˆâ•—â–ˆâ–ˆâ•—   â–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•—                   â•‘
+    â•‘   â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ–ˆâ–ˆâ•— â–ˆâ–ˆâ–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ•— â–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•â•â•â–ˆâ–ˆâ•‘                   â•‘
+    â•‘   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ•”â–ˆâ–ˆâ–ˆâ–ˆâ•”â–ˆâ–ˆâ•‘ â•šâ–ˆâ–ˆâ–ˆâ–ˆâ•”â• â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—  â–ˆâ–ˆâ•‘                   â•‘
+    â•‘   â–ˆâ–ˆâ•”â•â•â•  â–ˆâ–ˆâ•‘â•šâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ•‘  â•šâ–ˆâ–ˆâ•”â•  â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘â–ˆâ–ˆâ•”â•â•â•  â–ˆâ–ˆâ•‘                   â•‘
+    â•‘   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ•‘ â•šâ•â• â–ˆâ–ˆâ•‘   â–ˆâ–ˆâ•‘   â•šâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•”â•â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ•—              â•‘
+    â•‘   â•šâ•â•â•â•â•â•â•â•šâ•â•     â•šâ•â•   â•šâ•â•    â•šâ•â•â•â•â•â• â•šâ•â•â•â•â•â•â•â•šâ•â•â•â•â•â•â•              â•‘
+    â•‘                                                                       â•‘
+    â•‘        Enterprise AI-Powered Security Scanning Platform              â•‘
+    â•‘                    Automated Setup Wizard                            â•‘
+    â•‘                                                                       â•‘
+    â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 EOF
 echo -e "${NC}"
 echo -e "${GRAY}    Version: 2.0.0 | Platform: Linux | Runtime: Python 3.10+${NC}"
-echo -e "${GRAY}    ─────────────────────────────────────────────────────────────────${NC}"
+echo -e "${GRAY}    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€${NC}"
 echo ""
 
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # UTILITY FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 print_header() {
     echo ""
-    echo -e "${BCYAN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BCYAN}║${NC} ${WHITE}$1${NC}"
-    echo -e "${BCYAN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BCYAN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+    echo -e "${BCYAN}â•‘${NC} ${WHITE}$1${NC}"
+    echo -e "${BCYAN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     echo ""
 }
 
 print_success() {
-    echo -e "${BGREEN}[✓]${NC} ${GREEN}$1${NC}"
+    echo -e "${BGREEN}[âœ“]${NC} ${GREEN}$1${NC}"
 }
 
 print_error() {
-    echo -e "${BRED}[✗]${NC} ${RED}$1${NC}"
+    echo -e "${BRED}[âœ—]${NC} ${RED}$1${NC}"
 }
 
 print_warning() {
@@ -80,15 +80,15 @@ print_warning() {
 }
 
 print_info() {
-    echo -e "${BCYAN}[ℹ]${NC} ${CYAN}$1${NC}"
+    echo -e "${BCYAN}[â„¹]${NC} ${CYAN}$1${NC}"
 }
 
 print_step() {
-    echo -e "${BLUE}[→]${NC} ${WHITE}$1${NC}"
+    echo -e "${BLUE}[â†’]${NC} ${WHITE}$1${NC}"
 }
 
 print_separator() {
-    echo -e "${GRAY}    ─────────────────────────────────────────────────────────────────${NC}"
+    echo -e "${GRAY}    â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€${NC}"
 }
 
 # Check if running on Kali Linux
@@ -166,7 +166,7 @@ check_prerequisites() {
 
 # Install system dependencies
 install_dependencies() {
-    print_header "📦 INSTALLING SYSTEM DEPENDENCIES"
+    print_header "ðŸ“¦ INSTALLING SYSTEM DEPENDENCIES"
     
     print_info "Updating package repositories..."
     print_separator
@@ -194,7 +194,7 @@ install_dependencies() {
     
     for pkg in "${PACKAGES[@]}"; do
         current=$((current + 1))
-        echo -ne "\r${BLUE}[→]${NC} Installing packages... ${BCYAN}[$current/$total]${NC} ${pkg}                    "
+        echo -ne "\r${BLUE}[â†’]${NC} Installing packages... ${BCYAN}[$current/$total]${NC} ${pkg}                    "
         
         if dpkg -l | grep -q "^ii  $pkg "; then
             echo -ne "\r"
@@ -214,18 +214,18 @@ install_dependencies() {
     print_separator
 }
 
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # INSTALL ALL EXTERNAL SECURITY TOOLS
-# ═══════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 install_security_tools() {
-    print_header "🔐 INSTALLING SECURITY TOOLS (80 tools)"
+    print_header "ðŸ” INSTALLING SECURITY TOOLS (80 tools)"
 
     local installed=0
     local skipped=0
     local failed=0
 
-    # ── 1. Go Runtime ────────────────────────────────────────────────────
-    print_header "🐹 Go Runtime (required for ~22 tools)"
+    # â”€â”€ 1. Go Runtime â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ¹ Go Runtime (required for ~22 tools)"
 
     if command -v go &> /dev/null; then
         GO_VER=$(go version | awk '{print $3}')
@@ -245,7 +245,7 @@ install_security_tools() {
         if command -v go &> /dev/null; then
             print_success "Go installed: $(go version)"
         else
-            print_error "Go install failed — Go-based tools will be skipped"
+            print_error "Go install failed â€” Go-based tools will be skipped"
         fi
     fi
 
@@ -253,8 +253,8 @@ install_security_tools() {
     export PATH=$PATH:$HOME/go/bin
     echo ""
 
-    # ── 2. APT Tools ─────────────────────────────────────────────────────
-    print_header "📦 APT Security Tools"
+    # â”€â”€ 2. APT Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ“¦ APT Security Tools"
 
     APT_TOOLS=(
         "nmap"
@@ -279,7 +279,7 @@ install_security_tools() {
         "libpcap-dev"
         "zaproxy"
         "unzip"
-        "libimage-exiftool-perl"   # ExifTool — EXIF/GPS metadata extraction
+        "libimage-exiftool-perl"   # ExifTool â€” EXIF/GPS metadata extraction
     )
 
     for tool in "${APT_TOOLS[@]}"; do
@@ -294,21 +294,21 @@ install_security_tools() {
             print_success "$tool ${GRAY}(already installed)${NC}"
             installed=$((installed + 1))
         else
-            echo -ne "${BLUE}[→]${NC} Installing $tool... "
+            echo -ne "${BLUE}[â†’]${NC} Installing $tool... "
             if sudo apt install -y "$tool" > /dev/null 2>&1; then
-                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool installed${NC}              "
+                echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$tool installed${NC}              "
                 installed=$((installed + 1))
             else
-                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool — not in apt repos${NC}              "
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool â€” not in apt repos${NC}              "
                 failed=$((failed + 1))
             fi
         fi
     done
     echo ""
 
-    # ── 3. Go-based Tools ────────────────────────────────────────────────
+    # â”€â”€ 3. Go-based Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if command -v go &> /dev/null; then
-        print_header "🐹 Go-based Security Tools"
+        print_header "ðŸ¹ Go-based Security Tools"
 
         declare -A GO_TOOLS=(
             ["naabu"]="github.com/projectdiscovery/naabu/v2/cmd/naabu@latest"
@@ -345,24 +345,24 @@ install_security_tools() {
                 print_success "$tool_bin ${GRAY}(already installed)${NC}"
                 installed=$((installed + 1))
             else
-                echo -ne "${BLUE}[→]${NC} go install $tool_bin ${BCYAN}[$go_current/$go_total]${NC}... "
+                echo -ne "${BLUE}[â†’]${NC} go install $tool_bin ${BCYAN}[$go_current/$go_total]${NC}... "
                 if go install -v "${GO_TOOLS[$tool_bin]}" > /dev/null 2>&1; then
-                    echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool_bin installed${NC}                          "
+                    echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$tool_bin installed${NC}                          "
                     installed=$((installed + 1))
                 else
-                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin — go install failed${NC}                          "
+                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin â€” go install failed${NC}                          "
                     failed=$((failed + 1))
                 fi
             fi
         done
         echo ""
     else
-        print_warning "Go not available — skipping 21 Go-based tools"
+        print_warning "Go not available â€” skipping 21 Go-based tools"
         skipped=$((skipped + 21))
     fi
 
-    # ── 4. pip-based Tools ───────────────────────────────────────────────
-    print_header "🐍 pip-based Security Tools"
+    # â”€â”€ 4. pip-based Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ pip-based Security Tools"
 
     # We install into the venv if active, else user pip
     PIP_TOOLS=(
@@ -393,20 +393,20 @@ install_security_tools() {
             print_success "$pkg ${GRAY}(already installed)${NC}"
             installed=$((installed + 1))
         else
-            echo -ne "${BLUE}[→]${NC} pip install $pkg... "
+            echo -ne "${BLUE}[â†’]${NC} pip install $pkg... "
             if pip install "$pkg" --quiet > /dev/null 2>&1; then
-                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$pkg installed${NC}                     "
+                echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$pkg installed${NC}                     "
                 installed=$((installed + 1))
             else
-                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$pkg — pip install failed${NC}                     "
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$pkg â€” pip install failed${NC}                     "
                 failed=$((failed + 1))
             fi
         fi
     done
     echo ""
 
-    # ── 4b. Git-only pip tools (not on PyPI) ─────────────────────────────
-    print_header "🐍 Git-based pip Tools"
+    # â”€â”€ 4b. Git-only pip tools (not on PyPI) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ Git-based pip Tools"
 
     declare -A GIT_PIP_TOOLS=(
         ["paramspider"]="git+https://github.com/devanshbatham/ParamSpider.git"
@@ -417,30 +417,30 @@ install_security_tools() {
             print_success "$tool_bin ${GRAY}(already installed)${NC}"
             installed=$((installed + 1))
         else
-            echo -ne "${BLUE}[→]${NC} pip install $tool_bin (from git)... "
+            echo -ne "${BLUE}[â†’]${NC} pip install $tool_bin (from git)... "
             if pip install "${GIT_PIP_TOOLS[$tool_bin]}" --quiet > /dev/null 2>&1; then
-                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool_bin installed${NC}                     "
+                echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$tool_bin installed${NC}                     "
                 installed=$((installed + 1))
             else
-                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin — pip install failed${NC}                     "
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin â€” pip install failed${NC}                     "
                 failed=$((failed + 1))
             fi
         fi
     done
     echo ""
 
-    # ── 4c. Aquatone (pre-built binary) ──────────────────────────────────
+    # â”€â”€ 4c. Aquatone (pre-built binary) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if ! command -v aquatone &> /dev/null; then
-        print_header "📸 Aquatone (pre-built binary)"
-        echo -ne "${BLUE}[→]${NC} Downloading Aquatone v1.7.0... "
+        print_header "ðŸ“¸ Aquatone (pre-built binary)"
+        echo -ne "${BLUE}[â†’]${NC} Downloading Aquatone v1.7.0... "
         if wget -qO /tmp/aquatone.zip https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip 2>/dev/null && \
            sudo unzip -o /tmp/aquatone.zip -d /usr/local/bin/ aquatone > /dev/null 2>&1 && \
            sudo chmod +x /usr/local/bin/aquatone; then
-            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}aquatone installed${NC}                     "
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}aquatone installed${NC}                     "
             installed=$((installed + 1))
             rm -f /tmp/aquatone.zip
         else
-            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}aquatone — download failed${NC}                     "
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}aquatone â€” download failed${NC}                     "
             failed=$((failed + 1))
         fi
         echo ""
@@ -449,17 +449,17 @@ install_security_tools() {
         installed=$((installed + 1))
     fi
 
-    # ── 4d. Kiterunner (pre-built binary) ────────────────────────────────
+    # â”€â”€ 4d. Kiterunner (pre-built binary) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if ! command -v kr &> /dev/null; then
-        echo -ne "${BLUE}[→]${NC} Downloading Kiterunner v1.0.2... "
+        echo -ne "${BLUE}[â†’]${NC} Downloading Kiterunner v1.0.2... "
         if wget -qO /tmp/kr.tar.gz https://github.com/assetnote/kiterunner/releases/download/v1.0.2/kiterunner_1.0.2_linux_amd64.tar.gz 2>/dev/null && \
            sudo tar -xzf /tmp/kr.tar.gz -C /usr/local/bin kr > /dev/null 2>&1 && \
            sudo chmod +x /usr/local/bin/kr; then
-            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}kiterunner (kr) installed${NC}                     "
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}kiterunner (kr) installed${NC}                     "
             installed=$((installed + 1))
             rm -f /tmp/kr.tar.gz
         else
-            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}kiterunner — download failed${NC}                     "
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}kiterunner â€” download failed${NC}                     "
             failed=$((failed + 1))
         fi
     else
@@ -467,7 +467,7 @@ install_security_tools() {
         installed=$((installed + 1))
     fi
 
-    # ── 4e. Git clone tools (tplmap, ssrfmap) ────────────────────────────
+    # â”€â”€ 4e. Git clone tools (tplmap, ssrfmap) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     declare -A CLONE_TOOLS=(
         ["tplmap.py"]="/opt/tplmap|https://github.com/epinna/tplmap.git"
         ["ssrfmap.py"]="/opt/ssrfmap|https://github.com/swisskyrepo/SSRFmap.git"
@@ -479,14 +479,14 @@ install_security_tools() {
             print_success "$tool_bin ${GRAY}(already installed)${NC}"
             installed=$((installed + 1))
         else
-            echo -ne "${BLUE}[→]${NC} git clone $tool_bin... "
+            echo -ne "${BLUE}[â†’]${NC} git clone $tool_bin... "
             if sudo git clone "$repo" "$dest" > /dev/null 2>&1 && \
                sudo ln -sf "$dest/$tool_bin" "/usr/local/bin/$tool_bin" && \
                sudo chmod +x "$dest/$tool_bin"; then
-                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool_bin installed${NC}                     "
+                echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$tool_bin installed${NC}                     "
                 installed=$((installed + 1))
             else
-                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin — clone failed${NC}                     "
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool_bin â€” clone failed${NC}                     "
                 failed=$((failed + 1))
             fi
         fi
@@ -494,7 +494,7 @@ install_security_tools() {
     echo ""
 
     if command -v gem &> /dev/null; then
-        print_header "💎 Ruby-based Tools"
+        print_header "ðŸ’Ž Ruby-based Tools"
 
         GEM_TOOLS=("wpscan" "brakeman")
 
@@ -503,109 +503,109 @@ install_security_tools() {
                 print_success "$tool ${GRAY}(already installed)${NC}"
                 installed=$((installed + 1))
             else
-                echo -ne "${BLUE}[→]${NC} gem install $tool... "
+                echo -ne "${BLUE}[â†’]${NC} gem install $tool... "
                 if sudo gem install "$tool" --no-document > /dev/null 2>&1; then
-                    echo -e "\r${BGREEN}[✓]${NC} ${GREEN}$tool installed${NC}              "
+                    echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$tool installed${NC}              "
                     installed=$((installed + 1))
                 else
-                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool — gem install failed${NC}              "
+                    echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$tool â€” gem install failed${NC}              "
                     failed=$((failed + 1))
                 fi
             fi
         done
         echo ""
     else
-        print_warning "Ruby not available — skipping wpscan, brakeman"
+        print_warning "Ruby not available â€” skipping wpscan, brakeman"
         skipped=$((skipped + 2))
     fi
 
-    # ── 6. npm tools ─────────────────────────────────────────────────────
+    # â”€â”€ 6. npm tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if command -v npm &> /dev/null; then
-        print_header "📦 npm-based Tools"
+        print_header "ðŸ“¦ npm-based Tools"
 
         if command -v newman &> /dev/null; then
             print_success "newman ${GRAY}(already installed)${NC}"
             installed=$((installed + 1))
         else
-            echo -ne "${BLUE}[→]${NC} npm install -g newman... "
+            echo -ne "${BLUE}[â†’]${NC} npm install -g newman... "
             if sudo npm install -g newman > /dev/null 2>&1; then
-                echo -e "\r${BGREEN}[✓]${NC} ${GREEN}newman installed${NC}              "
+                echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}newman installed${NC}              "
                 installed=$((installed + 1))
             else
-                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}newman — npm install failed${NC}              "
+                echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}newman â€” npm install failed${NC}              "
                 failed=$((failed + 1))
             fi
         fi
         echo ""
     else
-        print_warning "npm not available — skipping newman"
+        print_warning "npm not available â€” skipping newman"
         skipped=$((skipped + 1))
     fi
 
-    # ── 7. Rust-based tools (apt / pre-built binaries) ────────────────────
-    print_header "🦀 Rust-based Tools (via apt / binary download)"
+    # â”€â”€ 7. Rust-based tools (apt / pre-built binaries) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ¦€ Rust-based Tools (via apt / binary download)"
 
-    # Feroxbuster — available via apt on Kali
+    # Feroxbuster â€” available via apt on Kali
     if command -v feroxbuster &> /dev/null; then
         print_success "feroxbuster ${GRAY}(already installed)${NC}"
         installed=$((installed + 1))
     else
-        echo -ne "${BLUE}[→]${NC} apt install feroxbuster... "
+        echo -ne "${BLUE}[â†’]${NC} apt install feroxbuster... "
         if sudo apt-get install -y feroxbuster > /dev/null 2>&1; then
-            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}feroxbuster installed${NC}              "
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}feroxbuster installed${NC}              "
             installed=$((installed + 1))
         else
-            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}feroxbuster — apt install failed${NC}              "
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}feroxbuster â€” apt install failed${NC}              "
             failed=$((failed + 1))
         fi
     fi
 
-    # RustScan — pre-built .deb from GitHub releases
+    # RustScan â€” pre-built .deb from GitHub releases
     if command -v rustscan &> /dev/null; then
         print_success "rustscan ${GRAY}(already installed)${NC}"
         installed=$((installed + 1))
     else
-        echo -ne "${BLUE}[→]${NC} Downloading RustScan v2.3.0... "
+        echo -ne "${BLUE}[â†’]${NC} Downloading RustScan v2.3.0... "
         if wget -qO /tmp/rustscan.deb https://github.com/RustScan/RustScan/releases/download/2.3.0/rustscan_2.3.0_amd64.deb 2>/dev/null && \
            sudo dpkg -i /tmp/rustscan.deb > /dev/null 2>&1; then
-            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}rustscan installed${NC}              "
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}rustscan installed${NC}              "
             installed=$((installed + 1))
             rm -f /tmp/rustscan.deb
         else
-            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}rustscan — download failed${NC}              "
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}rustscan â€” download failed${NC}              "
             failed=$((failed + 1))
         fi
     fi
 
-    # Findomain — pre-built binary from GitHub releases
+    # Findomain â€” pre-built binary from GitHub releases
     if command -v findomain &> /dev/null; then
         print_success "findomain ${GRAY}(already installed)${NC}"
         installed=$((installed + 1))
     else
-        echo -ne "${BLUE}[→]${NC} Downloading Findomain v9.0.4... "
+        echo -ne "${BLUE}[â†’]${NC} Downloading Findomain v9.0.4... "
         if wget -qO /tmp/findomain.zip https://github.com/Findomain/Findomain/releases/download/9.0.4/findomain-linux.zip 2>/dev/null && \
            sudo unzip -o /tmp/findomain.zip -d /usr/local/bin/ > /dev/null 2>&1 && \
            sudo chmod +x /usr/local/bin/findomain; then
-            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}findomain installed${NC}              "
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}findomain installed${NC}              "
             installed=$((installed + 1))
             rm -f /tmp/findomain.zip
         else
-            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}findomain — download failed${NC}              "
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}findomain â€” download failed${NC}              "
             failed=$((failed + 1))
         fi
     fi
     echo ""
 
-    # ── 8. SecLists (wordlists) ──────────────────────────────────────────
-    print_header "📚 Wordlists"
+    # â”€â”€ 8. SecLists (wordlists) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ“š Wordlists"
 
     if [ -d "/usr/share/seclists" ] || [ -d "/opt/seclists" ] || [ -d "$HOME/SecLists" ]; then
         print_success "SecLists ${GRAY}(already installed)${NC}"
         installed=$((installed + 1))
     else
-        echo -ne "${BLUE}[→]${NC} Cloning SecLists (shallow)... "
+        echo -ne "${BLUE}[â†’]${NC} Cloning SecLists (shallow)... "
         if sudo git clone --depth 1 https://github.com/danielmiessler/SecLists.git /usr/share/seclists > /dev/null 2>&1; then
-            echo -e "\r${BGREEN}[✓]${NC} ${GREEN}SecLists installed to /usr/share/seclists${NC}"
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}SecLists installed to /usr/share/seclists${NC}"
             installed=$((installed + 1))
         else
             echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}SecLists clone failed${NC}"
@@ -614,15 +614,15 @@ install_security_tools() {
     fi
     echo ""
 
-    # ── Summary ──────────────────────────────────────────────────────────
-    print_header "📊 TOOL INSTALLATION SUMMARY"
-    echo -e "  ${BGREEN}✅ Installed/Available: ${installed}${NC}"
-    echo -e "  ${BYELLOW}⏭️  Skipped (missing runtime): ${skipped}${NC}"
-    echo -e "  ${BRED}❌ Failed: ${failed}${NC}"
+    # â”€â”€ Summary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    print_header "ðŸ“Š TOOL INSTALLATION SUMMARY"
+    echo -e "  ${BGREEN}âœ… Installed/Available: ${installed}${NC}"
+    echo -e "  ${BYELLOW}â­ï¸  Skipped (missing runtime): ${skipped}${NC}"
+    echo -e "  ${BRED}âŒ Failed: ${failed}${NC}"
     echo ""
     print_info "Python libs (aiohttp, requests, etc.) are installed via requirements.txt"
     print_info "Interactive tools (Burp Suite, mitmproxy) need manual setup"
-    print_info "ExifTool installed via libimage-exiftool-perl — used for EXIF/GPS metadata leak detection"
+    print_info "ExifTool installed via libimage-exiftool-perl â€” used for EXIF/GPS metadata leak detection"
     print_separator
 }
 
@@ -653,6 +653,69 @@ create_venv() {
     
     print_success "Virtual environment created"
 }
+
+
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# BLOCKCHAIN / CRYPTO TOOLS â€” Separate virtualenv to avoid dep conflicts
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+install_blockchain_venv() {
+    print_header "â›“ BLOCKCHAIN / CRYPTO TOOLS (venv_blockchain/)"
+
+    # Check Python 3.8+ requirement for slither/mythril
+    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
+    if [[ -z "$PY_VER" ]]; then
+        print_warning "Python 3 not found â€” skipping blockchain venv setup"
+        return 0
+    fi
+
+    if [ -d "venv_blockchain" ]; then
+        print_info "venv_blockchain/ already exists â€” skipping creation"
+    else
+        echo "Creating isolated venv_blockchain/ for blockchain tools..."
+        python3 -m venv venv_blockchain
+        if [ ! -d "venv_blockchain" ]; then
+            print_warning "Failed to create venv_blockchain/ â€” blockchain tools won't be available"
+            return 0
+        fi
+        print_success "venv_blockchain/ created"
+    fi
+
+    # Activate and install
+    source venv_blockchain/bin/activate 2>/dev/null || { print_warning "Could not activate venv_blockchain"; return 0; }
+
+    pip install --upgrade pip setuptools wheel --quiet
+
+    BLOCKCHAIN_PKGS=(
+        "slither-analyzer"   # Solidity static analysis
+        "mythril"            # Symbolic execution / EVM vuln scanner
+        "crytic-compile"     # Required by slither & echidna
+        "web3"               # Ethereum on-chain interaction
+        "sslyze"             # Fast TLS scanner
+        "jwt_tool"           # JWT algorithm confusion / secret cracking
+    )
+
+    local bc_installed=0
+    local bc_failed=0
+    for pkg in "${BLOCKCHAIN_PKGS[@]}"; do
+        echo -ne "${BLUE}[â†’]${NC} Installing $pkg... "
+        if pip install "$pkg" --quiet 2>/dev/null; then
+            echo -e "\r${BGREEN}[âœ“]${NC} ${GREEN}$pkg installed${NC}              "
+            bc_installed=$((bc_installed + 1))
+        else
+            echo -e "\r${BYELLOW}[!]${NC} ${YELLOW}$pkg â€” install failed${NC}              "
+            bc_failed=$((bc_failed + 1))
+        fi
+    done
+
+    deactivate
+
+    echo ""
+    print_success "Blockchain venv: $bc_installed installed, $bc_failed failed"
+    print_info "Tools auto-detected by EMYUEL from venv_blockchain/bin/python"
+    print_info "For on-chain scanning, set Etherscan API key + Infura RPC in the API Keys tab"
+    print_separator
+}
+
 
 # Install Python dependencies
 install_python_deps() {
@@ -700,10 +763,10 @@ install_python_deps() {
     else
         print_warning "Some dependencies failed to install"
         echo ""
-        echo -e "${YELLOW}⚠️  Common causes:${NC}"
-        echo -e "   ${GRAY}• Network connectivity issues${NC}"
-        echo -e "   ${GRAY}• Package version conflicts${NC}"
-        echo -e "   ${GRAY}• Missing system libraries${NC}"
+        echo -e "${YELLOW}âš ï¸  Common causes:${NC}"
+        echo -e "   ${GRAY}â€¢ Network connectivity issues${NC}"
+        echo -e "   ${GRAY}â€¢ Package version conflicts${NC}"
+        echo -e "   ${GRAY}â€¢ Missing system libraries${NC}"
         echo ""
         echo -e "${BYELLOW}These packages are optional - setup will continue${NC}"
         echo -e "${GRAY}Install missing packages later: pip install <package-name>${NC}"
@@ -726,7 +789,7 @@ install_python_deps() {
         print_warning "Some required security tools are missing"
         print_warning "Auto-installation may have failed - check output above"
         echo ""
-        echo -e "${YELLOW}⚠️  You can:${NC}"
+        echo -e "${YELLOW}âš ï¸  You can:${NC}"
         echo -e "   ${GRAY}1. Install tools manually after setup${NC}"
         echo -e "   ${GRAY}2. Re-run: python3 check_security_tools.py${NC}"
         echo -e "   ${GRAY}3. Continue anyway (reduced functionality)${NC}"
@@ -855,10 +918,10 @@ create_directories() {
 from services.database.db_manager import DatabaseManager
 try:
     db = DatabaseManager()
-    print('[DB] ✅ Database initialized successfully')
+    print('[DB] âœ… Database initialized successfully')
     print(f'[DB] Location: {db.db_path}')
 except Exception as e:
-    print(f'[DB] ⚠️ Failed to initialize database: {e}')
+    print(f'[DB] âš ï¸ Failed to initialize database: {e}')
     exit(1)
 " && print_success "Database initialized at $HOME/.emyuel/scan_history.db" || print_warning "Database initialization failed (will be created on first run)"
     fi
@@ -881,9 +944,9 @@ try:
     import google.genai
     import aiohttp
     import bs4
-    print('✓ All core dependencies imported successfully')
+    print('âœ“ All core dependencies imported successfully')
 except ImportError as e:
-    print(f'✗ Import error: {e}')
+    print(f'âœ— Import error: {e}')
     exit(1)
 " && print_success "Core dependencies verified" || { print_error "Dependency verification failed"; return 1; }
     
@@ -923,22 +986,22 @@ print_completion() {
     
     if [ $DEPS_FAILED -ne 0 ] || [ $TOOLS_FAILED -ne 0 ] || [ $VERIFY_FAILED -ne 0 ]; then
         # Setup with warnings
-        echo -e "${BYELLOW}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${BYELLOW}║${NC}                                                                       ${BYELLOW}║${NC}"
-        echo -e "${BYELLOW}║${NC}    ${BYELLOW}⚠  SETUP COMPLETE - WITH WARNINGS${NC}                              ${BYELLOW}║${NC}"
-        echo -e "${BYELLOW}║${NC}                                                                       ${BYELLOW}║${NC}"
-        echo -e "${BYELLOW}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+        echo -e "${BYELLOW}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+        echo -e "${BYELLOW}â•‘${NC}                                                                       ${BYELLOW}â•‘${NC}"
+        echo -e "${BYELLOW}â•‘${NC}    ${BYELLOW}âš   SETUP COMPLETE - WITH WARNINGS${NC}                              ${BYELLOW}â•‘${NC}"
+        echo -e "${BYELLOW}â•‘${NC}                                                                       ${BYELLOW}â•‘${NC}"
+        echo -e "${BYELLOW}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     else
         # Perfect installation
-        echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
-        echo -e "${BGREEN}║${NC}    ${BGREEN}✓  INSTALLATION SUCCESSFUL!${NC}                                   ${BGREEN}║${NC}"
-        echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
-        echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+        echo -e "${BGREEN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+        echo -e "${BGREEN}â•‘${NC}                                                                       ${BGREEN}â•‘${NC}"
+        echo -e "${BGREEN}â•‘${NC}    ${BGREEN}âœ“  INSTALLATION SUCCESSFUL!${NC}                                   ${BGREEN}â•‘${NC}"
+        echo -e "${BGREEN}â•‘${NC}                                                                       ${BGREEN}â•‘${NC}"
+        echo -e "${BGREEN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     fi
     echo ""
     
-    print_header "🚀 QUICK START GUIDE"
+    print_header "ðŸš€ QUICK START GUIDE"
     
     echo -e "${BCYAN}[1]${NC} ${WHITE}Activate Virtual Environment${NC}"
     echo -e "    ${GRAY}source venv/bin/activate${NC}"
@@ -953,57 +1016,57 @@ print_completion() {
     echo ""
     
     print_separator
-    print_header "⚡ FEATURES OVERVIEW"
+    print_header "âš¡ FEATURES OVERVIEW"
     
-    echo -e "${BCYAN}┌─${NC} ${WHITE}GUI Features${NC}"
-    echo -e "${BCYAN}│${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Quick Scan${NC}         ${GRAY}URL input + 79 external security tools${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Advanced Scan${NC}      ${GRAY}Comprehensive scanning with tool presets${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}External Tools${NC}     ${GRAY}Nmap, Nuclei, SQLMap, Subfinder, etc.${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Pipeline Chains${NC}    ${GRAY}Auto-chain tools (subfinder→httprobe)${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}AI Analysis${NC}        ${GRAY}Autonomous AI-driven security testing${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Results Monitor${NC}    ${GRAY}Real-time scan progress tracking${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Reports Hub${NC}        ${GRAY}Browse history, search, export reports${NC}"
-    echo -e "${BCYAN}├─${NC} ${BGREEN}▸${NC} ${GREEN}Database${NC}           ${GRAY}Persistent scan history (SQLite)${NC}"
-    echo -e "${BCYAN}└─${NC} ${BGREEN}▸${NC} ${GREEN}API Keys${NC}           ${GRAY}Manage OpenAI/Gemini/Claude credentials${NC}"
+    echo -e "${BCYAN}â”Œâ”€${NC} ${WHITE}GUI Features${NC}"
+    echo -e "${BCYAN}â”‚${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}Quick Scan${NC}         ${GRAY}URL input + 79 external security tools${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}Advanced Scan${NC}      ${GRAY}Comprehensive scanning with tool presets${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}External Tools${NC}     ${GRAY}Nmap, Nuclei, SQLMap, Subfinder, etc.${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}Pipeline Chains${NC}    ${GRAY}Auto-chain tools (subfinderâ†’httprobe)${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}AI Analysis${NC}        ${GRAY}Autonomous AI-driven security testing${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}Results Monitor${NC}    ${GRAY}Real-time scan progress tracking${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}Reports Hub${NC}        ${GRAY}Browse history, search, export reports${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BGREEN}â–¸${NC} ${GREEN}Database${NC}           ${GRAY}Persistent scan history (SQLite)${NC}"
+    echo -e "${BCYAN}â””â”€${NC} ${BGREEN}â–¸${NC} ${GREEN}API Keys${NC}           ${GRAY}Manage OpenAI/Gemini/Claude credentials${NC}"
     echo ""
     
-    echo -e "${BCYAN}┌─${NC} ${WHITE}Security Modules${NC}"
-    echo -e "${BCYAN}│${NC}"
-    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}XSS Detection${NC}       ${GRAY}Cross-Site Scripting vulnerabilities${NC}"
-    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}SQL Injection${NC}       ${GRAY}Database injection attacks${NC}"
-    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}CSRF${NC}                ${GRAY}Cross-Site Request Forgery${NC}"
-    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Auth Bypass${NC}         ${GRAY}Authentication vulnerabilities${NC}"
-    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Headers${NC}             ${GRAY}Security header analysis${NC}"
-    echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Brute Force${NC}         ${GRAY}Credential testing${NC}"
-    echo -e "${BCYAN}└─${NC} ${BYELLOW}◆${NC} ${YELLOW}AI-Powered${NC}          ${GRAY}GPT-4 autonomous testing${NC}"
+    echo -e "${BCYAN}â”Œâ”€${NC} ${WHITE}Security Modules${NC}"
+    echo -e "${BCYAN}â”‚${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}XSS Detection${NC}       ${GRAY}Cross-Site Scripting vulnerabilities${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}SQL Injection${NC}       ${GRAY}Database injection attacks${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}CSRF${NC}                ${GRAY}Cross-Site Request Forgery${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}Auth Bypass${NC}         ${GRAY}Authentication vulnerabilities${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}Headers${NC}             ${GRAY}Security header analysis${NC}"
+    echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}Brute Force${NC}         ${GRAY}Credential testing${NC}"
+    echo -e "${BCYAN}â””â”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}AI-Powered${NC}          ${GRAY}GPT-4 autonomous testing${NC}"
     echo ""
     
     print_separator
-    print_header "📁 DIRECTORY STRUCTURE"
+    print_header "ðŸ“ DIRECTORY STRUCTURE"
     
     echo -e "${GRAY}  ~/.emyuel/                 ${BCYAN}Application Data${NC}"
-    echo -e "${GRAY}  ├─ scan_history.db         ${GREEN}✓${NC} Scan database"
-    echo -e "${GRAY}  ├─ states/                 ${GREEN}✓${NC} Scan states"
-    echo -e "${GRAY}  └─ cache/                  ${GREEN}✓${NC} Cache files"
+    echo -e "${GRAY}  â”œâ”€ scan_history.db         ${GREEN}âœ“${NC} Scan database"
+    echo -e "${GRAY}  â”œâ”€ states/                 ${GREEN}âœ“${NC} Scan states"
+    echo -e "${GRAY}  â””â”€ cache/                  ${GREEN}âœ“${NC} Cache files"
     echo ""
     echo -e "${GRAY}  ./reports/                 ${BCYAN}Generated Reports${NC}"
     echo -e "${GRAY}  ./logs/                    ${BCYAN}Application Logs${NC}"
     echo ""
     
     print_separator
-    print_header "⚙️  CONFIGURATION"
+    print_header "âš™ï¸  CONFIGURATION"
     
-    echo -e "${BCYAN}[→]${NC} ${WHITE}Configure API Keys${NC} ${GRAY}(if skipped during setup)${NC}"
+    echo -e "${BCYAN}[â†’]${NC} ${WHITE}Configure API Keys${NC} ${GRAY}(if skipped during setup)${NC}"
     echo -e "    ${GRAY}python -m cli.emyuel_cli config --provider openai${NC}"
     echo ""
     
-    echo -e "${BCYAN}[→]${NC} ${WHITE}Edit Environment${NC}"
+    echo -e "${BCYAN}[â†’]${NC} ${WHITE}Edit Environment${NC}"
     echo -e "    ${GRAY}nano .env${NC}"
     echo ""
     
     print_separator
-    print_header "💡 PRO TIPS"
+    print_header "ðŸ’¡ PRO TIPS"
     
     echo -e "${BYELLOW}[!]${NC} ${YELLOW}Natural Language Queries${NC}"
     echo -e "    ${GRAY}Use English or Indonesian in AI Analysis tab${NC}"
@@ -1022,17 +1085,17 @@ print_completion() {
     print_separator
     
     echo ""
-    echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BGREEN}║${NC}  ${WHITE}EMYUEL is ready!${NC}  Start scanning for vulnerabilities now! 🛡️       ${BGREEN}║${NC}"
-    echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${BGREEN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+    echo -e "${BGREEN}â•‘${NC}  ${WHITE}EMYUEL is ready!${NC}  Start scanning for vulnerabilities now! ðŸ›¡ï¸       ${BGREEN}â•‘${NC}"
+    echo -e "${BGREEN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
     echo ""
 }
 
 # Interactive launcher - AT THE END OF SETUP
 launch_app() {
-    print_header "🚀 CHOOSE YOUR MODE"
+    print_header "ðŸš€ CHOOSE YOUR MODE"
     
-    echo -e "${BCYAN}[1]${NC} ${WHITE}Launch GUI Mode${NC} ${BGREEN}⭐ Recommended${NC}"
+    echo -e "${BCYAN}[1]${NC} ${WHITE}Launch GUI Mode${NC} ${BGREEN}â­ Recommended${NC}"
     echo -e "    ${GRAY}Full-featured graphical interface${NC}"
     echo -e "    ${GRAY}Configure API keys in the GUI's API Keys tab${NC}"
     echo ""
@@ -1054,7 +1117,7 @@ launch_app() {
             # Activate venv and launch GUI
             source venv/bin/activate
             
-            echo -e "${BCYAN}[→]${NC} Starting EMYUEL GUI..."
+            echo -e "${BCYAN}[â†’]${NC} Starting EMYUEL GUI..."
             echo -e "${GRAY}    Press Ctrl+C to stop${NC}"
             echo ""
             print_separator
@@ -1070,24 +1133,24 @@ launch_app() {
             # Terminal Mode - Show professional setup guide
             clear
             echo ""
-            echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-            echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
-            echo -e "${BGREEN}║${NC}    ${BGREEN}✓  SETUP COMPLETE - TERMINAL MODE${NC}                              ${BGREEN}║${NC}"
-            echo -e "${BGREEN}║${NC}                                                                       ${BGREEN}║${NC}"
-            echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+            echo -e "${BGREEN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+            echo -e "${BGREEN}â•‘${NC}                                                                       ${BGREEN}â•‘${NC}"
+            echo -e "${BGREEN}â•‘${NC}    ${BGREEN}âœ“  SETUP COMPLETE - TERMINAL MODE${NC}                              ${BGREEN}â•‘${NC}"
+            echo -e "${BGREEN}â•‘${NC}                                                                       ${BGREEN}â•‘${NC}"
+            echo -e "${BGREEN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
             echo ""
             
-            print_header "⚡ QUICK START - TERMINAL MODE"
+            print_header "âš¡ QUICK START - TERMINAL MODE"
             
             echo -e "${BCYAN}[1]${NC} ${WHITE}Activate Virtual Environment${NC}"
             echo -e "    ${GRAY}source venv/bin/activate${NC}"
             echo ""
             
             echo -e "${BCYAN}[2]${NC} ${WHITE}Configure API Keys${NC} ${BYELLOW}(Required)${NC}"
-            echo -e "    ${BGREEN}▸${NC} ${GREEN}Using CLI Configuration Tool:${NC}"
+            echo -e "    ${BGREEN}â–¸${NC} ${GREEN}Using CLI Configuration Tool:${NC}"
             echo -e "      ${GRAY}python -m cli.emyuel_cli config --provider openai${NC}"
             echo ""
-            echo -e "    ${BGREEN}▸${NC} ${GREEN}Or Edit .env File Directly:${NC}"
+            echo -e "    ${BGREEN}â–¸${NC} ${GREEN}Or Edit .env File Directly:${NC}"
             echo -e "      ${GRAY}nano .env${NC}"
             echo -e "      ${GRAY}# Add one of:${NC}"
             echo -e "      ${GRAY}#   OPENAI_API_KEY=sk-...${NC}"
@@ -1096,58 +1159,58 @@ launch_app() {
             echo ""
             
             print_separator
-            print_header "🔍 SCANNING COMMANDS"
+            print_header "ðŸ” SCANNING COMMANDS"
             
-            echo -e "${BCYAN}┌─${NC} ${WHITE}CLI Scan Examples${NC}"
-            echo -e "${BCYAN}│${NC}"
-            echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Full Security Scan${NC}"
-            echo -e "${BCYAN}│${NC}   ${GRAY}python -m cli.emyuel_cli scan --target /var/www/myapp${NC}"
+            echo -e "${BCYAN}â”Œâ”€${NC} ${WHITE}CLI Scan Examples${NC}"
+            echo -e "${BCYAN}â”‚${NC}"
+            echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}Full Security Scan${NC}"
+            echo -e "${BCYAN}â”‚${NC}   ${GRAY}python -m cli.emyuel_cli scan --target /var/www/myapp${NC}"
             echo ""
-            echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}Targeted Vulnerability Scan${NC}"
-            echo -e "${BCYAN}│${NC}   ${GRAY}python -m cli.emyuel_cli scan --target /opt/webapp --modules sqli,xss${NC}"
+            echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}Targeted Vulnerability Scan${NC}"
+            echo -e "${BCYAN}â”‚${NC}   ${GRAY}python -m cli.emyuel_cli scan --target /opt/webapp --modules sqli,xss${NC}"
             echo ""
-            echo -e "${BCYAN}├─${NC} ${BYELLOW}◆${NC} ${YELLOW}With Specific AI Provider${NC}"
-            echo -e "${BCYAN}│${NC}   ${GRAY}python -m cli.emyuel_cli scan --target ~/code --provider gemini${NC}"
+            echo -e "${BCYAN}â”œâ”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}With Specific AI Provider${NC}"
+            echo -e "${BCYAN}â”‚${NC}   ${GRAY}python -m cli.emyuel_cli scan --target ~/code --provider gemini${NC}"
             echo ""
-            echo -e "${BCYAN}└─${NC} ${BYELLOW}◆${NC} ${YELLOW}Resume Paused Scan${NC}"
+            echo -e "${BCYAN}â””â”€${NC} ${BYELLOW}â—†${NC} ${YELLOW}Resume Paused Scan${NC}"
             echo -e "    ${GRAY}python -m cli.emyuel_cli resume --scan-id <scan-id>${NC}"
             echo ""
             
             print_separator
-            print_header "🎨 GUI MODE (ALTERNATIVE)"
+            print_header "ðŸŽ¨ GUI MODE (ALTERNATIVE)"
             
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Launch GUI Anytime:${NC}"
+            echo -e "${BCYAN}[â†’]${NC} ${WHITE}Launch GUI Anytime:${NC}"
             echo -e "    ${GRAY}python -m gui.emyuel_gui${NC}"
             echo ""
             echo -e "${GRAY}    GUI Features:${NC}"
-            echo -e "${GRAY}    • Visual scan configuration${NC}"
-            echo -e "${GRAY}    • Real-time progress monitoring${NC}"
-            echo -e "${GRAY}    • Interactive API key management${NC}"
-            echo -e "${GRAY}    • Scan history browser${NC}"
-            echo -e "${GRAY}    • AI-powered analysis${NC}"
+            echo -e "${GRAY}    â€¢ Visual scan configuration${NC}"
+            echo -e "${GRAY}    â€¢ Real-time progress monitoring${NC}"
+            echo -e "${GRAY}    â€¢ Interactive API key management${NC}"
+            echo -e "${GRAY}    â€¢ Scan history browser${NC}"
+            echo -e "${GRAY}    â€¢ AI-powered analysis${NC}"
             echo ""
             
             print_separator
-            print_header "📚 HELPFUL RESOURCES"
+            print_header "ðŸ“š HELPFUL RESOURCES"
             
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Documentation${NC}"
+            echo -e "${BCYAN}[â†’]${NC} ${WHITE}Documentation${NC}"
             echo -e "    ${GRAY}cat QUICKSTART.md${NC}"
             echo -e "    ${GRAY}cat DOKUMENTASI_PROGRAM.md${NC}"
             echo ""
             
-            echo -e "${BCYAN}[→]${NC} ${WHITE}View Available Commands${NC}"
+            echo -e "${BCYAN}[â†’]${NC} ${WHITE}View Available Commands${NC}"
             echo -e "    ${GRAY}python -m cli.emyuel_cli --help${NC}"
             echo ""
             
-            echo -e "${BCYAN}[→]${NC} ${WHITE}Check Dependencies${NC}"
+            echo -e "${BCYAN}[â†’]${NC} ${WHITE}Check Dependencies${NC}"
             echo -e "    ${GRAY}python3 check_dependencies.py${NC}"
             echo ""
             
             print_separator
             echo ""
-            echo -e "${BGREEN}╔═══════════════════════════════════════════════════════════════════════╗${NC}"
-            echo -e "${BGREEN}║${NC}  ${WHITE}Ready to scan!${NC}  Happy hacking! 🛡️ 💻                                ${BGREEN}║${NC}"
-            echo -e "${BGREEN}╚═══════════════════════════════════════════════════════════════════════╝${NC}"
+            echo -e "${BGREEN}â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—${NC}"
+            echo -e "${BGREEN}â•‘${NC}  ${WHITE}Ready to scan!${NC}  Happy hacking! ðŸ›¡ï¸ ðŸ’»                                ${BGREEN}â•‘${NC}"
+            echo -e "${BGREEN}â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•${NC}"
             echo ""
             ;;
         *)
@@ -1166,7 +1229,7 @@ launch_app() {
 
 # Setup environment file (NO API KEY PROMPT - users configure later)
 setup_env() {
-    print_header "⚙️  ENVIRONMENT SETUP"
+    print_header "âš™ï¸  ENVIRONMENT SETUP"
     
     # Just create basic .env if it doesn't exist
     if [ ! -f ".env" ]; then
@@ -1177,8 +1240,8 @@ setup_env() {
     fi
     
     print_info "API keys can be configured later:"
-    echo -e "    ${GRAY}• GUI: API Keys tab${NC}"
-    echo -e "    ${GRAY}• CLI: python -m cli.emyuel_cli config${NC}"
+    echo -e "    ${GRAY}â€¢ GUI: API Keys tab${NC}"
+    echo -e "    ${GRAY}â€¢ CLI: python -m cli.emyuel_cli config${NC}"
 }
 
 # Main installation flow
@@ -1189,8 +1252,10 @@ main() {
     create_venv
     install_python_deps
     install_security_tools
+    install_blockchain_venv
     setup_env
     create_directories
+
     
     # Verify installation and capture exit code
     verify_installation
