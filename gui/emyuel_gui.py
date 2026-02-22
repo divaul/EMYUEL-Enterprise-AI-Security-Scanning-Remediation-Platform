@@ -936,12 +936,19 @@ class EMYUELGUI:
                         fg=self.colors['accent_cyan']
                     ))
                     
+                    # Read concurrent workers setting from UI (Advanced Options spinbox)
+                    _mw = getattr(self, 'adv_max_workers_var', None)
+                    try:
+                        max_workers_val = max(1, min(16, int(_mw.get()))) if _mw else 5
+                    except (ValueError, AttributeError):
+                        max_workers_val = 5
+
                     executor = ToolExecutor(
                         target=target,
                         selected_tool_ids=selected_tools,
                         tool_registry=SECURITY_TOOLS,
                         log_fn=lambda msg: self.root.after(0, lambda m=msg: self.log_console(m)),
-                        max_workers=5,
+                        max_workers=max_workers_val,
                     )
                     all_ext_findings = executor.run_all()
                     

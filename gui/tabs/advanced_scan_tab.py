@@ -291,11 +291,12 @@ def setup_advanced_tab(parent, gui_instance):
     adv_frame = tk.Frame(right_col, bg=colors['bg_secondary'])
     adv_frame.pack(fill='x')
 
-    # Example advanced options as checkboxes
-    gui_instance.opt_recursive_var = tk.BooleanVar(value=True)
+    # Advanced option variables
+    gui_instance.opt_recursive_var    = tk.BooleanVar(value=True)
     gui_instance.opt_follow_links_var = tk.BooleanVar(value=False)
-    gui_instance.opt_bypass_waf_var = tk.BooleanVar(value=False)
-    gui_instance.opt_skip_ssl_var = tk.BooleanVar(value=False)  # SSL verification on by default
+    gui_instance.opt_bypass_waf_var   = tk.BooleanVar(value=False)
+    gui_instance.opt_skip_ssl_var     = tk.BooleanVar(value=False)
+    gui_instance.adv_max_workers_var  = tk.IntVar(value=5)   # concurrent tools
 
     tk.Checkbutton(
         adv_frame, text="Recursive Crawling", variable=gui_instance.opt_recursive_var,
@@ -314,15 +315,69 @@ def setup_advanced_tab(parent, gui_instance):
         bg=colors['bg_secondary'], fg=colors['text_primary'], selectcolor=colors['bg_tertiary'],
         activebackground=colors['bg_secondary']
     ).pack(anchor='w', pady=2)
-    
-    # SSL Verification toggle - NEW
+
+    # SSL Verification toggle
     tk.Checkbutton(
-        adv_frame, text="⚠️ Skip SSL Verification (for invalid/self-signed certs)", 
+        adv_frame, text="⚠️ Skip SSL Verification (for invalid/self-signed certs)",
         variable=gui_instance.opt_skip_ssl_var,
         bg=colors['bg_secondary'], fg=colors['warning'], selectcolor=colors['bg_tertiary'],
         activebackground=colors['bg_secondary'],
-        font=('Segoe UI', 9, 'bold')  # Make it stand out
+        font=('Segoe UI', 9, 'bold')
     ).pack(anchor='w', pady=2)
+
+    # ── Concurrent Tools (max_workers) ────────────────────────────────────
+    workers_row = tk.Frame(adv_frame, bg=colors['bg_secondary'])
+    workers_row.pack(anchor='w', fill='x', pady=(10, 2))
+
+    tk.Label(
+        workers_row,
+        text="⚡ Concurrent Tools:",
+        font=('Segoe UI', 10),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).pack(side='left', padx=(0, 8))
+
+    workers_spin = tk.Spinbox(
+        workers_row,
+        from_=1, to=16,
+        textvariable=gui_instance.adv_max_workers_var,
+        width=4,
+        font=('Segoe UI', 10),
+        bg=colors['bg_tertiary'],
+        fg=colors['text_primary'],
+        insertbackground=colors['text_primary'],
+        buttonbackground=colors['bg_tertiary'],
+        relief='flat',
+        bd=4
+    )
+    workers_spin.pack(side='left')
+
+    tk.Label(
+        workers_row,
+        text="tools jalan bersamaan  (1–16, default: 5)",
+        font=('Segoe UI', 9),
+        fg=colors['text_secondary'],
+        bg=colors['bg_secondary']
+    ).pack(side='left', padx=(8, 0))
+
+    # Warning label — shown when value > 8
+    workers_warn = tk.Label(
+        adv_frame,
+        text="",
+        font=('Segoe UI', 8),
+        fg=colors.get('warning', '#f59e0b'),
+        bg=colors['bg_secondary']
+    )
+    workers_warn.pack(anchor='w', padx=2)
+
+    def _on_workers_change(*_):
+        v = gui_instance.adv_max_workers_var.get()
+        if v > 8:
+            workers_warn.config(text="⚠ Nilai tinggi bisa bikin target rate-limit / IP ban")
+        else:
+            workers_warn.config(text="")
+
+    gui_instance.adv_max_workers_var.trace_add('write', _on_workers_change)
 
     # ---------- Control buttons (responsive) ----------
     control_frame = tk.Frame(scrollable_frame, bg=colors['bg_primary'])
