@@ -23,6 +23,7 @@ from gui.tabs.ai_analysis_tab import setup_ai_analysis_tab
 from gui.tabs.api_keys_tab import setup_api_tab
 from gui.tabs.reports_tab import setup_reports_tab
 from gui.tabs.results_tab import setup_results_tab  # Re-enabled for real-time monitoring
+from gui.tabs.crypto_blockchain_tab import setup_crypto_blockchain_tab
 
 
 # Add parent directory to path
@@ -530,6 +531,11 @@ class EMYUELGUI:
         reports_frame = tk.Frame(notebook, bg=self.colors['bg_secondary'])
         setup_reports_tab(reports_frame, self)
         notebook.add(reports_frame, text='📋 Reports')
+
+        # Crypto & Blockchain Analysis tab
+        crypto_frame = tk.Frame(notebook, bg=self.colors['bg_primary'])
+        setup_crypto_blockchain_tab(crypto_frame, self)
+        notebook.add(crypto_frame, text='🔐 Crypto & Blockchain')
         
         # Auto-load scan history after tab is created
         if self.db and hasattr(self, 'scan_history_listbox') and self.scan_history_listbox:
@@ -551,9 +557,96 @@ class EMYUELGUI:
         self.status_label.pack(side='left', padx=20, pady=10)
     
     # setup_quick_scan_tab and setup_advanced_tab removed - now using modular versions
-    
+
     # setup_api_tab removed - now using modular version from gui/tabs/api_keys_tab.py
-    
+
+    # ── Crypto & Blockchain tab methods ──────────────────────────────────────
+
+    def start_crypto_scan(self, mode='crypto'):
+        """Start crypto/blockchain scan based on current sub-tab mode."""
+        import threading
+        mode_names = {
+            'crypto':      '🔏 Cryptography',
+            'crypto_coin': '₿ Cryptocurrency',
+            'blockchain':  '⛓ Blockchain',
+        }
+        label = mode_names.get(mode, mode)
+        if hasattr(self, 'crypto_status_label'):
+            self.crypto_status_label.config(text=f'Running {label} analysis...')
+        if hasattr(self, 'crypto_console'):
+            self.crypto_console.config(state='normal')
+            self.crypto_console.delete('1.0', 'end')
+            self.crypto_console.insert('end', f'[EMYUEL] Starting {label} analysis...\n')
+            self.crypto_console.config(state='disabled')
+        # Dispatch to background thread
+        t = threading.Thread(target=self._run_crypto_scan, args=(mode,), daemon=True)
+        t.start()
+
+    def _run_crypto_scan(self, mode):
+        """Background worker for crypto scan."""
+        import time
+        from gui.tool_executor import ToolExecutor
+        from gui.security_tools import SECURITY_TOOLS
+
+        TARGET_VARS = {
+            'crypto':      'crypto_target_var',
+            'crypto_coin': 'coin_target_var',
+            'blockchain':  'blockchain_target_var',
+        }
+        TOOL_MAP = {
+            'crypto':      ['sslscan', 'testssl', 'sslyze', 'jwt_tool'],
+            'crypto_coin': ['gitleaks', 'trufflehog'],
+            'blockchain':  ['slither', 'mythril'],
+        }
+        target = getattr(self, TARGET_VARS.get(mode, 'crypto_target_var'), None)
+        target = target.get().strip() if target else ''
+        if not target:
+            self._crypto_log('[Error] No target specified.\n')
+            return
+
+        tool_ids = TOOL_MAP.get(mode, [])
+        executor = ToolExecutor(
+            target=target,
+            selected_tool_ids=tool_ids,
+            tool_registry=SECURITY_TOOLS,
+            log_fn=self._crypto_log,
+            max_workers=3,
+        )
+        findings = executor.run_all()
+        self._crypto_log(f'\n[✓] Done — {len(findings)} finding(s) found.\n')
+        self.root.after(0, lambda: self.crypto_status_label.config(
+            text=f'✅ Done — {len(findings)} finding(s)') if hasattr(self, 'crypto_status_label') else None)
+
+    def _crypto_log(self, msg):
+        """Append text to the crypto console."""
+        def _update():
+            if not hasattr(self, 'crypto_console'):
+                return
+            self.crypto_console.config(state='normal')
+            self.crypto_console.insert('end', msg)
+            self.crypto_console.see('end')
+            self.crypto_console.config(state='disabled')
+        self.root.after(0, _update)
+
+    def crypto_ai_analyze(self, mode='crypto'):
+        """Send crypto scan findings to LLM for analysis."""
+        messagebox.showinfo('AI Analyze',
+            'AI analysis for Crypto & Blockchain tab will use the configured LLM provider.\n'
+            'Run a scan first, then click AI Analyze to get AI-powered remediation advice.')
+
+    def crypto_export_report(self, fmt='json'):
+        """Export crypto scan findings to file."""
+        from tkinter import filedialog
+        ext = '.json' if fmt == 'json' else '.pdf'
+        path = filedialog.asksaveasfilename(
+            defaultextension=ext,
+            filetypes=[('JSON', '*.json'), ('PDF', '*.pdf'), ('All', '*.*')],
+            title='Export Crypto Scan Report'
+        )
+        if path:
+            messagebox.showinfo('Export', f'Report would be saved to:\n{path}\n(Full export coming in next release)')
+
+
     def create_api_key_section(self, parent, provider_name, var, provider_key):
         """Create API key input section"""
         

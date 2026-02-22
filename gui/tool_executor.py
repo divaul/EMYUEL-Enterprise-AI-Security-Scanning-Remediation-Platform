@@ -223,6 +223,16 @@ def _build_cmd(tool_id, target, context=None):
         # For URL targets: we download all <img> tags and scan them
         # For path targets: recursive exiftool scan on local directory
         'exiftool': lambda: _exiftool_cmd(target, domain, temp_dir, is_url_target, is_path_target),
+
+        # ─── Cryptography Tools ─────────────────────────────────
+        'sslyze':   lambda: _sslyze_cmd(target, domain, is_url_target),
+        'jwt_tool': lambda: _jwt_tool_cmd(target, domain, is_url_target),
+
+        # ─── Blockchain / Smart Contract Tools ──────────────────
+        # These run via venv_blockchain/ Python to avoid dep conflicts
+        'slither':  lambda: _slither_cmd(target, is_path_target),
+        'mythril':  lambda: _mythril_cmd(target, is_path_target),
+        'echidna':  lambda: _echidna_cmd(target, is_path_target, temp_dir),
     }
 
     builder = builders.get(tool_id)
@@ -284,7 +294,111 @@ def _shuffledns_cmd(domain, wordlist):
     return (['shuffledns', '-d', domain, '-w', wordlist, '-r', resolver, '-silent'], 120, None)
 
 
+
+
+# ─── Cryptography Tool Builders ─────────────────────────────────────────────
+
+def _sslyze_cmd(target, domain, is_url_target):
+    """Run sslyze TLS scan against an HTTPS target."""
+    host = domain or target.replace('https://', '').replace('http://', '').split('/')[0]
+    if not host:
+        return None
+    return (['python', '-m', 'sslyze', '--regular', '--json_out=-', host], 90, None)
+
+
+def _jwt_tool_cmd(target, domain, is_url_target):
+    """
+    jwt_tool: if target is a URL, try to extract Authorization header first.
+    Falls back to scanning target as a raw JWT string if it looks like one.
+    """
+    t = target.strip()
+    # Heuristic: raw JWT has exactly 2 dots and starts with 'ey'
+    if t.startswith('ey') and t.count('.') == 2:
+        return (['jwt_tool', t, '--all'], 60, None)
+    # Otherwise fetch the URL and pull the Bearer token from the response
+    if is_url_target:
+        script = (
+            "import sys, urllib.request\n"
+            "try:\n"
+            f"    r = urllib.request.urlopen({repr(t)}, timeout=10)\n"
+            "    auth = r.headers.get('Authorization') or r.headers.get('WWW-Authenticate') or ''\n"
+            "    token = auth.replace('Bearer ', '').strip()\n"
+            "    if token.startswith('ey') and '.' in token:\n"
+            "        import subprocess, sys\n"
+            "        subprocess.run(['jwt_tool', token, '--all'], check=False)\n"
+            "    else:\n"
+            "        print('[jwt_tool] No JWT token found in response headers')\n"
+            "except Exception as e:\n"
+            "    print(f'[jwt_tool] Error: {e}')\n"
+        )
+        import tempfile, os
+        tmp = os.path.join(tempfile.gettempdir(), f'jwt_fetch_{domain}.py')
+        with open(tmp, 'w') as fh:
+            fh.write(script)
+        return (['python', tmp], 60, None)
+    return None
+
+
+# ─── Blockchain Tool Builders ────────────────────────────────────────────────
+
+def _blockchain_python():
+    """
+    Return the Python executable inside venv_blockchain/ if it exists,
+    otherwise fall back to the system Python (will print a warning).
+    """
+    import pathlib, sys
+    # Look for venv_blockchain relative to the repo root (2 levels up from this file)
+    this_dir = pathlib.Path(__file__).resolve().parent        # gui/
+    repo_root = this_dir.parent                               # emyuel/
+    venv_py_linux   = repo_root / 'venv_blockchain' / 'bin'   / 'python'
+    venv_py_windows = repo_root / 'venv_blockchain' / 'Scripts' / 'python.exe'
+    for p in (venv_py_linux, venv_py_windows):
+        if p.is_file():
+            return str(p)
+    return sys.executable  # fallback
+
+
+def _slither_cmd(target, is_path_target):
+    """Slither static analysis on a .sol file."""
+    sol = target.strip()
+    if not sol.endswith('.sol') or not __import__('os').path.isfile(sol):
+        return None
+    py = _blockchain_python()
+    return ([py, '-m', 'slither', sol, '--json', '-'], 180, None)
+
+
+def _mythril_cmd(target, is_path_target):
+    """Mythril symbolic execution on a .sol file or contract address."""
+    t = target.strip()
+    py = _blockchain_python()
+    if t.endswith('.sol') and __import__('os').path.isfile(t):
+        return ([py, '-m', 'mythril.interfaces.cli', 'analyze', t, '-o', 'json'], 300, None)
+    if t.startswith('0x') and len(t) == 42:
+        # On-chain: needs RPC
+        return ([py, '-m', 'mythril.interfaces.cli', 'analyze', '-a', t,
+                 '--execution-timeout', '120', '-o', 'json'], 300, None)
+    return None
+
+
+def _echidna_cmd(target, is_path_target, temp_dir):
+    """Echidna property fuzzer — needs a .sol file and echidna binary."""
+    sol = target.strip()
+    import shutil, os
+    if not sol.endswith('.sol') or not os.path.isfile(sol):
+        return None
+    if not shutil.which('echidna') and not shutil.which('echidna-test'):
+        return None
+    bin_name = 'echidna' if shutil.which('echidna') else 'echidna-test'
+    # Write minimal echidna config
+    cfg_path = os.path.join(temp_dir, 'echidna.yaml')
+    if not os.path.isfile(cfg_path):
+        with open(cfg_path, 'w') as fh:
+            fh.write('testMode: "property"\ntestLimit: 50000\n')
+    return ([bin_name, sol, '--config', cfg_path], 120, None)
+
+
 # ─── Pipeline Chains ─────────────────────────────────────────────
+
 # Pipelines run tool A, capture output, feed as stdin to tool B.
 # These run automatically if BOTH tools are selected.
 

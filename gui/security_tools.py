@@ -510,7 +510,65 @@ SECURITY_TOOLS = {
         'usable_in': ['quick', 'advanced', 'ai'],
     },
 
+    # ─── Cryptography Tools ────────────────────────────────────
+    'sslyze': {
+        'name': 'SSLyze', 'icon': '🔬', 'category': 'Cryptography',
+        'desc': 'Fast Python-based TLS scanner with JSON output',
+        'check_cmd': 'sslyze', 'install_apt': None, 'install_pip': 'sslyze',
+        'usable_in': ['advanced', 'ai', 'crypto'],
+    },
+    'jwt_tool': {
+        'name': 'JWT Tool', 'icon': '🎫', 'category': 'Cryptography',
+        'desc': 'JWT token algorithm confusion & secret cracking',
+        'check_cmd': 'jwt_tool', 'install_apt': None, 'install_pip': 'jwt_tool',
+        'usable_in': ['advanced', 'ai', 'crypto'],
+    },
+
+    # ─── Blockchain / Smart Contract Tools ────────────────────
+    # NOTE: slither, mythril, echidna run in venv_blockchain/ to avoid
+    # dependency conflicts with the main venv.
+    'slither': {
+        'name': 'Slither', 'icon': '🐍', 'category': 'Blockchain',
+        'desc': 'Solidity static analysis — detects reentrancy, access control, etc.',
+        'check_cmd': 'slither',
+        'install_apt': None,
+        'install_pip': 'slither-analyzer',
+        'install_custom': 'pip install slither-analyzer  # in venv_blockchain/',
+        'usable_in': ['crypto'],
+    },
+    'mythril': {
+        'name': 'Mythril', 'icon': '🔥', 'category': 'Blockchain',
+        'desc': 'Symbolic execution engine for EVM bytecode vulnerability detection',
+        'check_cmd': 'myth',
+        'install_apt': None,
+        'install_pip': 'mythril',
+        'install_custom': 'pip install mythril  # in venv_blockchain/',
+        'usable_in': ['crypto'],
+    },
+    'echidna': {
+        'name': 'Echidna', 'icon': '🦔', 'category': 'Blockchain',
+        'desc': 'Property-based smart contract fuzzer (requires crytic-compile)',
+        'check_cmd': 'echidna',
+        'install_apt': None,
+        'install_pip': None,
+        'install_custom': (
+            'wget https://github.com/crytic/echidna/releases/latest/download/'
+            'echidna-linux.zip -O /tmp/echidna.zip\n'
+            'sudo unzip -o /tmp/echidna.zip -d /usr/local/bin/'
+        ),
+        'usable_in': ['crypto'],
+    },
+    'web3': {
+        'name': 'Web3.py', 'icon': '⛓', 'category': 'Blockchain SDK',
+        'desc': 'Python library for Ethereum on-chain interaction',
+        'check_cmd': None, 'install_apt': None,
+        'install_pip': 'web3',
+        'install_custom': 'pip install web3  # in venv_blockchain/',
+        'usable_in': ['crypto'],
+    },
+
     # ─── Python Libraries ──────────────────────────
+
     'aiohttp': {
         'name': 'aiohttp', 'icon': '📡', 'category': 'Python HTTP',
         'desc': 'Async HTTP client/server for Python',
