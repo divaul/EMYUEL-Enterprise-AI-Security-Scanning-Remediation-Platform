@@ -1,4 +1,4 @@
-﻿2wsx#!/bin/bash
+2wsx#!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
 # EMYUEL - Enterprise AI-Powered Security Scanner
 # Automated Setup Script for Linux (Kali, Ubuntu, Debian, etc.)
